@@ -106,13 +106,13 @@ instance FromJSON Message where
 
 parseMessage :: Object -> Parser User
 parseMessage o = do
-  mSender <- o .: "messageSender"
-  mReceiver <- o .: "messageReceiver"
+  mSender    <- o .: "messageSender"
+  mReceiver  <- o .: "messageReceiver"
   mTimeStamp <- o .: "messageTimeStamp"
-  mContent <- o .: "messageContent"
+  mContent   <- o .: "messageContent"
   return Message
-    { messageSender = mSender
-    , messageReceiver = mReceiver
+    { messageSender    = mSender
+    , messageReceiver  = mReceiver
     , messageTimeStamp = mTimeStamp
-    , messageContent = mContent
+    , messageContent   = mContent
     }

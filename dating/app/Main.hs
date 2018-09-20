@@ -1,6 +1,11 @@
 module Main where
 
-import Lib
+import Database (localConnString, migrateDB)
 
 main :: IO ()
-main = startApp
+main = do
+  putStrLn "TRYING TO MIGRATING DATABASE..."
+  _ <- migrateDB localConnString
+  putStrLn "SUCCESS"
+  putStrLn "TRYING TO RUN SERVER..."
+  runServer

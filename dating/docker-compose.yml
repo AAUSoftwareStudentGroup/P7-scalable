@@ -1,11 +1,22 @@
 version: '3'
 services:
+    postgres:
+        image: postgres:9.6
+        ports:
+          - "5432:5432"
+    redis:
+      image: redis:4.0
+      ports:
+        - "6379:6379"
     dating:
         build: .
         image: dating
         command: dating
         expose:
-            - "1234"
+           - "1234"
+        depends_on:
+          - postgres
+          - redis
     nginx:
         build: ./nginx
         image: nginx

@@ -11,6 +11,7 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
 
+{-
 data User = User
   { userId        :: Int
   , userFirstName :: String
@@ -38,3 +39,4 @@ users = [ User 1 "Isaac" "Newton"
         , User 2 "Albert" "Einstein"
         , User 3 "Stephen" "Hawking"
         ]
+-}
