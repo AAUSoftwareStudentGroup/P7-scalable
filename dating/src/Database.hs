@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Database where
 
 import           Control.Monad (void)

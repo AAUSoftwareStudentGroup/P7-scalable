@@ -35,7 +35,7 @@ fetchUserHandler pgInfo redisInfo uid = do
     Nothing -> do
       maybeUser <- liftIO $ fetchUserPG pgInfo uid
       case maybeUser of
-        Just user -> liftIO (cacheUser redisInfo uid user) >> return user
+        Just user -> liftIO (createUserRedis redisInfo uid user) >> return user
         Nothing -> Handler $ throwE $ err401 { errBody = "Could not find user with that ID"}
 
 

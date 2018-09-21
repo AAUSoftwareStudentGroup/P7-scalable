@@ -1,24 +1,32 @@
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE QuasiQuotes                #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE EmptyDataDecls             #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 
 module Schema where
 
 import           Data.Aeson (ToJSON, toJSON, object, (.=), FromJSON, parseJSON, (.:), withObject
                             , Object)
 import           Data.Aeson.Types (Parser, Pair)
-import           Database.Persist (Entity(..), Entity)
+import           Data.Time.Clock (UTCTime)
+import           Data.Time.Calendar (Day)
+import           Database.Persist (Entity(..), Entity, Key)
 import qualified Database.Persist.TH as PTH
 import           Data.Text (Text)
-import           Elm (ElmType)
 import           GHC.Generics
+import           Elm (ElmType)
+
+import           SchemaEnums
+
 
 PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persistLowerCase|
   User sql=users
@@ -41,19 +49,6 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
     deriving Show Read Eq Generic
 |]
 
-
-data Gender =
-    Male
-  | Female
-  | Other
-  deriving (Show, Read, Eq)
-PTH.derivePersistField "Gender"
-
-
--- USER
-
-instance ElmType User
-
 instance ToJSON User where
   toJSON user = object
     [ "userEmail"       .= userEmail user
@@ -64,6 +59,12 @@ instance ToJSON User where
     , "userTown"        .= userTown user
     , "userProfileText" .= userProfileText user
     ]
+
+{-instance ElmType User
+instance ElmType Message
+instance ElmType (Key User)
+instance Generic (Key User)
+-- instance Rep (Key User)-}
 
 instance FromJSON User where
   parseJSON = withObject "User" parseUser
@@ -90,7 +91,6 @@ parseUser o = do
 
 -- MESSAGE
 
-instance ElmType Message
 
 instance ToJSON Message where
   toJSON msg = object
@@ -104,7 +104,7 @@ instance FromJSON Message where
   parseJSON = withObject "Message" parseMessage
 
 
-parseMessage :: Object -> Parser User
+parseMessage :: Object -> Parser Message
 parseMessage o = do
   mSender    <- o .: "messageSender"
   mReceiver  <- o .: "messageReceiver"
@@ -116,3 +116,4 @@ parseMessage o = do
     , messageTimeStamp = mTimeStamp
     , messageContent   = mContent
     }
+
