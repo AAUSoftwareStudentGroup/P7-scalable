@@ -1,13 +1,18 @@
-module ApiClient exposing (..)
+module ClientApi exposing (Gender(..), User, getUserByUserid, decodeUser, encodeGender)
 
+import Http
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Json.Encode
-import Http
+import Json.Encode exposing (encode)
 import String
 import Url.Builder exposing (crossOrigin)
 
-type Gender = Male | Female | Other
+
+type Gender
+    = Male
+    | Female
+    | Other
+
 
 type alias User =
     { userEmail : String
@@ -26,28 +31,42 @@ decodeUser =
         |> required "userEmail" string
         |> required "userPassword" string
         |> required "userUsername" string
-        |> required "userGender" gender
+        |> custom gender
         |> required "userBirthday" string
         |> required "userTown" string
         |> required "userProfileText" string
 
 
 gender : Decoder Gender
-gender = Json.Decode.succeed Male
--- gender =
---     case str of
---                 "Male" ->
---                     Json.Decode.succeed Male
---                 "Female" ->
---                     Json.Decode.succeed Female
---                 "Other" ->
---                     Json.Decode.succeed Other
---                 somethingElse ->
---                     Json.Decode.fail <| "Unknown gender: " ++ somethingElse
---         )
+gender =
+    field "userGender" string
+        |> Json.Decode.andThen decodeGender
 
 
-getUserByUserid : Int -> Http.Request (User)
+decodeGender : String -> Decoder Gender
+decodeGender str =
+    case str of
+        "Male" ->
+            Json.Decode.succeed Male
+
+        "Female" ->
+            Json.Decode.succeed Female
+
+        "Other" ->
+            Json.Decode.succeed Other
+
+        somethingElse ->
+            Json.Decode.fail <| "Unknown gender: " ++ somethingElse
+
+encodeGender : Gender -> Json.Encode.Value
+encodeGender g =
+    case g of
+        Male -> Json.Encode.string "Male"
+        Female -> Json.Encode.string "Female"
+        Other -> Json.Encode.string "Other"
+
+
+getUserByUserid : Int -> Http.Request User
 getUserByUserid capture_userid =
     Http.request
         { method =
@@ -68,7 +87,10 @@ getUserByUserid capture_userid =
 
 
 theUrl : Int -> String
-theUrl uid = crossOrigin "http://localhost/" ["users", String.fromInt uid] []
+theUrl uid =
+    crossOrigin "http://localhost/" [ "users", String.fromInt uid ] []
+
+
 
 -- postUsers : User -> Http.Request (Int)
 -- postUsers body =
@@ -91,4 +113,3 @@ theUrl uid = crossOrigin "http://localhost/" ["users", String.fromInt uid] []
 --         , withCredentials =
 --             False
 --         }
-
