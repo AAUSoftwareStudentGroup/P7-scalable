@@ -19,10 +19,10 @@ services:
         depends_on:
           - postgres
           - redis
-    # nginx:
-    #     build: ./nginx
-    #     image: nginx
-    #     ports:
-    #         - "8080:80"
-    #     depends_on:
-    #         - dating
+    nginx:
+        build: ./nginx
+        image: nginx
+        ports:
+          - "8080:80"
+        depends_on:
+          - dating
