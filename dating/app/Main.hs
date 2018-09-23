@@ -5,8 +5,8 @@ import API (runServer)
 
 main :: IO ()
 main = do
-  putStrLn "TRYING TO MIGRATING DATABASE..."
+  putStrLn "MIGRATING DB"
   _ <- migrateDB localConnString
-  putStrLn "SUCCESS"
-  putStrLn "TRYING TO RUN SERVER..."
+  putStrLn "DONE"
+  putStrLn "TRYING TO RUN SERVER... YO"
   runServer

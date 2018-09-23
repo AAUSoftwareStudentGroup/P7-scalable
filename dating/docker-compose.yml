@@ -11,16 +11,18 @@ services:
     dating:
         build: .
         image: dating
-        command: dating
-        expose:
-           - "1234"
+        command: bash -c "ghcid --command=\"stack ghci\" --test=\"Main.main\"" 
+        volumes:
+          - ./:/app/user
+        ports:
+           - "1234:1234"
         depends_on:
           - postgres
           - redis
-    nginx:
-        build: ./nginx
-        image: nginx
-        ports:
-            - "8080:80"
-        depends_on:
-            - dating
+    # nginx:
+    #     build: ./nginx
+    #     image: nginx
+    #     ports:
+    #         - "8080:80"
+    #     depends_on:
+    #         - dating

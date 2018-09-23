@@ -11,7 +11,7 @@ import           Data.Maybe (listToMaybe)
 import           Database.Persist (get, insert, delete, entityVal, Entity)
 import           Database.Persist.Sql (fromSqlKey, toSqlKey)
 import           Database.Persist.Postgresql (ConnectionString, withPostgresqlConn, runMigration, SqlPersistT)
-import           Database.Redis (ConnectInfo, connect, Redis, runRedis, defaultConnectInfo, setex, del)
+import           Database.Redis (ConnectInfo, connect, Redis, runRedis, defaultConnectInfo, setex, del, connectHost)
 import qualified Database.Redis as Redis
 
 import           Schema
@@ -20,7 +20,7 @@ type PGInfo = ConnectionString
 type RedisInfo = ConnectInfo
 
 localConnString :: PGInfo
-localConnString = "host=127.0.0.1 port=5432 user=postgres dbname=postgres"
+localConnString = "host=postgres port=5432 user=postgres dbname=postgres"
 
 logFilter :: a -> LogLevel -> Bool
 logFilter _ LevelError     = True
@@ -34,7 +34,7 @@ fetchPostgresConnection :: IO PGInfo
 fetchPostgresConnection = return localConnString
 
 fetchRedisConnection :: IO RedisInfo
-fetchRedisConnection = return defaultConnectInfo
+fetchRedisConnection = return $ defaultConnectInfo {connectHost = "redis"}
 
 runAction :: PGInfo -> SqlPersistT (LoggingT IO) a -> IO a
 runAction connectionString action =
