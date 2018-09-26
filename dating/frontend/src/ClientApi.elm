@@ -1,4 +1,4 @@
-module ClientApi exposing (Gender(..), User, getUserByUserid, decodeUser, encodeGender)
+module ClientApi exposing (Gender(..), User, getUserByUserid, decodeUser, encodeGender, encodeUser, postUserRequest)
 
 import Http
 import Json.Decode exposing (..)
@@ -66,6 +66,19 @@ encodeGender g =
         Other -> Json.Encode.string "Other"
 
 
+encodeUser : User -> Json.Encode.Value
+encodeUser user =
+    Json.Encode.object
+        [ ("userEmail", Json.Encode.string (user.userEmail))
+        , ("userPassword", Json.Encode.string (user.userPassword))
+        , ("userUsername", Json.Encode.string (user.userUsername))
+        , ("userGender", encodeGender (user.userGender))
+        , ("userBirthday", Json.Encode.string (user.userBirthday))
+        , ("userTown", Json.Encode.string (user.userTown))
+        , ("userProfileText", Json.Encode.string (user.userProfileText))
+        ]
+
+
 getUserByUserid : Int -> Http.Request User
 getUserByUserid capture_userid =
     Http.request
@@ -85,10 +98,32 @@ getUserByUserid capture_userid =
             False
         }
 
+postUserRequest : User -> Http.Request Int
+postUserRequest user =
+    Http.request
+        { method =
+            "POST"
+        , headers =
+            []
+        , url =
+            baseUrl
+        , body =
+            Http.jsonBody <| encodeUser user
+        , expect =
+            Http.expectJson Json.Decode.int
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
 
 theUrl : Int -> String
 theUrl uid =
-    crossOrigin "http://localhost/" [ "users", String.fromInt uid ] []
+    crossOrigin "http://localhost:8080" [ "users", String.fromInt uid ] []
+
+baseUrl : String
+baseUrl = crossOrigin "http://localhost:8080" ["users"] []
 
 
 
