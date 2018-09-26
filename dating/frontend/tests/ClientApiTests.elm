@@ -14,18 +14,23 @@ suite =
         [ describe "decodeUser"
             [ test "decodes valid user" <|
                 \_ ->
-                    let
-                        json =
-                            jsonUserValid
-                    in
-                    decodeValue decodeUser json
+                    decodeValue decodeUser jsonUserValid
                         |> Expect.equal
                             (Ok typedUserValid)
+            ]
+        , describe "encodeUser"
+            [ test "encodes a valid user" <|
+                \_ ->
+                    encodeUser typedUserValid
+                        |> Expect.equal
+                            jsonUserValid
             ]
         ]
 
 
+
 -- Quick solution. We should be using fuzz testing!
+
 
 jsonUserValid : Json.Encode.Value
 jsonUserValid =
