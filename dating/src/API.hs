@@ -52,7 +52,7 @@ runServer :: IO ()
 runServer = do
   pgInfo <- fetchPostgresConnection
   redisInfo <- fetchRedisConnection
-  run port $ simpleCors $ serve usersApi $ usersServer pgInfo redisInfo
+  run port $ serve usersApi $ usersServer pgInfo redisInfo
   where
     port = 1234
 
