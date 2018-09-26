@@ -11,7 +11,7 @@ services:
     dating:
         build: .
         image: dating
-        command: bash -c "ghcid --command=\"stack ghci\" --test=\"Main.main\"" 
+        command: bash -c "ghcid --command=\"stack --allow-different-user ghci\" --test=\"Main.main\"" 
         volumes:
           - ./:/app/user
         ports:
