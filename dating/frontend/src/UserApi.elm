@@ -1,4 +1,4 @@
-module UserApi exposing (User, Gender(..))
+module UserApi exposing (..)
 
 import Http
 import String
