@@ -8,5 +8,5 @@ main = do
   putStrLn "MIGRATING DB"
   _ <- migrateDB localConnString
   putStrLn "DONE"
-  putStrLn "TRYING TO RUN SERVER... YO"
+  putStrLn "TRYING TO RUN SERVER..."
   runServer

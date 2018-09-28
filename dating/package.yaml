@@ -40,6 +40,7 @@ library:
   - cookie
   - containers
   - http-client
+  - esqueleto
 executables:
   dating:
     main: Main.hs
