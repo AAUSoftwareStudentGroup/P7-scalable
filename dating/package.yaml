@@ -41,6 +41,8 @@ library:
   - containers
   - http-client
   - esqueleto
+  - elm-export-persistent
+  - servant-elm
 executables:
   dating:
     main: Main.hs
