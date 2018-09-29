@@ -5,9 +5,7 @@ import Html.Attributes exposing (..)
 import Url
 
 
-
 -- MAIN
-
 
 main : Program () Model Msg
 main =
@@ -23,7 +21,6 @@ main =
 
 -- MODEL
 
-
 type alias Model =
   { key : Nav.Key
   , url : Url.Url
@@ -32,6 +29,7 @@ type alias Model =
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init flags url key =
   (Model key url, Cmd.none)
+
 
 -- UPDATE
 
@@ -68,11 +66,9 @@ view model =
       [ text "The current URL is: "
       , b [] [ text (Url.toString model.url) ]
       , ul []
-          [ viewLink "/src/Page/CreateUser.elm"
-          , viewLink "/src/Page/Login.elm"
-          , viewLink "/reviews/the-century-of-the-self"
-          , viewLink "/reviews/public-opinion"
-          , viewLink "/reviews/shah-of-shahs"
+          [ viewLink "/src/pages/CreateUser.elm"
+          , viewLink "/src/pages/Login.elm"
+          , viewLink "/src/pages/listUsers.elm"
           ]
       ]
   }
