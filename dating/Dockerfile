@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir -p /app/user
 WORKDIR /app/user
-COPY stack.yaml *.cabal ./
+COPY stack.yaml package.yaml *.cabal ./
 
 RUN export PATH=$(stack path --local-bin):$PATH
 RUN stack setup

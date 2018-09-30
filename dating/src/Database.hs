@@ -4,15 +4,17 @@ module Database where
 import           Control.Monad (void)
 import           Control.Monad.Logger (runStdoutLoggingT, MonadLogger, LoggingT, LogLevel(..), filterLogger)
 import           Control.Monad.Reader (runReaderT)
-import           Control.Monad.IO.Class (MonadIO)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.ByteString.Char8 (pack, unpack)
 import           Data.Int (Int64)
 import           Data.Maybe (listToMaybe)
-import           Database.Persist (get, insert, delete, entityVal, Entity)
+import qualified Database.Persist as P (get, insert, delete, entityVal, Entity)
 import           Database.Persist.Sql (fromSqlKey, toSqlKey)
 import           Database.Persist.Postgresql (ConnectionString, withPostgresqlConn, runMigration, SqlPersistT)
 import           Database.Redis (ConnectInfo, connect, Redis, runRedis, defaultConnectInfo, setex, del, connectHost)
 import qualified Database.Redis as Redis
+import           Database.Esqueleto (select, from, SqlPersist, entityVal, Entity)
+import qualified Data.Text as T (unpack)
 
 import           Schema
 
@@ -42,7 +44,7 @@ runAction connectionString action =
     runReaderT action backend
 
 migrateDB :: PGInfo -> IO ()
-migrateDB connString = runAction connString (runMigration migrateAll)
+migrateDB pgInfo = runAction pgInfo (runMigration migrateAll)
 
 
 -- | DATABASE
@@ -50,13 +52,19 @@ migrateDB connString = runAction connString (runMigration migrateAll)
 -- User
 
 createUserPG :: PGInfo -> User -> IO Int64
-createUserPG connString user = fromSqlKey <$> runAction connString (insert user)
+createUserPG pgInfo user = fromSqlKey <$> runAction pgInfo (P.insert user)
 
 fetchUserPG :: PGInfo -> Int64 -> IO (Maybe User)
-fetchUserPG connString uid = runAction connString (get (toSqlKey uid))
+fetchUserPG pgInfo uid = runAction pgInfo (P.get (toSqlKey uid))
+
+fetchAllUsersPG :: PGInfo -> IO [User]
+fetchAllUsersPG pgInfo = (fmap . fmap) entityVal $ runAction pgInfo selectAction
+  where
+    selectAction :: SqlPersistT (LoggingT IO) [Entity User]
+    selectAction = select . from $ \user -> return user
 
 deleteUserPG :: PGInfo -> Int64 -> IO ()
-deleteUserPG connString uid = runAction connString (delete userKey)
+deleteUserPG pgInfo uid = runAction pgInfo (P.delete userKey)
   where
     userKey :: Key User
     userKey = toSqlKey uid

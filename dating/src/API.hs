@@ -15,14 +15,16 @@ import           Servant.API
 import           Servant.Client
 import           Servant.Server
 
-import           Database (fetchUserPG, createUserPG, fetchPostgresConnection, PGInfo, RedisInfo,
+import           Database (fetchUserPG, fetchAllUsersPG, createUserPG, fetchPostgresConnection, PGInfo, RedisInfo,
                            fetchUserRedis, createUserRedis, fetchRedisConnection)
 import           Schema
 
 
 type UsersAPI =
        "users" :> Capture "userid" Int64 :> Get '[JSON] User
+  :<|> "users" :> Get '[JSON] [User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
+
 
 usersApi :: Proxy UsersAPI
 usersApi = Proxy :: Proxy UsersAPI
@@ -38,6 +40,9 @@ fetchUserHandler pgInfo redisInfo uid = do
         Just user -> liftIO (createUserRedis redisInfo uid user) >> return user
         Nothing -> Handler $ throwE $ err401 { errBody = "Could not find user with that ID"}
 
+fetchAllUsersHandler :: PGInfo -> Handler [User]
+fetchAllUsersHandler pgInfo = liftIO $ fetchAllUsersPG pgInfo
+
 
 createUserHandler :: PGInfo -> User -> Handler Int64
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
@@ -46,6 +51,7 @@ createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 usersServer :: PGInfo -> RedisInfo -> Server UsersAPI
 usersServer pgInfo redisInfo =
   fetchUserHandler pgInfo redisInfo :<|>
+  fetchAllUsersHandler pgInfo :<|>
   createUserHandler pgInfo
 
 runServer :: IO ()
@@ -58,5 +64,6 @@ runServer = do
 
 
 fetchUserClient :: Int64 -> ClientM User
+fetchAllUsersClient :: ClientM [User]
 createUserClient :: User -> ClientM Int64
-(fetchUserClient :<|> createUserClient) = client (Proxy :: Proxy UsersAPI)
+(fetchUserClient :<|> fetchAllUsersClient :<|> createUserClient) = client (Proxy :: Proxy UsersAPI)

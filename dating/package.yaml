@@ -1,0 +1,72 @@
+name: dating
+version: '0.1.0.0'
+category: Web
+author: Kasper Dissing Bargsteen
+maintainer: kasper@bargsteen.com
+copyright: Kasper Dissing Bargsteen
+license: BSD3
+github: bargsteen/dating
+extra-source-files:
+- README.md
+library:
+  source-dirs: src
+  exposed-modules:
+  - API
+  - Database
+  - Schema
+  - SchemaEnums
+  - Authentication
+  dependencies:
+  - base >=4.7 && <5
+  - wai
+  - aeson
+  - monad-logger
+  - mtl
+  - persistent
+  - persistent-postgresql
+  - persistent-template
+  - servant
+  - servant-client
+  - servant-elm
+  - servant-server
+  - transformers
+  - text
+  - warp
+  - hedis
+  - bytestring
+  - elm-export
+  - wai-cors
+  - time
+  - cookie
+  - containers
+  - http-client
+  - esqueleto
+executables:
+  dating:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - dating
+tests:
+  dating-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - hspec
+    - http-client
+    - http-client-tls
+    - monad-logger
+    - mtl
+    - servant-client
+    - persistent-postgresql
+    - dating
