@@ -26,6 +26,19 @@ type alias User =
     , userGender : Gender
     }
 
+
+getUser : (Result Http.Error User -> msg) -> Int -> Cmd msg
+getUser responseMsg userId =
+    Http.send responseMsg (getUserRequest userId)
+
+getUsers : (Result Http.Error (List User) -> msg) -> Cmd msg
+getUsers responseMsg =
+    Http.send responseMsg (getUsersRequest)
+
+createUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
+createUser responseMsg user =
+    Http.send responseMsg (postUserRequest user)
+
 getUserRequest : Int -> Http.Request User
 getUserRequest captureUserId =
     Http.request
