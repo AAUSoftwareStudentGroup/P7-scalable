@@ -1,11 +1,16 @@
 import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
+import Element.Font as Font
+import Element.Region as Region
 import Html exposing (Html)
 import Url
 import Http
 import Json.Decode as Decode exposing (field, Decoder, int, string, list)
+import String.Extra exposing (toSentenceCase)
+
 import UserApi exposing (..)
+
 
 main : Program () Model Msg
 main =
@@ -18,8 +23,8 @@ main =
     , onUrlRequest = LinkClicked
     }
 
--- MODEL
 
+-- MODEL
 
 type alias Model =
     { key : Nav.Key
@@ -29,11 +34,10 @@ type alias Model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-  ( Model key url [], getUsers )
+  ( Model key url [], UserApi.getUsers UsersFetched)
 
 
 -- UPDATE
-
 
 type Msg
   = LinkClicked Browser.UrlRequest
@@ -66,78 +70,44 @@ update msg model =
                 ( { model | users = [] }, Cmd.none)
 
     FetchUsers ->
-        (model, getUsers)
-
-
+        (model, getUsers UsersFetched)
 
 
 -- SUBSCRIPTIONS
-
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
   Sub.none
 
 
-
 -- VIEW
 
-
 view : Model -> Browser.Document Msg
-view model = { title = "URL Interceptor"
-    , body = [
-        Element.layout [] <| Element.column [] (List.map showUser model.users)
-    ]
+view model = { title = "All users"
+    , body =
+        [ Element.layout
+            [ Font.size 20
+            ]
+          <|
+            Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
+                ((el
+                    [ Region.heading 1
+                    , centerX
+                    , Font.size 36
+                    ]
+                    (text "Users")
+                ) :: (List.map showUser model.users))
+        ]
     }
+
 
 showUser : User -> Element Msg
 showUser user =
-    row [alignTop] [
-        {-image UserPicture [width (px 60), height (px 60)] {caption = "", src = user.url},-}
-
-        el [] ( text (user.userUsername ++ "    ") )
-        , viewLink ("/chat/" ++ user.userUsername)
+    Element.column [centerX, spacing 10] [
+        el [centerX, Font.size 24] (text (toSentenceCase user.userUsername))
+        , viewLink "View profile" "viewUser.elm"
     ]
 
-viewLink : String -> Element Msg
-viewLink path =
-    Element.link [] { label = text path, url = path }
-
-
-getUsers : Cmd Msg
-getUsers =
-    Http.send UsersFetched (UserApi.getUsersRequest)
-
-{-
-getUsers : Cmd Msg
-getUsers =
-    let
-        url = "https://jsonplaceholder.typicode.com/users"
-    in
-        Http.send UsersFetched (Http.get url decodeUsers)
-
-
-decodeUsers : Decode.Decoder (List User)
-decodeUsers = Decode.list decodeUser
-
-
-decodeUser : Decode.Decoder User
-decodeUser = Decode.map6 User
-    (field "userUsername" string)
-    (field "userEmail" string)
-    (field "userProfileText" string)
-    (field "userGender" string)
-    (field "userBirthday" string)
-    (field "userTown" string)
-
-
-
-decodeUser : Decode.Decoder User
-decodeUser = Decode.map6 User
-    (field "username" string)
-    (field "email" string)
-    (field "website" string)
-    (field "email" string)
-    (field "email" string)
-    (field "email" string)
--}
+viewLink : String -> String -> Element Msg
+viewLink label path =
+    Element.link [centerX] { label = text label, url = path }
