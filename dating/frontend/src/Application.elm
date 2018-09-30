@@ -66,7 +66,7 @@ view model =
       [ text "The current URL is: "
       , b [] [ text (Url.toString model.url) ]
       , ul []
-          [ viewLink "/src/pages/CreateUser.elm"
+          [ viewLink "/src/pages/createUser.elm"
           , viewLink "/src/pages/Login.elm"
           , viewLink "/src/pages/listUsers.elm"
           ]

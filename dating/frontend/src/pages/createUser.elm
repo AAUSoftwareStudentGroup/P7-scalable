@@ -1,6 +1,7 @@
-module Login exposing (..)
+module CreateUser exposing (Msg(..), blue, darkBlue, emptyUser, grey, init, main, maybeShowPasswordsNotEqualWarning, mkWarning, pure, red, showWarningIfUsernameIsTaken, subscriptions, update, view, white)
 
 import Browser
+import UserApi exposing (..)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -23,41 +24,47 @@ main =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    pure (Model "" "")
+    pure (Model emptyUser Nothing)
 
-type alias Model
-    = { username : String
-      , password : String
-      }
+
+emptyUser : User
+emptyUser =
+    User "kasper@bargsteen.com" "bargsteen" "repsak" "1994-05-06" "Aalborg" "Wuhu" Male
+
+
+type Model
+    = Model User ResponseString
+
+
+type alias ResponseString =
+    Maybe String
+
 
 type Msg
-    = Update Model
-    | LoginClicked
-    | HandleLoginAttempt (Result Http.Error String)
+    = Update User
+    | CreateUserClicked
+    | HandleUserCreated (Result Http.Error Int)
 
 
-subscriptions _ =
+subscriptions userEntries =
     Sub.none
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg newModel =
+update msg (Model user response) =
     case msg of
         Update newFormEntries ->
-            pure newModel
+            pure (Model newFormEntries response)
 
-        LoginClicked ->
-            pure newModel
+        CreateUserClicked ->
+            ( Model user response, UserApi.createUser HandleUserCreated user )
 
-        HandleLoginAttempt result ->
+        HandleUserCreated result ->
             case result of
                 Ok uid ->
-                    Debug.todo "Handle correct login"
-                    --pure (Model user (Just <| String.fromInt uid))
+                    pure (Model user (Just <| String.fromInt uid))
 
                 Err errResponse ->
-                    Debug.todo "Handle errors on login"
-                {-
                     case errResponse of
                         Http.BadUrl url ->
                             pure (Model user (Just <| "Bad url: " ++ url))
@@ -72,28 +79,23 @@ update msg newModel =
                             pure (Model user (Just "networkerror"))
 
                         Http.BadStatus statusResponse ->
-                            pure (Model user (Just <| "badstatus" ++ .body statusResponse))-}
+                            pure (Model user (Just <| "badstatus" ++ .body statusResponse))
 
-{-
-postUser : User -> Cmd Msg
-postUser user =
-    Http.send HandleUserCreated (ClientApi.postUserRequest user)
--}
 
 pure : Model -> ( Model, Cmd Msg )
-pure model =
-    ( model, Cmd.none )
+pure userEntries =
+    ( userEntries, Cmd.none )
 
 
 view : Model -> Browser.Document Msg
-view model =
-    { title = "Login"
+view (Model userEntries response) =
+    { title = "Create User"
     , body =
         [ Element.layout
             [ Font.size 20
             ]
-          <| (text "todo!")
-            {-Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
+          <|
+            Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
                 -- , explain Debug.todo ]
                 [ el
                     [ Region.heading 1
@@ -180,9 +182,19 @@ view model =
                     , label = Element.text "Create!"
                     }
                 , Element.text <| responseToString response
-                ]-}
+                ]
         ]
     }
+
+
+responseToString : ResponseString -> String
+responseToString r =
+    case r of
+        Just msg ->
+            msg
+
+        Nothing ->
+            "No messages"
 
 
 showWarningIfUsernameIsTaken userEntries =
@@ -201,6 +213,18 @@ mkWarning warning =
         , moveDown 6
         ]
         (text warning)
+
+
+maybeShowPasswordsNotEqualWarning userEntries =
+    if userEntries.userPasswordAgain /= "" && userEntries.userPassword /= userEntries.userPasswordAgain then
+        mkWarning "Passwords do not match"
+
+    else
+        none
+
+
+noLabel =
+    Input.labelAbove [] none
 
 
 white =
