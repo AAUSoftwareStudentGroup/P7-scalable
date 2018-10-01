@@ -51,7 +51,7 @@ getUserRequest captureUserId =
         , body =
             Http.emptyBody
         , expect =
-            Http.expectJson decodeUser
+            Http.expectJson userDecoder
         , timeout =
             Nothing
         , withCredentials =
@@ -70,7 +70,7 @@ getUsersRequest =
         , body =
             Http.emptyBody
         , expect =
-            Http.expectJson decodeUsers
+            Http.expectJson usersDecoder
         , timeout =
             Nothing
         , withCredentials =
@@ -108,12 +108,12 @@ postUserUrl : String
 postUserUrl =
     usersUrl
 
-decodeUsers : Decoder (List User)
-decodeUsers =
-    Json.Decode.list decodeUser
+usersDecoder : Decoder (List User)
+usersDecoder =
+    Json.Decode.list userDecoder
 
-decodeUser : Decoder User
-decodeUser =
+userDecoder : Decoder User
+userDecoder =
     Json.Decode.succeed User
         |> Pipeline.required "userEmail" string
         |> Pipeline.required "userUsername" string
@@ -121,17 +121,17 @@ decodeUser =
         |> Pipeline.required "userBirthday" string
         |> Pipeline.required "userTown" string
         |> Pipeline.required "userProfileText" string
-        |> Pipeline.custom decodeGender
+        |> Pipeline.custom genderDecoder
 
 
-decodeGender : Decoder Gender
-decodeGender =
+genderDecoder : Decoder Gender
+genderDecoder =
     field "userGender" string
-        |> Json.Decode.andThen decodeGenderAux
+        |> Json.Decode.andThen genderDecoderAux
 
 
-decodeGenderAux : String -> Decoder Gender
-decodeGenderAux str =
+genderDecoderAux : String -> Decoder Gender
+genderDecoderAux str =
     case str of
         "Male" ->
             Json.Decode.succeed Male
