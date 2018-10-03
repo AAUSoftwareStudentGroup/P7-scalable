@@ -22,7 +22,7 @@ myElmOpts :: ElmOptions
 myElmOpts = defElmOptions { urlPrefix = Static "http://localhost:8080" }
 
 myDefElmImports :: Text
-myDefElmImports = defElmImports <> pack "\nimport Models"
+myDefElmImports = defElmImports <> pack "\nimport GenHelpers"
 
 userSpec :: Spec
 userSpec = Spec ["Generated", "UsersApi"]
