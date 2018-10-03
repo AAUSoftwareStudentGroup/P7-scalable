@@ -22,7 +22,7 @@ type PGInfo = ConnectionString
 type RedisInfo = ConnectInfo
 
 localConnString :: PGInfo
-localConnString = "host=postgres port=5432 user=postgres dbname=postgres"
+localConnString = "host=localhost port=5432 user=postgres dbname=postgres"
 
 logFilter :: a -> LogLevel -> Bool
 logFilter _ LevelError     = True
