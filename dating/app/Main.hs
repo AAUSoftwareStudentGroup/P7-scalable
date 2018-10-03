@@ -2,7 +2,6 @@ module Main where
 
 import Database (localConnString, migrateDB)
 import API (runServer)
-import Authentication (basicAuthMain)
 import qualified ElmCodeGen (genUsersApiCode)
 
 main :: IO ()
