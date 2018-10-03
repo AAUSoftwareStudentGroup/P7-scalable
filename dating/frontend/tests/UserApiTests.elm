@@ -11,21 +11,21 @@ import Test exposing (..)
 suite : Test
 suite =
     describe "UserApi module"
-        [ describe "genderDecoder"
+        [ describe "genderDecoder (male)"
             [ test "decodes valid json (male)" <|
                 \_ ->
                     decodeValue genderDecoder validJsonGenderMale
                         |> Expect.equal
                             (Ok validGenderMale)
             ]
-        , describe "genderDecoder"
+        , describe "genderDecoder (female)"
             [ test "decodes valid json (female)" <|
                 \_ ->
                     decodeValue genderDecoder validJsonGenderFemale
                         |> Expect.equal
                             (Ok validGenderFemale)
             ]
-        , describe "genderDecoder"
+        , describe "genderDecoder (other)"
             [ test "decodes valid json (other)" <|
                 \_ ->
                     decodeValue genderDecoder validJsonGenderOther
@@ -60,27 +60,32 @@ suite =
 -- Quick solution. We should be using fuzz testing!
 
 
-validJsonUser : Json.Decode.Value
-validJsonUser = Json.Encode.string """
-{
-"userBirthday":"1994-05-06",
-"userTown":"Aalborg",
-"userPassword":"bargsteen",
-"userGender":"Male",
-"userUsername":"repsak",
-"userProfileText":"Some text about me",
-"userEmail":"kasper@bargsteen.com"
-}
-"""
+validJsonUser : Json.Encode.Value
+validJsonUser =
+    Json.Encode.object
+        [ ( "userEmail", Json.Encode.string "kasper@bargsteen.com" )
+        , ( "userPassword", Json.Encode.string "Hunter2" )
+        , ( "userUsername", Json.Encode.string "Bargsteen" )
+        , ( "userBirthday", Json.Encode.string "1994-05-06" )
+        , ( "userTown", Json.Encode.string "Aalborg" )
+        , ( "userProfileText", Json.Encode.string "I like big butts and I cannot lie" )
+        , ( "userGender", encodeGender Male )
+        ]
 
-validJsonGenderMale : Json.Decode.Value
-validJsonGenderMale = Json.Encode.string "Male"
+validJsonGenderMale : Json.Encode.Value
+validJsonGenderMale =
+  Json.Encode.object
+    [ ("userGender", Json.Encode.string "Male" ) ]
 
-validJsonGenderFemale : Json.Decode.Value
-validJsonGenderFemale = Json.Encode.string "Female"
+validJsonGenderFemale : Json.Encode.Value
+validJsonGenderFemale =
+  Json.Encode.object
+    [ ("userGender", Json.Encode.string "Female" ) ]
 
-validJsonGenderOther : Json.Decode.Value
-validJsonGenderOther = Json.Encode.string "Other"
+validJsonGenderOther : Json.Encode.Value
+validJsonGenderOther =
+  Json.Encode.object
+    [ ("userGender", Json.Encode.string "Other" ) ]
 
 validGenderMale : Gender
 validGenderMale = Male
