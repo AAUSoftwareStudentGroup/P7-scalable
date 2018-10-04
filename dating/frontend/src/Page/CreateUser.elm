@@ -1,7 +1,8 @@
 module CreateUser exposing (Msg(..), blue, darkBlue, emptyUser, grey, init, main, maybeShowPasswordsNotEqualWarning, mkWarning, postUser, pure, red, showWarningIfUsernameIsTaken, subscriptions, update, view, white)
 
 import Browser
-import ClientApi exposing (Gender(..), User)
+import Generated.UsersApi exposing(..)
+import Models exposing (Gender(..))
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -29,7 +30,7 @@ init _ =
 
 emptyUser : User
 emptyUser =
-    User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu"
+    User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken"
 
 
 type Model
