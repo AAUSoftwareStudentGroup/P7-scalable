@@ -98,7 +98,7 @@ authHandler pgInfo = mkAuthHandler handler
   where
     throw401 msg = throwError $ err401 { errBody = msg }
     handler req = either throw401 (lookupByAuthToken pgInfo) $ do
-      cookie <- maybeToEither "Missing cookie header" $ lookup "cookie" $ requestHeaders req
+      cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
       maybeToEither "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
 
 maybeToEither e = maybe (Left e) Right

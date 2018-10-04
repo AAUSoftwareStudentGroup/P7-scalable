@@ -1,4 +1,7 @@
-module Login exposing (..)
+--module CreateUser exposing (Msg(..), blue, darkBlue, emptyCredentials, grey, init, main, maybeShowPasswordsNotEqualWarning, mkWarning, postUser, pure, red, showWarningIfUsernameIsTaken, subscriptions, update, view, white)
+
+
+module Main exposing (Model(..), Msg(..), ResponseString, blue, darkBlue, emptyCredentials, grey, init, loginUser, main, mkWarning, noLabel, pure, red, responseToString, subscriptions, update, view, white)
 
 import Browser
 import Element exposing (..)
@@ -7,6 +10,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
+import Generated.DatingApi exposing (..)
 import Html exposing (Html)
 import Http
 import String
@@ -23,41 +27,47 @@ main =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    pure (Model "" "")
+    ( Model emptyCredentials Nothing, Cmd.none )
 
-type alias Model
-    = { username : String
-      , password : String
-      }
+
+emptyCredentials : Credentials
+emptyCredentials =
+    Credentials "" ""
+
+
+type Model
+    = Model Credentials ResponseString
+
+
+type alias ResponseString =
+    Maybe String
+
 
 type Msg
-    = Update Model
+    = Update Credentials
     | LoginClicked
-    | HandleLoginAttempt (Result Http.Error String)
+    | HandleUserLogin (Result Http.Error Int)
 
 
-subscriptions _ =
+subscriptions userEntries =
     Sub.none
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg newModel =
+update msg (Model user response) =
     case msg of
         Update newFormEntries ->
-            pure newModel
+            pure (Model newFormEntries response)
 
         LoginClicked ->
-            pure newModel
+            ( Model user response, loginUser user )
 
-        HandleLoginAttempt result ->
+        HandleUserLogin result ->
             case result of
-                Ok uid ->
-                    Debug.todo "Handle correct login"
-                    --pure (Model user (Just <| String.fromInt uid))
+                Ok token ->
+                    pure (Model user (Just <| String.fromInt token))
 
                 Err errResponse ->
-                    Debug.todo "Handle errors on login"
-                {-
                     case errResponse of
                         Http.BadUrl url ->
                             pure (Model user (Just <| "Bad url: " ++ url))
@@ -72,101 +82,48 @@ update msg newModel =
                             pure (Model user (Just "networkerror"))
 
                         Http.BadStatus statusResponse ->
-                            pure (Model user (Just <| "badstatus" ++ .body statusResponse))-}
+                            pure (Model user (Just <| "badstatus" ++ .body statusResponse))
 
-{-
-postUser : User -> Cmd Msg
-postUser user =
-    Http.send HandleUserCreated (ClientApi.postUserRequest user)
--}
+
+loginUser : Credentials -> Cmd Msg
+loginUser user =
+    Cmd.none
+
 
 pure : Model -> ( Model, Cmd Msg )
-pure model =
-    ( model, Cmd.none )
+pure userEntries =
+    ( userEntries, Cmd.none )
 
 
 view : Model -> Browser.Document Msg
-view model =
+view (Model userEntries response) =
     { title = "Login"
     , body =
         [ Element.layout
             [ Font.size 20
             ]
-          <| (text "todo!")
-            {-Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
-                -- , explain Debug.todo ]
+          <|
+            Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
                 [ el
                     [ Region.heading 1
                     , centerX
                     , Font.size 36
                     ]
-                    (text "User creation")
-                , Input.email
-                    [ spacing 12 ]
-                    { text = userEntries.userEmail
-                    , placeholder = Nothing
-                    , onChange = \new -> Update { userEntries | userEmail = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Email")
-                    }
+                    (text "Login")
                 , Input.username
                     [ spacing 12
-                    , below (showWarningIfUsernameIsTaken userEntries)
                     ]
-                    { text = userEntries.userUsername
-                    , placeholder = Just (Input.placeholder [] (text "username"))
-                    , onChange = \new -> Update { userEntries | userUsername = new }
+                    { text = userEntries.username
+                    , placeholder = Just (Input.placeholder [] (text "Username"))
+                    , onChange = \new -> Update { userEntries | username = new }
                     , label = Input.labelAbove [ Font.size 14 ] (text "Username")
                     }
-                , Input.newPassword [ spacing 12, width shrink ]
-                    { text = userEntries.userPassword
-                    , placeholder = Nothing
-                    , onChange = \new -> Update { userEntries | userPassword = new }
+                , Input.currentPassword [ spacing 12, width shrink ]
+                    { text = userEntries.password
+                    , placeholder = Just (Input.placeholder [] (text "Password"))
+                    , onChange = \new -> Update { userEntries | password = new }
                     , label = Input.labelAbove [ Font.size 14 ] (text "Password")
                     , show = False
-                    }
-
-                -- , Input.newPassword [ spacing 12, width shrink, below (maybeShowPasswordsNotEqualWarning userEntries) ]
-                --     { text = userEntries.userPasswordAgain
-                --     , placeholder = Nothing
-                --     , onChange = \new -> Update { userEntries | userPasswordAgain = new }
-                --     , label = Input.labelAbove [ Font.size 14 ] (text "Repeat password")
-                --     , show = False
-                --     }
-                , Input.radio
-                    [ spacing 12
-                    ]
-                    { selected = Just userEntries.userGender
-                    , onChange = \new -> Update { userEntries | userGender = new }
-                    , label = Input.labelAbove [ Font.size 14, paddingXY 0 12 ] (text "Gender")
-                    , options =
-                        [ Input.option Male (text "Man")
-                        , Input.option Female (text "Woman")
-                        , Input.option Other (text "Other")
-                        ]
-                    }
-                , Input.text [ spacing 12 ]
-                    { text = userEntries.userBirthday
-                    , onChange = \new -> Update { userEntries | userBirthday = new }
-                    , placeholder = Nothing
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Birthday")
-                    }
-                , Input.text [ spacing 12 ]
-                    { text = userEntries.userTown
-                    , onChange = \new -> Update { userEntries | userTown = new }
-                    , placeholder = Nothing
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Town")
-                    }
-                , Input.multiline
-                    [ height shrink
-                    , spacing 12
-
-                    -- , padding 6
-                    ]
-                    { text = userEntries.userProfileText
-                    , placeholder = Just (Input.placeholder [] (text "I like big butts and I cannot lie."))
-                    , onChange = \new -> Update { userEntries | userProfileText = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Describe yourself")
-                    , spellcheck = False
                     }
                 , Input.button
                     [ Background.color red
@@ -176,21 +133,23 @@ view model =
                     , Border.rounded 3
                     , width fill
                     ]
-                    { onPress = Just CreateUserClicked
-                    , label = Element.text "Create!"
+                    { onPress = Just LoginClicked
+                    , label = Element.text "Login!"
                     }
                 , Element.text <| responseToString response
-                ]-}
+                ]
         ]
     }
 
 
-showWarningIfUsernameIsTaken userEntries =
-    if userEntries.userUsername == "Bargsteen" then
-        mkWarning "Username is taken"
+responseToString : ResponseString -> String
+responseToString r =
+    case r of
+        Just msg ->
+            msg
 
-    else
-        none
+        Nothing ->
+            ""
 
 
 mkWarning warning =
@@ -201,6 +160,10 @@ mkWarning warning =
         , moveDown 6
         ]
         (text warning)
+
+
+noLabel =
+    Input.labelAbove [] none
 
 
 white =
