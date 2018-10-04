@@ -17,7 +17,7 @@ import           Data.ByteString             (ByteString)
 import           Data.ByteString.Char8       (pack, unpack)
 import           Data.Int                    (Int64)
 import           Data.Maybe                  (listToMaybe)
-import qualified Data.Text                   as T (Text, unpack)
+import qualified Data.Text                   as T (Text, unpack, pack)
 import qualified Data.Text.Encoding          (decodeUtf8)
 import           Database.Esqueleto
 import           Database.Persist.Postgresql (ConnectionString, SqlPersistT,
@@ -28,6 +28,7 @@ import           Database.Redis              (ConnectInfo, Redis, connect,
 import qualified Database.Redis              as Redis
 import           Elm                         (ElmType)
 import           GHC.Generics                (Generic)
+import qualified System.Random               as Random
 
 import           Schema
 
@@ -62,6 +63,18 @@ runAction connectionString action =
 migrateDB :: PGInfo -> IO ()
 migrateDB pgInfo = runAction pgInfo (runMigration migrateAll)
 
+deleteEverythingInDB :: PGInfo -> IO ()
+deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
+  where 
+    deleteAction :: SqlPersistT (LoggingT IO) ()
+    deleteAction = do
+      delete $
+        from $ \(message :: SqlExpr (Entity Message)) ->
+        return ()
+      delete $ 
+        from $ \(user :: SqlExpr (Entity User)) ->
+        return ()
+
 
 -- | DATABASE
 
@@ -70,9 +83,11 @@ migrateDB pgInfo = runAction pgInfo (runMigration migrateAll)
 fromEntity = (fmap . fmap) entityVal
 
 createUserPG :: PGInfo -> User -> IO Int64
-createUserPG pgInfo user = fromSqlKey <$> runAction pgInfo (insert user')
-  where user' = user { userAuthToken = "mysecret" }
-  -- TODO: Make random
+createUserPG pgInfo user = do 
+  g <- Random.newStdGen
+  let authToken = T.pack $ take 64 $ Random.randomRs ('a', 'z') g
+  let user' = user { userAuthToken = authToken }
+  fromSqlKey <$> runAction pgInfo (insert user')
 
 fetchUserPG :: PGInfo -> Int64 -> IO (Maybe User)
 fetchUserPG pgInfo uid = fromEntity $ runAction pgInfo selectAction
