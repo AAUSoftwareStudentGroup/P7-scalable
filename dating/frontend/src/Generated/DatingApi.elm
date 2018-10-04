@@ -89,13 +89,13 @@ getUsersByUserid capture_userid =
             False
         }
 
-getUsers : Http.Request (List (User))
-getUsers =
+getUsers : String -> Http.Request (List (User))
+getUsers token =
     Http.request
         { method =
             "GET"
         , headers =
-            []
+            [Http.header "Auth-Token" ("dating-auth-cookie=" ++ token)]
         , url =
             String.join "/"
                 [ "http://localhost:8080"

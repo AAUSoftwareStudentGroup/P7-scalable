@@ -32,7 +32,7 @@ type alias Model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-  ( Model key url [], sendGetUsers UsersFetched)
+  ( Model key url [], sendGetUsers UsersFetched "mysecret")
 
 
 -- UPDATE
@@ -106,6 +106,6 @@ viewLink : String -> String -> Element Msg
 viewLink label path =
     Element.link [centerX] { label = text label, url = path }
 
-sendGetUsers : (Result Http.Error (List User) -> msg) -> Cmd msg
-sendGetUsers responseMsg =
-    Http.send responseMsg (getUsers)
+sendGetUsers : (Result Http.Error (List User) -> msg) -> String -> Cmd msg
+sendGetUsers responseMsg userToken =
+    Http.send responseMsg (getUsers userToken)
