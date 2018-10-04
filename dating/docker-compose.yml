@@ -16,9 +16,6 @@ services:
           - ./:/app/user
         ports:
            - "1234:1234"
-        depends_on:
-          - postgres
-          - redis
     nginx:
         build: ./nginx
         image: nginx
