@@ -1,8 +1,8 @@
 module CreateUser exposing (Msg(..), blue, darkBlue, emptyUser, grey, init, main, maybeShowPasswordsNotEqualWarning, mkWarning, postUser, pure, red, showWarningIfUsernameIsTaken, subscriptions, update, view, white)
 
 import Browser
-import Generated.UsersApi exposing(..)
-import Models exposing (Gender(..))
+import Generated.DatingApi exposing(..)
+import GenHelpers exposing (Gender(..))
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -30,7 +30,7 @@ init _ =
 
 emptyUser : User
 emptyUser =
-    User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken"
+    User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken" 10
 
 
 type Model
@@ -85,7 +85,7 @@ update msg (Model user response) =
 
 postUser : User -> Cmd Msg
 postUser user =
-    Http.send HandleUserCreated (ClientApi.postUserRequest user)
+    Http.send HandleUserCreated (postUsers user)
 
 
 pure : Model -> ( Model, Cmd Msg )
