@@ -31,7 +31,7 @@ decodeUser =
         |> required "email" string
         |> required "password" string
         |> required "username" string
-        |> required "gender" decodeGender
+        |> custom decodeGender
         |> required "birthday" string
         |> required "town" string
         |> required "profileText" string
@@ -92,7 +92,7 @@ getUsers token =
         { method =
             "GET"
         , headers =
-            [Http.header "Auth-Token" ("dating-auth-cookie=" ++ "eflpexeasctirmpdtvknkdzuctzsngmwgymztrhlaouuzathvrhcirxcepdqzvpd")]
+            [Http.header "Auth-Token" ("dating-auth-cookie=" ++ "xcjytgzwiauqcuypagzzsxklopxafqpflmhdevbzyjprxewymzjnnzkjphpgntqn")]
         , url =
             String.join "/"
                 [ "http://localhost:8080"

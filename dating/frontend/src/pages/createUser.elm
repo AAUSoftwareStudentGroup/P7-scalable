@@ -30,7 +30,7 @@ init _ =
 
 emptyUser : User
 emptyUser =
-    User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken" 10
+    User "kasper@bargsteen.com" "repsak" "bargsteen" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken"
 
 
 type Model
