@@ -44,6 +44,7 @@ library:
   - elm-export-persistent
   - servant-elm
   - servant-foreign
+  - random
 executables:
   dating:
     main: Main.hs
