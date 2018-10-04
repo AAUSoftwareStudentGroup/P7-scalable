@@ -25,6 +25,7 @@ import           Servant.Elm                      (ElmOptions (..), ElmType,
 import           Elm.Export.Persist.Ent
 import           GHC.TypeLits                     (KnownSymbol)
 import           Schema
+import           Database                         (Credentials)
 import           Servant
 import           Servant.Elm                      (ElmOptions, ElmType,
                                                    Proxy (Proxy),
@@ -60,8 +61,11 @@ userSpec :: Spec
 userSpec = Spec ["Generated", "DatingApi"]
       (myDefElmImports
        : toElmTypeSource (Proxy :: Proxy (EntId User))
+       : toElmTypeSource (Proxy :: Proxy Credentials)
        : toElmDecoderSource (Proxy :: Proxy (EntId User))
+       : toElmDecoderSource (Proxy :: Proxy Credentials)
        : toElmEncoderSource (Proxy :: Proxy (EntId User))
+       : toElmEncoderSource (Proxy :: Proxy Credentials)
        : generateElmForAPIWith myElmOpts (Proxy :: Proxy DatingAPI ))
 
 genUsersApiCode :: IO ()

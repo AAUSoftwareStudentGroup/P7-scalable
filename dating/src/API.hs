@@ -27,10 +27,11 @@ import           Data.ByteString                  (ByteString)
 import           Data.Map                         (Map, fromList)
 import qualified Data.Map                         as Map
 import           Data.Text                        (Text)
-import           Database                         (PGInfo, RedisInfo,
-                                                   createUserPG,
+import           Database                         (Credentials, PGInfo,
+                                                   RedisInfo, createUserPG,
                                                    createUserRedis,
                                                    fetchAllUsersPG,
+                                                   fetchAuthTokenByCredentialsPG,
                                                    fetchPostgresConnection,
                                                    fetchRedisConnection,
                                                    fetchUserIdByAuthTokenPG,
@@ -46,6 +47,7 @@ type DatingAPI =
        "users" :> Capture "userid" Int64 :> Get '[JSON] User
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
+  :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -73,6 +75,13 @@ fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 createUserHandler :: PGInfo -> User -> Handler Int64
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 
+
+loginHandler :: PGInfo -> Credentials -> Handler Text
+loginHandler pgInfo credentials = do
+  maybeAuthToken <- liftIO $ fetchAuthTokenByCredentialsPG pgInfo credentials
+  case maybeAuthToken of
+    Just token -> return token
+    Nothing    -> throwError (err403 {errBody = "Invalid credentials"})
 
 -- | Given an AuthToken it returns either the UserId or throws and 403 error.
 lookupByAuthToken :: PGInfo -> ByteString -> Handler UserId
@@ -103,7 +112,8 @@ datingServer :: PGInfo -> RedisInfo -> Server DatingAPI
 datingServer pgInfo redisInfo =
   fetchUserHandler pgInfo redisInfo :<|>
   fetchAllUsersHandler pgInfo :<|>
-  createUserHandler pgInfo
+  createUserHandler pgInfo :<|>
+  loginHandler pgInfo
 
 
 -- | The context is sort of the state, being authenticated or not. Starts empty.
