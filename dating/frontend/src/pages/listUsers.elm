@@ -10,6 +10,8 @@ import Json.Decode as Decode exposing (field, Decoder, int, string, list)
 import String.Extra exposing (toSentenceCase)
 import Generated.DatingApi exposing (User, getUsers)
 
+import Debug
+
 main : Program () Model Msg
 main =
     Browser.application
@@ -63,8 +65,8 @@ update msg model =
          case result of
             Ok newUsers ->
                 ( { model | users = newUsers }, Cmd.none)
-            Err _ ->
-                ( { model | users = [] }, Cmd.none)
+            Err error ->
+                Debug.log (Debug.toString error) ( { model | users = [] }, Cmd.none)
 
 
 -- SUBSCRIPTIONS

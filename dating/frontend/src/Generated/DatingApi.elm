@@ -18,7 +18,6 @@ type alias User =
     , userTown : String
     , userProfileText : String
     , userAuthToken : String
-    , id : Int
     }
 
 type alias Credentials =
@@ -37,7 +36,6 @@ decodeUser =
         |> required "town" string
         |> required "profileText" string
         |> required "authToken" string
-        |> required "id" int
 
 decodeCredentials : Decoder Credentials
 decodeCredentials =
@@ -56,7 +54,6 @@ encodeUser x =
         , ( "town", Json.Encode.string x.userTown )
         , ( "profileText", Json.Encode.string x.userProfileText )
         , ( "authToken", Json.Encode.string x.userAuthToken )
-        , ( "id", Json.Encode.int x.id )
         ]
 
 encodeCredentials : Credentials -> Json.Encode.Value
@@ -95,7 +92,7 @@ getUsers token =
         { method =
             "GET"
         , headers =
-            [Http.header "Auth-Token" ("dating-auth-cookie=" ++ token)]
+            [Http.header "Auth-Token" ("dating-auth-cookie=" ++ "eflpexeasctirmpdtvknkdzuctzsngmwgymztrhlaouuzathvrhcirxcepdqzvpd")]
         , url =
             String.join "/"
                 [ "http://localhost:8080"
