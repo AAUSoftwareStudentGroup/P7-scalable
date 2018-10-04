@@ -1,7 +1,8 @@
 module CreateUser exposing (Msg(..), blue, darkBlue, emptyUser, grey, init, main, maybeShowPasswordsNotEqualWarning, mkWarning, pure, red, showWarningIfUsernameIsTaken, subscriptions, update, view, white)
 
 import Browser
-import UserApi exposing (..)
+import Generated.DatingApi exposing(..)
+import GenHelpers exposing (Gender(..))
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -29,7 +30,7 @@ init _ =
 
 emptyUser : User
 emptyUser =
-    User "kasper@bargsteen.com" "bargsteen" "repsak" "1994-05-06" "Aalborg" "Wuhu" Male
+    User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken" 10
 
 
 type Model
@@ -57,7 +58,7 @@ update msg (Model user response) =
             pure (Model newFormEntries response)
 
         CreateUserClicked ->
-            ( Model user response, UserApi.createUser HandleUserCreated user )
+            ( Model user response, sendCreateUser HandleUserCreated user )
 
         HandleUserCreated result ->
             case result of
@@ -80,6 +81,11 @@ update msg (Model user response) =
 
                         Http.BadStatus statusResponse ->
                             pure (Model user (Just <| "badstatus" ++ .body statusResponse))
+
+
+postUser : User -> Cmd Msg
+postUser user =
+    Http.send HandleUserCreated (postUsers user)
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -245,3 +251,7 @@ red =
 
 darkBlue =
     Element.rgb 0 0 0.9
+
+sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
+sendCreateUser responseMsg user =
+    Http.send responseMsg (postUsers user)

@@ -8,9 +8,7 @@ import Url
 import Http
 import Json.Decode as Decode exposing (field, Decoder, int, string, list)
 import String.Extra exposing (toSentenceCase)
-
-import UserApi exposing (..)
-
+import Generated.DatingApi exposing (User, getUsers)
 
 main : Program () Model Msg
 main =
@@ -34,7 +32,7 @@ type alias Model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-  ( Model key url [], UserApi.getUsers UsersFetched)
+  ( Model key url [], sendGetUsers UsersFetched)
 
 
 -- UPDATE
@@ -43,7 +41,6 @@ type Msg
   = LinkClicked Browser.UrlRequest
   | UrlChanged Url.Url
   | UsersFetched(Result Http.Error (List User))
-  | FetchUsers
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -68,9 +65,6 @@ update msg model =
                 ( { model | users = newUsers }, Cmd.none)
             Err _ ->
                 ( { model | users = [] }, Cmd.none)
-
-    FetchUsers ->
-        (model, getUsers UsersFetched)
 
 
 -- SUBSCRIPTIONS
@@ -111,3 +105,7 @@ showUser user =
 viewLink : String -> String -> Element Msg
 viewLink label path =
     Element.link [centerX] { label = text label, url = path }
+
+sendGetUsers : (Result Http.Error (List User) -> msg) -> Cmd msg
+sendGetUsers responseMsg =
+    Http.send responseMsg (getUsers)

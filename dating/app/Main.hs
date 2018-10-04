@@ -2,11 +2,15 @@ module Main where
 
 import Database (localConnString, migrateDB)
 import API (runServer)
+import qualified ElmCodeGen (genUsersApiCode)
 
 main :: IO ()
-main = do
-  putStrLn "MIGRATING DB"
-  _ <- migrateDB localConnString
+main = do 
+  putStr "MIGRATING DB..."
+  --_ <- migrateDB localConnString
   putStrLn "DONE"
-  putStrLn "TRYING TO RUN SERVER..."
+  --putStrLn "GENERATING ELM CODE"
+  --ElmCodeGen.genUsersApiCode
+  --putStrLn "DONE"
+  putStrLn "RUNNING SERVER"
   runServer

@@ -23,6 +23,8 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 
+# Our cabal file, because it is generated from package.yaml instead
+dating.cabal
 
 # VS CODE
 .vscode

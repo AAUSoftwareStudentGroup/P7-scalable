@@ -1,6 +1,5 @@
 module UserApiTests exposing (suite)
 
-import UserApi exposing (..)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Json.Decode exposing (decodeValue)
