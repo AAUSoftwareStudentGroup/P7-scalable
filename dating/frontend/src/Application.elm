@@ -2,7 +2,9 @@ import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Page.CreateUser as CreateUser
 import Url
+import Skeleton
 
 
 
@@ -26,21 +28,26 @@ main =
 
 type alias Model =
   { key : Nav.Key
-  , url : Url.Url
+  , page : Page
   }
 
+type Page
+  = CreateUser CreateUser.Model
+
+
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
-init flags url key =
-  (Model key url, Cmd.none)
+init _ url key =
+  (Model key (CreateUser (CreateUser.initialModel)), Cmd.none)
 
 -- UPDATE
 
 type Msg
   = LinkClicked Browser.UrlRequest
   | UrlChanged Url.Url
+  | CreateUserMsg CreateUser.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg model = 
+update msg model =
   case msg of
     LinkClicked urlRequest ->
       case urlRequest of
@@ -50,9 +57,10 @@ update msg model =
           (model, Nav.load href)
 
     UrlChanged url ->
-      ( { model | url = url }
+      ( model
       , Cmd.none
       )
+    _ -> (model, Cmd.none)
 
 
 -- SUBSCRIPTIONS
@@ -63,21 +71,6 @@ subscriptions _ =
 
 view : Model -> Browser.Document Msg
 view model =
-  { title = "URL Interceptor"
-  , body =
-      [ text "The current URL is: "
-      , b [] [ text (Url.toString model.url) ]
-      , ul []
-          [ viewLink "/src/Page/CreateUser.elm"
-          , viewLink "/src/Page/Login.elm"
-          , viewLink "/reviews/the-century-of-the-self"
-          , viewLink "/reviews/public-opinion"
-          , viewLink "/reviews/shah-of-shahs"
-          ]
-      ]
-  }
-
-
-viewLink : String -> Html msg
-viewLink path =
-  li [] [ a [ href path ] [ text path ] ]
+  case model.page of
+    CreateUser createUser ->
+      Skeleton.view never (CreateUser.view createUser)

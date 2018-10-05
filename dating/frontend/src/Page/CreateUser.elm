@@ -1,4 +1,4 @@
-module CreateUser exposing (Msg(..), blue, darkBlue, emptyUser, grey, init, main, maybeShowPasswordsNotEqualWarning, mkWarning, postUser, pure, red, showWarningIfUsernameIsTaken, subscriptions, update, view, white)
+module Page.CreateUser exposing (..)
 
 import Browser
 import Generated.DatingApi exposing(..)
@@ -12,34 +12,35 @@ import Element.Region as Region
 import Html exposing (Html)
 import Http
 import String
+import Skeleton
 
 
-main =
-    Browser.document
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
+-- MODEL
+type alias Model = 
+    { title : String
+    , content : Content
+    }
 
+init : String -> String -> ( Model, Cmd Msg )
+init title url = 
+  ( initialModel
+  , Cmd.none
+  )
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    pure (Model emptyUser Nothing)
-
+initialModel : Model
+initialModel = Model "Create User" (Content emptyUser Nothing)
 
 emptyUser : User
 emptyUser =
     User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken" 10
 
-
-type Model
-    = Model User ResponseString
-
+type Content
+    = Content User ResponseString
 
 type alias ResponseString =
     Maybe String
 
+-- UPDATE
 
 type Msg
     = Update User
@@ -47,40 +48,37 @@ type Msg
     | HandleUserCreated (Result Http.Error Int)
 
 
-subscriptions userEntries =
-    Sub.none
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg (Model user response) =
+update msg model =
     case msg of
-        Update newFormEntries ->
-            pure (Model newFormEntries response)
+        _ -> pure model
+        -- Update newFormEntries ->
+        --     pure (Model newFormEntries response)
 
-        CreateUserClicked ->
-            ( Model user response, postUser user )
+        -- CreateUserClicked ->
+        --     ( Model user response, postUser user )
 
-        HandleUserCreated result ->
-            case result of
-                Ok uid ->
-                    pure (Model user (Just <| String.fromInt uid))
+        -- HandleUserCreated result ->
+        --     case result of
+        --         Ok uid ->
+        --             pure (Model user (Just <| String.fromInt uid))
 
-                Err errResponse ->
-                    case errResponse of
-                        Http.BadUrl url ->
-                            pure (Model user (Just <| "Bad url: " ++ url))
+        --         Err errResponse ->
+        --             case errResponse of
+        --                 Http.BadUrl url ->
+        --                     pure (Model user (Just <| "Bad url: " ++ url))
 
-                        Http.BadPayload _ _ ->
-                            pure (Model user (Just "bad payload"))
+        --                 Http.BadPayload _ _ ->
+        --                     pure (Model user (Just "bad payload"))
 
-                        Http.Timeout ->
-                            pure (Model user (Just "timeout"))
+        --                 Http.Timeout ->
+        --                     pure (Model user (Just "timeout"))
 
-                        Http.NetworkError ->
-                            pure (Model user (Just "networkerror"))
+        --                 Http.NetworkError ->
+        --                     pure (Model user (Just "networkerror"))
 
-                        Http.BadStatus statusResponse ->
-                            pure (Model user (Just <| "badstatus" ++ .body statusResponse))
+        --                 Http.BadStatus statusResponse ->
+        --                     pure (Model user (Just <| "badstatus" ++ .body statusResponse))
 
 
 postUser : User -> Cmd Msg
@@ -93,104 +91,113 @@ pure userEntries =
     ( userEntries, Cmd.none )
 
 
-view : Model -> Browser.Document Msg
-view (Model userEntries response) =
-    { title = "Create User"
-    , body =
-        [ Element.layout
-            [ Font.size 20
-            ]
-          <|
-            Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
-                -- , explain Debug.todo ]
-                [ el
-                    [ Region.heading 1
-                    , centerX
-                    , Font.size 36
-                    ]
-                    (text "User creation")
-                , Input.email
-                    [ spacing 12 ]
-                    { text = userEntries.userEmail
-                    , placeholder = Nothing
-                    , onChange = \new -> Update { userEntries | userEmail = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Email")
-                    }
-                , Input.username
-                    [ spacing 12
-                    , below (showWarningIfUsernameIsTaken userEntries)
-                    ]
-                    { text = userEntries.userUsername
-                    , placeholder = Just (Input.placeholder [] (text "username"))
-                    , onChange = \new -> Update { userEntries | userUsername = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Username")
-                    }
-                , Input.newPassword [ spacing 12, width shrink ]
-                    { text = userEntries.userPassword
-                    , placeholder = Nothing
-                    , onChange = \new -> Update { userEntries | userPassword = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Password")
-                    , show = False
-                    }
+-- VIEW
 
-                -- , Input.newPassword [ spacing 12, width shrink, below (maybeShowPasswordsNotEqualWarning userEntries) ]
-                --     { text = userEntries.userPasswordAgain
-                --     , placeholder = Nothing
-                --     , onChange = \new -> Update { userEntries | userPasswordAgain = new }
-                --     , label = Input.labelAbove [ Font.size 14 ] (text "Repeat password")
-                --     , show = False
-                --     }
-                , Input.radio
-                    [ spacing 12
-                    ]
-                    { selected = Just userEntries.userGender
-                    , onChange = \new -> Update { userEntries | userGender = new }
-                    , label = Input.labelAbove [ Font.size 14, paddingXY 0 12 ] (text "Gender")
-                    , options =
-                        [ Input.option Male (text "Man")
-                        , Input.option Female (text "Woman")
-                        , Input.option Other (text "Other")
-                        ]
-                    }
-                , Input.text [ spacing 12 ]
-                    { text = userEntries.userBirthday
-                    , onChange = \new -> Update { userEntries | userBirthday = new }
-                    , placeholder = Nothing
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Birthday")
-                    }
-                , Input.text [ spacing 12 ]
-                    { text = userEntries.userTown
-                    , onChange = \new -> Update { userEntries | userTown = new }
-                    , placeholder = Nothing
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Town")
-                    }
-                , Input.multiline
-                    [ height shrink
-                    , spacing 12
-
-                    -- , padding 6
-                    ]
-                    { text = userEntries.userProfileText
-                    , placeholder = Just (Input.placeholder [] (text "I like big butts and I cannot lie."))
-                    , onChange = \new -> Update { userEntries | userProfileText = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Describe yourself")
-                    , spellcheck = False
-                    }
-                , Input.button
-                    [ Background.color red
-                    , Font.color white
-                    , Border.color darkBlue
-                    , paddingXY 32 16
-                    , Border.rounded 3
-                    , width fill
-                    ]
-                    { onPress = Just CreateUserClicked
-                    , label = Element.text "Create!"
-                    }
-                , Element.text <| responseToString response
-                ]
-        ]
+view : Model -> Skeleton.Details msg
+view model =
+    { title = model.title
+    , kids = [ viewContent model.title model.content ]
     }
+
+viewContent : String -> Content -> Html msg
+viewContent title content =
+    Element.layout [Font.size 20] <| text "CreateUser"
+    -- { title = "Create User"
+    -- , body =
+    --     [ Element.layout
+    --         [ Font.size 20
+    --         ]
+    --       <|
+    --         Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
+    --             -- , explain Debug.todo ]
+    --             [ el
+    --                 [ Region.heading 1
+    --                 , centerX
+    --                 , Font.size 36
+    --                 ]
+    --                 (text "User creation")
+    --             , Input.email
+    --                 [ spacing 12 ]
+    --                 { text = userEntries.userEmail
+    --                 , placeholder = Nothing
+    --                 , onChange = \new -> Update { userEntries | userEmail = new }
+    --                 , label = Input.labelAbove [ Font.size 14 ] (text "Email")
+    --                 }
+    --             , Input.username
+    --                 [ spacing 12
+    --                 , below (showWarningIfUsernameIsTaken userEntries)
+    --                 ]
+    --                 { text = userEntries.userUsername
+    --                 , placeholder = Just (Input.placeholder [] (text "username"))
+    --                 , onChange = \new -> Update { userEntries | userUsername = new }
+    --                 , label = Input.labelAbove [ Font.size 14 ] (text "Username")
+    --                 }
+    --             , Input.newPassword [ spacing 12, width shrink ]
+    --                 { text = userEntries.userPassword
+    --                 , placeholder = Nothing
+    --                 , onChange = \new -> Update { userEntries | userPassword = new }
+    --                 , label = Input.labelAbove [ Font.size 14 ] (text "Password")
+    --                 , show = False
+    --                 }
+
+    --             -- , Input.newPassword [ spacing 12, width shrink, below (maybeShowPasswordsNotEqualWarning userEntries) ]
+    --             --     { text = userEntries.userPasswordAgain
+    --             --     , placeholder = Nothing
+    --             --     , onChange = \new -> Update { userEntries | userPasswordAgain = new }
+    --             --     , label = Input.labelAbove [ Font.size 14 ] (text "Repeat password")
+    --             --     , show = False
+    --             --     }
+    --             , Input.radio
+    --                 [ spacing 12
+    --                 ]
+    --                 { selected = Just userEntries.userGender
+    --                 , onChange = \new -> Update { userEntries | userGender = new }
+    --                 , label = Input.labelAbove [ Font.size 14, paddingXY 0 12 ] (text "Gender")
+    --                 , options =
+    --                     [ Input.option Male (text "Man")
+    --                     , Input.option Female (text "Woman")
+    --                     , Input.option Other (text "Other")
+    --                     ]
+    --                 }
+    --             , Input.text [ spacing 12 ]
+    --                 { text = userEntries.userBirthday
+    --                 , onChange = \new -> Update { userEntries | userBirthday = new }
+    --                 , placeholder = Nothing
+    --                 , label = Input.labelAbove [ Font.size 14 ] (text "Birthday")
+    --                 }
+    --             , Input.text [ spacing 12 ]
+    --                 { text = userEntries.userTown
+    --                 , onChange = \new -> Update { userEntries | userTown = new }
+    --                 , placeholder = Nothing
+    --                 , label = Input.labelAbove [ Font.size 14 ] (text "Town")
+    --                 }
+    --             , Input.multiline
+    --                 [ height shrink
+    --                 , spacing 12
+
+    --                 -- , padding 6
+    --                 ]
+    --                 { text = userEntries.userProfileText
+    --                 , placeholder = Just (Input.placeholder [] (text "I like big butts and I cannot lie."))
+    --                 , onChange = \new -> Update { userEntries | userProfileText = new }
+    --                 , label = Input.labelAbove [ Font.size 14 ] (text "Describe yourself")
+    --                 , spellcheck = False
+    --                 }
+    --             , Input.button
+    --                 [ Background.color red
+    --                 , Font.color white
+    --                 , Border.color darkBlue
+    --                 , paddingXY 32 16
+    --                 , Border.rounded 3
+    --                 , width fill
+    --                 ]
+    --                 { onPress = Just CreateUserClicked
+    --                 , label = Element.text "Create!"
+    --                 }
+    --             , Element.text <| responseToString response
+    --             ]
+    --     ]
+    -- }
 
 
 responseToString : ResponseString -> String
