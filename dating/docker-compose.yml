@@ -9,7 +9,7 @@ services:
       ports:
         - "6379:6379"
     dating:
-        build: .
+        build: ./docker/dating
         image: dating
         command: bash -c "ghcid --command=\"stack --allow-different-user ghci\" --test=\"Main.main\"" 
         volumes:
@@ -17,7 +17,16 @@ services:
         ports:
            - "1234:1234"
     nginx:
-        build: ./nginx
+        build: ./docker/nginx
         image: nginx
         ports:
           - "8080:80"
+
+    elm-reactor:
+        build: ./docker/elm
+        image: elm
+        volumes:
+            - ./frontend/:/opt/app
+        ports:
+            - "8000:8000"
+        command: "reactor"
