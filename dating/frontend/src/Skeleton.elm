@@ -18,4 +18,3 @@ view toMsg details =
       , p [] [text "footer"]
       ]
   }
-
