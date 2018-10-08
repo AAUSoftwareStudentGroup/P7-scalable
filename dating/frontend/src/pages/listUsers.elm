@@ -14,53 +14,35 @@ import Debug
 
 main : Program () Model Msg
 main =
-    Browser.application
+    Browser.document
     { init = init
     , view = view
     , update = update
     , subscriptions = subscriptions
-    , onUrlChange = UrlChanged
-    , onUrlRequest = LinkClicked
     }
 
 
 -- MODEL
 
 type alias Model =
-    { key : Nav.Key
-    , url : Url.Url
-    , users : List User
+    {
+    users : List User
     }
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-  ( Model key url [], sendGetUsers UsersFetched "mysecret")
+init : () -> ( Model, Cmd Msg )
+init flags =
+  ( Model [], sendGetUsers UsersFetched "ndygwfzqobfwjhzsxnghpgclvccgdtlprrdyllffkmijhdjikqugizmtpxyvppqb")
 
 
 -- UPDATE
 
 type Msg
-  = LinkClicked Browser.UrlRequest
-  | UrlChanged Url.Url
-  | UsersFetched(Result Http.Error (List User))
+  = UsersFetched(Result Http.Error (List User))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    LinkClicked urlRequest ->
-      case urlRequest of
-        Browser.Internal url ->
-          ( model, Nav.load (Url.toString(url)) )
-
-        Browser.External href ->
-          ( model, Nav.load href )
-
-    UrlChanged url ->
-      ( { model | url = url }
-      , Cmd.none
-      )
-
     UsersFetched result ->
          case result of
             Ok newUsers ->
@@ -101,11 +83,11 @@ showUser : User -> Element Msg
 showUser user =
     Element.column [centerX, spacing 10] [
         el [centerX, Font.size 24] (text (toSentenceCase user.userUsername))
-        , viewLink "View profile" "viewUser.elm"
+        , createLink "View profile" ("user/" ++ user.userUsername)
     ]
 
-viewLink : String -> String -> Element Msg
-viewLink label path =
+createLink : String -> String -> Element Msg
+createLink label path =
     Element.link [centerX] { label = text label, url = path }
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> String -> Cmd msg

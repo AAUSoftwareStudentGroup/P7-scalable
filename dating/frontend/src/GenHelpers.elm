@@ -12,7 +12,7 @@ type Gender
 
 decodeGender : D.Decoder Gender
 decodeGender =
-    D.field "userGender" D.string
+    D.field "gender" D.string
         |> D.andThen decodeGenderAux
 
 
