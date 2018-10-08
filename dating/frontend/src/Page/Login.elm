@@ -1,7 +1,4 @@
---module CreateUser exposing (Msg(..), blue, darkBlue, emptyCredentials, grey, init, main, maybeShowPasswordsNotEqualWarning, mkWarning, postUser, pure, red, showWarningIfUsernameIsTaken, subscriptions, update, view, white)
-
-
-module Main exposing (Model(..), Msg(..), ResponseString, blue, darkBlue, emptyCredentials, grey, init, loginUser, main, mkWarning, noLabel, pure, red, responseToString, subscriptions, update, view, white)
+module Main exposing (Model(..), Msg(..), ResponseString, blue, darkBlue, emptyCredentials, grey, handleErrorResponse, init, loginUser, main, mkWarning, noLabel, pure, red, responseToString, subscriptions, update, view, white)
 
 import Browser
 import Element exposing (..)
@@ -11,7 +8,6 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
 import Generated.DatingApi exposing (..)
-import Html exposing (Html)
 import Http
 import String
 
@@ -32,7 +28,7 @@ init _ =
 
 emptyCredentials : Credentials
 emptyCredentials =
-    Credentials "" ""
+    Credentials "Bargsteen" "repsak"
 
 
 type Model
@@ -46,7 +42,7 @@ type alias ResponseString =
 type Msg
     = Update Credentials
     | LoginClicked
-    | HandleUserLogin (Result Http.Error Int)
+    | HandleUserLogin (Result Http.Error String)
 
 
 subscriptions userEntries =
@@ -65,29 +61,34 @@ update msg (Model user response) =
         HandleUserLogin result ->
             case result of
                 Ok token ->
-                    pure (Model user (Just <| String.fromInt token))
+                    pure (Model user (Just <| token))
 
                 Err errResponse ->
-                    case errResponse of
-                        Http.BadUrl url ->
-                            pure (Model user (Just <| "Bad url: " ++ url))
+                    handleErrorResponse errResponse user
 
-                        Http.BadPayload _ _ ->
-                            pure (Model user (Just "bad payload"))
 
-                        Http.Timeout ->
-                            pure (Model user (Just "timeout"))
+handleErrorResponse : Http.Error -> Credentials -> ( Model, Cmd Msg )
+handleErrorResponse errResponse user =
+    case errResponse of
+        Http.BadUrl url ->
+            pure (Model user (Just <| "Bad url: " ++ url))
 
-                        Http.NetworkError ->
-                            pure (Model user (Just "networkerror"))
+        Http.BadPayload _ _ ->
+            pure (Model user (Just "bad payload"))
 
-                        Http.BadStatus statusResponse ->
-                            pure (Model user (Just <| "badstatus" ++ .body statusResponse))
+        Http.Timeout ->
+            pure (Model user (Just "timeout"))
+
+        Http.NetworkError ->
+            pure (Model user (Just "networkerror"))
+
+        Http.BadStatus statusResponse ->
+            pure (Model user (Just <| "badstatus" ++ .body statusResponse))
 
 
 loginUser : Credentials -> Cmd Msg
-loginUser user =
-    Cmd.none
+loginUser cred =
+    Http.send HandleUserLogin <| postLogin cred
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -135,6 +136,12 @@ view (Model userEntries response) =
                     ]
                     { onPress = Just LoginClicked
                     , label = Element.text "Login!"
+                    }
+
+                --, div [] [ text (String.reverse model.content) ]
+                , Element.link [ Font.color blue ]
+                    { url = "CreateUser.elm"
+                    , label = text "Not yet a user? Click here to sign up."
                     }
                 , Element.text <| responseToString response
                 ]
