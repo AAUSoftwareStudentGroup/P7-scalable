@@ -15,6 +15,7 @@ type Route
     | Login
     | ListUsers
     | Messages
+    | Profile
 
 
 parser : Parser (Route -> a) a
@@ -24,7 +25,8 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map CreateUser (s "create-user")
         , Parser.map ListUsers (s "list-users")  
-        , Parser.map Messages (s "messages")           
+        , Parser.map Messages (s "messages")
+        , Parser.map Profile (s "user")
         ]
 
 
@@ -74,6 +76,9 @@ routeToString page =
                 
                 Messages ->
                     [ "messages" ]
+
+                Profile ->
+                    [ "user" ]
 
     in
     "#/" ++ String.join "/" pieces

@@ -1,4 +1,4 @@
-module Main exposing (Model(..), Msg(..), blue, darkBlue, emptyUser, grey, init, main, mkWarning, noLabel, pure, red, subscriptions, update, view, white)
+module Page.Profile exposing (Model, Msg(..), blue, darkBlue, emptyUser, grey, init, mkWarning, noLabel, red, subscriptions, update, view, white)
 
 import Browser
 import Browser.Navigation as Nav
@@ -13,21 +13,16 @@ import Generated.DatingApi exposing (..)
 import Http
 import Page.Header
 import String
+import Session
+import Skeleton
 
 
-main =
-    Browser.document
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
-
-
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Model emptyUser, Http.send HandleGetUser (getUsersByUserid 14) )
-
+type alias Model =
+    { session : Session.Data
+    , title : String
+    , content : Content
+    , user : User
+    }
 
 emptyUser : User
 emptyUser =
@@ -36,12 +31,18 @@ emptyUser =
 
 type Msg
     = GetUser Int
-    | Update User
     | HandleGetUser (Result Http.Error User)
 
 
-type Model
-    = Model User
+type Content
+    = Content User
+
+
+init : Session.Data -> ( Model, Cmd Msg )
+init session =
+  ( Model session "Profile" (Content emptyUser) emptyUser
+  , (Http.send HandleGetUser (getUsersByUserid 8))
+  )
 
 
 subscriptions userEntries =
@@ -49,32 +50,24 @@ subscriptions userEntries =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg (Model user) =
+update msg model =
     case msg of
-        Update newFormEntries ->
-            pure (Model newFormEntries)
-
         GetUser userid ->
-            ( Model user, Http.send HandleGetUser (getUsersByUserid userid) )
+            ( model, Http.send HandleGetUser (getUsersByUserid userid) )
 
         HandleGetUser result ->
             case result of
                 Ok fetchedUser ->
-                    pure (Model fetchedUser)
+                    ( {model | user = fetchedUser }, Cmd.none)
 
                 Err errResponse ->
-                    pure <| Debug.log (Debug.toString errResponse) <| Model user
+                   Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }, Cmd.none )
 
 
-pure : Model -> ( Model, Cmd Msg )
-pure userEntries =
-    ( userEntries, Cmd.none )
-
-
-view : Model -> Browser.Document Msg
-view (Model userEntries) =
-    { title = userEntries.userUsername ++ "'s profile"
-    , body =
+view : Model -> Skeleton.Details msg
+view model =
+    { title = model.user.userUsername ++ "'s profile"
+    , kids =
         [ Element.layout
             [ Font.size 20
             ]
@@ -89,19 +82,19 @@ view (Model userEntries) =
                         , Font.size 36
                         , Border.color darkBlue
                         ]
-                        (text (userEntries.userUsername ++ "'s profile"))
+                        (text (model.user.userUsername ++ "'s profile"))
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userUsername)
+                        (text model.user.userUsername)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userEmail)
+                        (text model.user.userEmail)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text <| genderToString userEntries.userGender)
+                        (text <| genderToString model.user.userGender)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userBirthday)
+                        (text model.user.userBirthday)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userTown)
+                        (text model.user.userTown)
                     , paragraph [ spacing 12, Border.color darkBlue ]
-                        [ text userEntries.userProfileText ]
+                        [ text model.user.userProfileText ]
                     ]
                 ]
         ]

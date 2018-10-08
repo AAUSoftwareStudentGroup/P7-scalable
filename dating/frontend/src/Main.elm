@@ -6,6 +6,7 @@ import Page.CreateUser as CreateUser
 import Page.ListUsers as ListUsers
 import Page.Messages as Messages
 import Page.NotFound as NotFound
+import Page.Profile as Profile
 import Url
 import Url.Parser as Parser exposing (Parser, (</>), custom, fragment, map, oneOf, s, top)
 import Skeleton
@@ -42,6 +43,7 @@ type Page
     | CreateUser CreateUser.Model
     | ListUsers ListUsers.Model
     | Messages Messages.Model
+    | Profile Profile.Model
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -68,6 +70,9 @@ view model =
     Messages unused ->
       Skeleton.view never (Messages.view unused)
 
+    Profile profile ->
+      Skeleton.view never (Profile.view profile)
+
 
 -- SUBSCRIPTIONS
 
@@ -85,6 +90,7 @@ type Msg
   | CreateUserMsg CreateUser.Msg
   | ListUsersMsg ListUsers.Msg
   | MessagesMsg Messages.Msg
+  | ProfileMsg Profile.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update message model =
@@ -122,6 +128,11 @@ update message model =
         Messages messages -> stepMessages model (Messages.update msg messages)
         _             -> ( model, Cmd.none )
 
+    ProfileMsg msg ->
+      case model.page of
+        Profile profile -> stepProfile model (Profile.update msg profile)
+        _             -> ( model, Cmd.none )
+
 
 stepCreateUser : Model -> ( CreateUser.Model, Cmd CreateUser.Msg ) -> ( Model, Cmd Msg )
 stepCreateUser model (createUser, cmds) = 
@@ -141,7 +152,11 @@ stepMessages model (messages, cmds) =
   , Cmd.map MessagesMsg cmds
   )
 
-
+stepProfile : Model -> ( Profile.Model, Cmd Profile.Msg ) -> ( Model, Cmd Msg )
+stepProfile model (profile, cmds) =
+    ( { model | page = Profile profile }
+    , Cmd.map ProfileMsg cmds
+    )
 -- EXIT
 
 exit : Model -> Session.Data
@@ -151,6 +166,7 @@ exit model =
     CreateUser m -> m.session
     ListUsers m -> m.session
     Messages m -> m.session
+    Profile m -> m.session
 
 
 stepUrl : Url.Url -> Model -> (Model, Cmd Msg)
@@ -173,6 +189,9 @@ stepUrl url model =
             )
         , route (s "messages")
             ( stepMessages model (Messages.init session)
+            )
+        , route (s "user")
+            ( stepProfile model (Profile.init session)
             )
         ]
   in
