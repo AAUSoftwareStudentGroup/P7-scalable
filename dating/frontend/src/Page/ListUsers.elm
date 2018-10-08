@@ -1,3 +1,5 @@
+module Page.ListUsers exposing (..)
+
 import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
@@ -9,17 +11,9 @@ import Http
 import Json.Decode as Decode exposing (field, Decoder, int, string, list)
 import String.Extra exposing (toSentenceCase)
 import Generated.DatingApi exposing (User, getUsers)
+import Skeleton
 
 import Debug
-
-main : Program () Model Msg
-main =
-    Browser.document
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    }
 
 
 -- MODEL
@@ -28,6 +22,9 @@ type alias Model =
     {
     users : List User
     }
+
+initialModel : Model
+initialModel = Model []
 
 init : () -> ( Model, Cmd Msg )
 init flags =
@@ -60,9 +57,10 @@ subscriptions _ =
 
 -- VIEW
 
-view : Model -> Browser.Document Msg
-view model = { title = "All users"
-    , body =
+view : Model -> Skeleton.Details msg
+view model =
+  { title = "All users"
+  , kids =
         [ Element.layout
             [ Font.size 20
             ]
