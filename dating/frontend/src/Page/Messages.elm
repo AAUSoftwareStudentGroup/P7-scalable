@@ -1,27 +1,20 @@
-module Page.Messages exposing (Content(..), Messages, Model, Msg(..), blue, init, initialModel, toText, update, view, viewContent)
+module Page.Messages exposing (Content(..), Messages, Model, Msg(..), blue, init, toText, update, view, viewContent)
 
-import Browser
-import Element exposing (Element, column, el, layout, link, padding, row, spacing, text)
+import Html exposing (Html)
+import Skeleton
+import Session
+
+import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Element.Region as Region
-import GenHelpers exposing (Gender(..))
-import Generated.DatingApi exposing (..)
-import Html exposing (Html)
-import Http
-import Routing
-import Skeleton
-import String
-
 
 
 -- MODEL
-
-
-type alias Model =
-    { title : String
+type alias Model = 
+    { session : Session.Data
+    , title : String
     , content : Content
     }
 
@@ -33,19 +26,11 @@ type Content
 type alias Messages =
     List String
 
-
-init : String -> String -> ( Model, Cmd Msg )
-init title url =
-    ( initialModel
-    , Cmd.none
-    )
-
-
-initialModel : Model
-initialModel =
-    Model "Messages" (Content [ "Message 1", "Message 2", "Message 3" ])
-
-
+init : Session.Data -> ( Model, Cmd Msg )
+init session = 
+  ( Model session "Messages" (Content ["Message 1", "Message 2", "Message 3"])
+  , Cmd.none
+  )
 
 -- UPDATE
 
@@ -74,11 +59,10 @@ view model =
 
 viewContent : String -> Content -> Html msg
 viewContent title (Content messages) =
-    layout [ Font.size 20 ] <|
-        column [ padding 20, spacing 20, Background.color blue ] <|
-            List.map toText messages
-                ++ [ link [] { url = Routing.routeToString Routing.CreateUser, label = toText "To Create User" } ]
-
+    layout [Font.size 20] <|
+      column [padding 20, spacing 20, Background.color blue] <| (List.map toText messages) ++ 
+      [ link [] {url = "create-user", label = toText "To Create User"}] ++
+      [ link [] {url = "list-users", label = toText "List Users" }]
 
 toText : String -> Element msg
 toText str =

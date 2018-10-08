@@ -1,35 +1,30 @@
 module Page.CreateUser exposing (..)
 
-import Browser
-import Generated.DatingApi exposing(..)
+import Html exposing (Html)
+import Skeleton
+import Session
+import Generated.DatingApi exposing (..)
 import GenHelpers exposing (Gender(..))
+import Http
+
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Element.Region as Region
-import Html exposing (Html)
-import Http
-import String
-import Skeleton
-import Routing exposing (Route(..), routeToString)
-
 
 -- MODEL
-type alias Model =
-    { title : String
+type alias Model = 
+    { session : Session.Data
+    , title : String
     , content : Content
     }
 
-init : String -> String -> ( Model, Cmd Msg )
-init title url =
-  ( initialModel
+init : Session.Data -> ( Model, Cmd Msg )
+init session = 
+  ( Model session "Create User Title" (Content emptyUser Nothing)
   , Cmd.none
   )
-
-initialModel : Model
-initialModel = Model "Create User" (Content emptyUser Nothing)
 
 emptyUser : User
 emptyUser =
@@ -104,7 +99,7 @@ viewContent : String -> Content -> Html msg
 viewContent title content =
     Element.layout [Font.size 20] <|
         column [] [ text "CreateUser CONTENT"
-               , link [] {url = Routing.routeToString Routing.Messages, label = toText "To messages"}
+               , link [] {url = "messages", label = toText "To messages"}
         ]
 
 toText : String -> Element msg

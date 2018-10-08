@@ -1,4 +1,4 @@
-module Page.ListUsers exposing (Model, Msg(..), createLink, init, initialModel, sendGetUsers, showUser, subscriptions, update, view)
+module Page.ListUsers exposing (Model, Msg(..), createLink, init, sendGetUsers, showUser, subscriptions, update, view)
 
 import Browser.Navigation as Nav
 import Debug
@@ -12,6 +12,8 @@ import Json.Decode as Decode exposing (Decoder, field, int, list, string)
 import Skeleton
 import String.Extra exposing (toSentenceCase)
 import Url
+import Session
+import GenHelpers exposing (Gender(..))
 
 
 
@@ -19,19 +21,34 @@ import Url
 
 
 type alias Model =
-    { users : List User
+    { session : Session.Data
+    , title : String
+    , content : Content
+    , users : List User
     }
 
+type Content
+    = Content User
 
-initialModel : Model
-initialModel =
-    Model []
+--initialModel : Model
+--initialModel =
+--    Model []
 
 
-init : () -> ( Model, Cmd Msg )
-init flags =
-    ( Model [], sendGetUsers UsersFetched "ndygwfzqobfwjhzsxnghpgclvccgdtlprrdyllffkmijhdjikqugizmtpxyvppqb" )
+--init : () -> ( Model, Cmd Msg )
+--init flags =
+--    ( Model [], sendGetUsers UsersFetched "ndygwfzqobfwjhzsxnghpgclvccgdtlprrdyllffkmijhdjikqugizmtpxyvppqb" )
 
+init : Session.Data -> ( Model, Cmd Msg )
+init session =
+  ( Model session "List Users" (Content emptyUser) []
+  , (sendGetUsers UsersFetched "zyktmwfsbgqefcrpdutdvpjxpkfrugrqxaeygtpfkznszesnodgejwuqsjkzkaci")
+  )
+
+
+emptyUser : User
+emptyUser =
+  User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken"
 
 
 -- UPDATE
@@ -97,7 +114,7 @@ showUser user =
 
 createLink : String -> String -> Element msg
 createLink label path =
-    Element.link [ centerX ] { label = text label, url = path }
+    link [ centerX ] { url = path, label = text "view profile"}
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> String -> Cmd msg
