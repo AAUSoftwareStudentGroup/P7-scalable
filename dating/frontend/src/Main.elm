@@ -3,8 +3,11 @@ import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Page.CreateUser as CreateUser
+import Page.Messages as Messages
 import Url
+import Routing as Routing exposing (Route(..), fromUrl, replaceUrl)
 import Skeleton
+import Debug
 
 
 
@@ -33,6 +36,7 @@ type alias Model =
 
 type Page
   = CreateUser CreateUser.Model
+  | Messages Messages.Model
 
 
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
@@ -52,14 +56,17 @@ update msg model =
     LinkClicked urlRequest ->
       case urlRequest of
         Browser.Internal url ->
-          (model, Nav.load (Url.toString url))
+          Debug.log "internal" (model, Nav.pushUrl model.key (Url.toString url))
         Browser.External href ->
-          (model, Nav.load href)
-
+          Debug.log "external" (model, Nav.load href)
     UrlChanged url ->
-      ( model
-      , Cmd.none
-      )
+      case Routing.fromUrl url of
+        Just Routing.CreateUser -> 
+          Debug.log "createuser" ({model | page = CreateUser CreateUser.initialModel}, Cmd.none)
+        Just Routing.Messages -> 
+          Debug.log "messages" ({model | page = Messages Messages.initialModel}, Cmd.none)
+        Just x -> Debug.log ("Url Changed Just:" ++ Debug.toString x) (model, Cmd.none)
+        Nothing -> Debug.log "Url Change Nothing" (model, Cmd.none)
     _ -> (model, Cmd.none)
 
 
@@ -74,3 +81,6 @@ view model =
   case model.page of
     CreateUser createUser ->
       Skeleton.view never (CreateUser.view createUser)
+    Messages unused ->
+      Skeleton.view never (Messages.view unused)
+    

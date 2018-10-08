@@ -13,6 +13,7 @@ import Html exposing (Html)
 import Http
 import String
 import Skeleton
+import Routing exposing (Route(..), routeToString) 
 
 
 -- MODEL
@@ -101,7 +102,13 @@ view model =
 
 viewContent : String -> Content -> Html msg
 viewContent title content =
-    Element.layout [Font.size 20] <| text "CreateUser"
+    Element.layout [Font.size 20] <| 
+        column [] [ text "CreateUser CONTENT"
+               , link [] {url = Routing.routeToString Routing.Messages, label = toText "To messages"}
+        ]
+
+toText : String -> Element msg
+toText str = el [Font.size 20] <| text str 
     -- { title = "Create User"
     -- , body =
     --     [ Element.layout
