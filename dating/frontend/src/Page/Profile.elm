@@ -11,7 +11,6 @@ import Element.Region as Region
 import GenHelpers exposing (Gender(..))
 import Generated.DatingApi exposing (..)
 import Http
-import Page.Header
 import String
 import Session
 import Skeleton
@@ -64,39 +63,31 @@ update msg model =
                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }, Cmd.none )
 
 
-view : Model -> Skeleton.Details msg
+--view : Model -> Skeleton.Details msg
 view model =
     { title = model.user.userUsername ++ "'s profile"
-    , kids =
-        [ Element.layout
-            [ Font.size 20
-            ]
-          <|
-            Element.column [ width fill ]
-                [ Element.column [ width fill, height shrink ]
-                    [ Page.Header.getHeader Nothing ]
-                , Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
-                    [ el
-                        [ Region.heading 1
-                        , centerX
-                        , Font.size 36
-                        , Border.color darkBlue
-                        ]
-                        (text (model.user.userUsername ++ "'s profile"))
-                    , el [ spacing 12, Border.color darkBlue ]
-                        (text model.user.userUsername)
-                    , el [ spacing 12, Border.color darkBlue ]
-                        (text model.user.userEmail)
-                    , el [ spacing 12, Border.color darkBlue ]
-                        (text <| genderToString model.user.userGender)
-                    , el [ spacing 12, Border.color darkBlue ]
-                        (text model.user.userBirthday)
-                    , el [ spacing 12, Border.color darkBlue ]
-                        (text model.user.userTown)
-                    , paragraph [ spacing 12, Border.color darkBlue ]
-                        [ text model.user.userProfileText ]
-                    ]
+    , kids = [
+        Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
+            [ el
+                [ Region.heading 1
+                , centerX
+                , Font.size 36
+                , Border.color darkBlue
                 ]
+                (text (model.user.userUsername ++ "'s profile"))
+            , el [ spacing 12, Border.color darkBlue ]
+                (text model.user.userUsername)
+            , el [ spacing 12, Border.color darkBlue ]
+                (text model.user.userEmail)
+            , el [ spacing 12, Border.color darkBlue ]
+                (text <| genderToString model.user.userGender)
+            , el [ spacing 12, Border.color darkBlue ]
+                (text model.user.userBirthday)
+            , el [ spacing 12, Border.color darkBlue ]
+                (text model.user.userTown)
+            , paragraph [ spacing 12, Border.color darkBlue ]
+                [ text model.user.userProfileText ]
+            ]
         ]
     }
 

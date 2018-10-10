@@ -12,7 +12,8 @@ import Json.Decode as Decode exposing (Decoder, field, int, list, string)
 import Skeleton
 import String.Extra exposing (toSentenceCase)
 import Url
-import Session exposing (Data)
+--import Session exposing (..)
+import Session
 import GenHelpers exposing (Gender(..))
 
 
@@ -86,11 +87,7 @@ subscriptions _ =
 view : Model -> Skeleton.Details msg
 view model =
     { title = "All users"
-    , kids =
-        [ Element.layout
-            [ Font.size 20
-            ]
-          <|
+    , kids = [
             Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
                 (el
                     [ Region.heading 1
@@ -100,7 +97,7 @@ view model =
                     (text "Users")
                     :: List.map showUser model.users
                 )
-        ]
+            ]
     }
 
 
@@ -120,7 +117,7 @@ createLink label path =
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session.Data -> Cmd msg
 sendGetUsers responseMsg userToken =
     case userToken of
-        Session.LoggedIn token ->
+        Session.LoggedIn navKey token ->
            Http.send responseMsg (getUsers token)
-        Session.Guest ->
+        Session.Guest navKey ->
             Http.send responseMsg (getUsers "")

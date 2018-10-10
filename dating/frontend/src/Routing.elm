@@ -1,4 +1,4 @@
-module Routing exposing (Route(..), fromUrl, href, replaceUrl, routeToString)
+module Routing exposing (Route(..), fromUrl, href, replaceUrl, pushUrl, routeToString)
 
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
@@ -39,10 +39,13 @@ href targetRoute =
     Attr.href (routeToString targetRoute)
 
 
-replaceUrl : Nav.Key -> Route -> Cmd msg
+replaceUrl : Nav.Key -> String -> Cmd msg
 replaceUrl key route =
-    Nav.replaceUrl key (routeToString route)
+    Nav.replaceUrl key route
 
+pushUrl : Nav.Key -> String -> Cmd msg
+pushUrl key route =
+    Nav.pushUrl key route
 
 fromUrl : Url -> Maybe Route
 fromUrl url =
