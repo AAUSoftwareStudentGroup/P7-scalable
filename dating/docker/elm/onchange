@@ -1,0 +1,11 @@
+#!/bin/sh
+monitored_files=$1
+shift
+while inotifywait -e close_write $monitored_files # /dev/null 2>&1
+do 
+    for cmd in "$@"
+    do
+        $cmd
+    done
+done
+

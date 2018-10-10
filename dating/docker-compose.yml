@@ -16,17 +16,29 @@ services:
           - ./:/app/user
         ports:
            - "1234:1234"
+
     nginx:
         build: ./docker/nginx
         image: nginx
         ports:
-          - "8080:80"
+          - "8002:80"
+    
 
-    elm-reactor:
+    caddy:
+      image: abiosoft/caddy
+      ports:
+        - "80:80"
+#        - "443:443"
+      volumes:
+        - "./frontend:/srv/elm-frontend"
+        - "./docker/caddy/Caddyfile:/etc/Caddyfile"
+
+    elm:
         build: ./docker/elm
         image: elm
         volumes:
             - ./frontend/:/opt/app
         ports:
-            - "8000:8000"
-        command: "reactor"
+            - "8001:8000"
+        #command: "onchange .gitignore 'cat .gitignore'"
+        command: "onchange src/ \"elm make src/Main.elm --output index.html\""
