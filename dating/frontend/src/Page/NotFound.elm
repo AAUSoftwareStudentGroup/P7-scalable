@@ -48,9 +48,9 @@ view =
     , kids = [ viewContent "Not Found" (Content "This page was not found.") ]
     }
 
-viewContent : String -> Content -> Html msg
+viewContent : String -> Content -> Element msg
 viewContent title (Content message) =
-    layout [Font.size 20] <| toText message
+    toText message
 
 toText : String -> Element msg
 toText str = el [Font.size 20] <| text str 

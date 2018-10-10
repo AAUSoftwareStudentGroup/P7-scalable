@@ -37,9 +37,9 @@ href targetRoute =
     Attr.href (routeToString targetRoute)
 
 
-replaceUrl : Nav.Key -> Route -> Cmd msg
+replaceUrl : Nav.Key -> String -> Cmd msg
 replaceUrl key route =
-    Nav.replaceUrl key (routeToString route)
+    Nav.replaceUrl key route
 
 
 fromUrl : Url -> Maybe Route

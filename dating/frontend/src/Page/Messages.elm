@@ -26,7 +26,7 @@ type alias Messages =
 
 init : Session.Data -> ( Model, Cmd Msg )
 init session = 
-  ( Model session "Messages" (Content ["Message 1", "Message 2", "Message 3"])
+  ( Model (Debug.log "messages session:" session) "Messages" (Content ["Message 1", "Message 2", "Message 3"])
   , Cmd.none
   )
 
@@ -50,9 +50,8 @@ view model =
     , kids = [ viewContent model.title model.content ]
     }
 
-viewContent : String -> Content -> Html msg
+viewContent : String -> Content -> Element msg
 viewContent title (Content messages) =
-    layout [Font.size 20] <| 
       column [padding 20, spacing 20, Background.color blue] <| (List.map toText messages) ++ 
       [ link [] {url = "create-user", label = toText "To Create User"}]
 

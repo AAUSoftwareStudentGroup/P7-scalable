@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -44,7 +43,7 @@ import           Web.Cookie                       (parseCookies)
 
 -- | The API.
 type DatingAPI =
-       "users" :> Capture "userid" Int64 :> Get '[JSON] User
+       "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] User
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
   :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
@@ -55,8 +54,8 @@ datingAPI = Proxy :: Proxy DatingAPI
 
 
 -- | Fetches a user by id. First it tries redis, then postgres. It saves to cache if it goes to the db.
-fetchUserHandler :: PGInfo -> RedisInfo -> Int64 -> Handler User
-fetchUserHandler pgInfo redisInfo uid = do
+fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler User
+fetchUserHandler pgInfo redisInfo _ uid = do
   maybeCachedUser <- liftIO $ fetchUserRedis redisInfo uid
   case maybeCachedUser of
     Just user -> return user
@@ -118,7 +117,7 @@ datingServer pgInfo redisInfo =
 
 -- | The context is sort of the state, being authenticated or not. Starts empty.
 datingServerContext :: PGInfo -> Context (AuthHandler Request UserId ': '[])
-datingServerContext pgInfo = (authHandler pgInfo) :. EmptyContext
+datingServerContext pgInfo = authHandler pgInfo :. EmptyContext
 
 
 -- | Serves the API on port 1234
