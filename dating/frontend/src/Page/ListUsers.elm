@@ -12,7 +12,7 @@ import Json.Decode as Decode exposing (Decoder, field, int, list, string)
 import Skeleton
 import String.Extra exposing (toSentenceCase)
 import Url
-import Session
+import Session exposing (Data)
 import GenHelpers exposing (Gender(..))
 
 
@@ -42,7 +42,7 @@ type Content
 init : Session.Data -> ( Model, Cmd Msg )
 init session =
   ( Model session "List Users" (Content emptyUser) []
-  , (sendGetUsers UsersFetched "zyktmwfsbgqefcrpdutdvpjxpkfrugrqxaeygtpfkznszesnodgejwuqsjkzkaci")
+  , (sendGetUsers UsersFetched session)
   )
 
 
@@ -117,6 +117,10 @@ createLink label path =
     link [ centerX ] { url = path, label = text "view profile"}
 
 
-sendGetUsers : (Result Http.Error (List User) -> msg) -> String -> Cmd msg
+sendGetUsers : (Result Http.Error (List User) -> msg) -> Session.Data -> Cmd msg
 sendGetUsers responseMsg userToken =
-    Http.send responseMsg (getUsers userToken)
+    case userToken of
+        Session.LoggedIn token ->
+           Http.send responseMsg (getUsers token)
+        Session.Guest ->
+            Http.send responseMsg (getUsers "")
