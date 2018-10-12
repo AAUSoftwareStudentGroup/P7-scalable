@@ -28,25 +28,15 @@ import Url
 type alias Model =
     { session : Session.Data
     , title : String
-    , content : Content
     , users : List User
     }
 
 
-type Content
-    = Content User
-
-
 init : Session.Data -> ( Model, Cmd Msg )
 init session =
-    ( Model session "List Users" (Content emptyUser) []
+    ( Model session "List Users" []
     , sendGetUsers UsersFetched session
     )
-
-
-emptyUser : User
-emptyUser =
-    User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken"
 
 
 
@@ -119,7 +109,6 @@ createButton attributes url caption =
          , Background.color (rgba 0 0 0 0)
          , Border.rounded 2
          , padding 16
-         , Font.variant Font.smallCaps
          ]
             ++ attributes
         )
@@ -198,9 +187,9 @@ fonts =
         ]
 
 
-sendGetUsers : (Result Http.Error (List User) -> Msg) -> Session.Data -> Cmd Msg
-sendGetUsers responseMsg userToken =
-    case userToken of
+sendGetUsers : (Result Http.Error (List User) -> msg) -> Session.Data -> Cmd msg
+sendGetUsers responseMsg data =
+    case data of
         Session.LoggedIn navKey token ->
             Http.send responseMsg (getUsers token)
 

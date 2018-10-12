@@ -63,13 +63,13 @@ encodeCredentials x =
         , ( "password", Json.Encode.string x.password )
         ]
 
-getUsersByUserid : Int -> Http.Request (User)
-getUsersByUserid capture_userid =
+getUsersByUserid : Int -> String -> Http.Request (User)
+getUsersByUserid capture_userid token =
     Http.request
         { method =
             "GET"
         , headers =
-            []
+            [Http.header "Auth-Token" ("dating-auth-cookie=" ++ token)]
         , url =
             String.join "/"
                 [ "http://localhost:8080"

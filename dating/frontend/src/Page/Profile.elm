@@ -19,7 +19,7 @@ import Skeleton
 type alias Model =
     { session : Session.Data
     , title : String
-    , content : Content
+    , id : Int
     , user : User
     }
 
@@ -29,18 +29,13 @@ emptyUser =
 
 
 type Msg
-    = GetUser Int
-    | HandleGetUser (Result Http.Error User)
+    = HandleGetUser (Result Http.Error (User))
 
 
-type Content
-    = Content User
-
-
-init : Session.Data -> ( Model, Cmd Msg )
-init session =
-  ( Model session "Profile" (Content emptyUser) emptyUser
-  , (Http.send HandleGetUser (getUsersByUserid 8))
+init : Session.Data -> Int -> ( Model, Cmd Msg )
+init session id =
+  ( Model session "Profile" id emptyUser
+  , (sendGetUser HandleGetUser id (authenticationToken session))
   )
 
 
@@ -51,9 +46,6 @@ subscriptions userEntries =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GetUser userid ->
-            ( model, Http.send HandleGetUser (getUsersByUserid userid) )
-
         HandleGetUser result ->
             case result of
                 Ok fetchedUser ->
@@ -114,6 +106,17 @@ mkWarning warning =
         ]
         (text warning)
 
+authenticationToken : Session.Data -> String
+authenticationToken data =
+    case data of
+        Session.LoggedIn navKey token ->
+            token
+        Session.Guest navKey ->
+            ""
+
+sendGetUser : (Result Http.Error User -> msg) -> Int -> String -> Cmd msg
+sendGetUser responseMsg userId token =
+    Http.send responseMsg (getUsersByUserid userId token)
 
 noLabel =
     Input.labelAbove [] none

@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 42a6b9e39ffc0d89397c902f3317f171815a5a8c48d23dc9193f589312b87c30
+-- hash: 533cc6b3c3d77291b765026c692537afe16632831fcccb39db15e7f300f1167d
 
 name:           dating
 version:        0.1.0.0
@@ -31,6 +31,7 @@ library
       SchemaEnums
       Authentication
   other-modules:
+      ElmCodeGen
       Paths_dating
   hs-source-dirs:
       src
@@ -41,6 +42,7 @@ library
     , containers
     , cookie
     , elm-export
+    , elm-export-persistent
     , esqueleto
     , hedis
     , http-client
@@ -49,9 +51,11 @@ library
     , persistent
     , persistent-postgresql
     , persistent-template
+    , random
     , servant
     , servant-client
     , servant-elm
+    , servant-foreign
     , servant-server
     , text
     , time
