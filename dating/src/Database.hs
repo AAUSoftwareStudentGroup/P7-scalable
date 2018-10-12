@@ -65,13 +65,13 @@ migrateDB pgInfo = runAction pgInfo (runMigration migrateAll)
 
 deleteEverythingInDB :: PGInfo -> IO ()
 deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
-  where
+  where 
     deleteAction :: SqlPersistT (LoggingT IO) ()
     deleteAction = do
       delete $
         from $ \(message :: SqlExpr (Entity Message)) ->
         return ()
-      delete $
+      delete $ 
         from $ \(user :: SqlExpr (Entity User)) ->
         return ()
 
@@ -83,7 +83,7 @@ deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
 fromEntity = (fmap . fmap) entityVal
 
 createUserPG :: PGInfo -> User -> IO Int64
-createUserPG pgInfo user = do
+createUserPG pgInfo user = do 
   g <- Random.newStdGen
   let authToken = T.pack $ take 64 $ Random.randomRs ('a', 'z') g
   let user' = user { userAuthToken = authToken }
@@ -100,8 +100,8 @@ fetchUserPG pgInfo uid = fromEntity $ runAction pgInfo selectAction
                     return user
       return $ listToMaybe $ usersFound
 
-fetchAllUsersPG :: PGInfo -> IO [Entity User]
-fetchAllUsersPG pgInfo = runAction pgInfo selectAction
+fetchAllUsersPG :: PGInfo -> IO [User]
+fetchAllUsersPG pgInfo = (fmap . fmap) entityVal $ runAction pgInfo selectAction
   where
     selectAction :: SqlPersistT (LoggingT IO) [Entity User]
     selectAction = do
@@ -138,11 +138,6 @@ fetchAuthTokenByCredentialsPG pgInfo (Credentials {username = usr, password = ps
                        where_ (user ^. UserUsername ==. val usr &&. user ^. UserPassword ==. val psw)
                        return (user ^. UserAuthToken)
       return $ unValue <$> listToMaybe tokensFound
-
-
--- Messages
-
-
 
 -- | REDIS
 

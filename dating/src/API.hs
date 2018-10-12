@@ -44,7 +44,7 @@ import           Web.Cookie                       (parseCookies)
 -- | The API.
 type DatingAPI =
        "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] User
-  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [Entity User]
+  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
   :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
 
@@ -66,7 +66,7 @@ fetchUserHandler pgInfo redisInfo _ uid = do
         Nothing -> Handler $ throwE $ err401 { errBody = "Could not find user with that ID"}
 
 -- | Fetches all users from db if you are authenticated.
-fetchAllUsersHandler :: PGInfo -> UserId -> Handler [Entity User]
+fetchAllUsersHandler :: PGInfo -> UserId -> Handler [User]
 fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 
 
