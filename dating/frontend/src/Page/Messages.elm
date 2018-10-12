@@ -3,6 +3,7 @@ module Page.Messages exposing (..)
 import Html exposing (Html)
 import Skeleton
 import Session
+import Routing exposing (Route(..))
 
 import Element exposing (..)
 import Element.Background as Background
@@ -25,7 +26,7 @@ type alias Messages =
     List String
 
 init : Session.Data -> ( Model, Cmd Msg )
-init session = 
+init session =
   ( Model (Debug.log "messages session:" session) "Messages" (Content ["Message 1", "Message 2", "Message 3"])
   , Cmd.none
   )
@@ -53,7 +54,7 @@ view model =
 viewContent : String -> Content -> Element msg
 viewContent title (Content messages) =
       column [padding 20, spacing 20, Background.color blue] <| (List.map toText messages) ++ 
-      [ link [] {url = "create-user", label = toText "To Create User"}]
+      [ link [] {url = (Routing.routeToString CreateUser), label = toText "Create User"}]
 
 toText : String -> Element msg
 toText str = el [Font.size 20] <| text str 

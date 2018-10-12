@@ -120,7 +120,7 @@ postUsers body =
             []
         , url =
             String.join "/"
-                [ "http://localhost:8080"
+                [ "http://dating.local"
                 , "users"
                 ]
         , body =

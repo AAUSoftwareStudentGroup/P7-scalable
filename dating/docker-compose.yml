@@ -22,7 +22,7 @@ services:
         image: nginx
         ports:
           - "8002:80"
-    
+
 
     caddy:
       image: abiosoft/caddy
@@ -41,4 +41,4 @@ services:
         ports:
             - "8001:8000"
         #command: "onchange .gitignore 'cat .gitignore'"
-        command: "onchange src/ \"elm make src/Main.elm --output index.html\""
+        command: "onchange \"src/**/*.elm\" \"elm make src/Main.elm --output index.html\""

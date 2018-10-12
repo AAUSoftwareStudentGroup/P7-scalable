@@ -24,7 +24,7 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map CreateUser (s "create-user")
         , Parser.map ListUsers (s "list-users")  
-        , Parser.map Messages (s "messages")           
+        , Parser.map Messages (s "messages")
         ]
 
 
@@ -76,4 +76,4 @@ routeToString page =
                     [ "messages" ]
 
     in
-    "#/" ++ String.join "/" pieces
+    "?path=/" ++ String.join "/" pieces

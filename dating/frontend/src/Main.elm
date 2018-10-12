@@ -13,6 +13,7 @@ import Session
 import Skeleton
 import Url
 import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
+import Url.Parser.Query as Query
 
 
 
@@ -189,20 +190,23 @@ stepUrl url model =
         session =
             exit model
 
+        queryToPathUrl =
+            { url | path = Maybe.withDefault "" url.query, query = Nothing}
+
         parser =
-            s "src"
-                </> oneOf
-                        [ route (s "Main.elm")
-                            (stepLogin model (Login.init session))
-                        , route (s "create-user")
-                            (stepCreateUser model (CreateUser.init session))
-                        , route (s "login")
-                            (stepLogin model (Login.init session))
-                        , route (s "messages")
-                            (stepMessages model (Messages.init session))
-                        ]
+            s "path=" </>
+            oneOf
+                [ route (s "Main.elm")
+                    (stepLogin model (Login.init session))
+                , route (s "create-user")
+                    (stepCreateUser model (CreateUser.init session))
+                , route (s "login")
+                    (stepLogin model (Login.init session))
+                , route (s "messages")
+                    (stepMessages model (Messages.init session))
+                ]
     in
-    case Parser.parse parser (Debug.log "url:" url) of
+    case Parser.parse parser (Debug.log "queryToPathUrl:" queryToPathUrl) of
         Just answer ->
             answer
 
@@ -210,7 +214,6 @@ stepUrl url model =
             ( { model | page = NotFound session }
             , Cmd.none
             )
-
 
 route : Parser a b -> a -> Parser (b -> c) c
 route parser handler =

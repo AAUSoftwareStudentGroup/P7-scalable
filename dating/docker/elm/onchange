@@ -1,8 +1,37 @@
 #!/bin/sh
-monitored_files=$1
-shift
-while inotifywait -e close_write $monitored_files # /dev/null 2>&1
-do 
+
+echo "Monitoring files:"
+
+monitored_files=""
+for f in "$@"
+do
+    if [ ! -f "$1" ] ; then
+        break
+    fi
+
+    echo $1
+    monitored_files="$monitored_files $f"
+    shift
+
+done
+
+echo ""
+
+echo "and running commands:"
+for c in "$@"
+do
+    echo $c
+done
+
+echo ""
+echo ""
+echo $monitored_files
+echo ""
+
+
+while inotifywait -e close_write $monitored_files
+do
+
     for cmd in "$@"
     do
         $cmd
