@@ -239,7 +239,7 @@ stepUrl url model =
                         , route (s "list-users")
                             ( stepListUsers model (ListUsers.init session))
                         , route (s "user")
-                            ( stepProfile model (Profile.init session))
+                            ( stepProfile model (Profile.init session 10))
                         , route (s "messages")
                             (stepMessages model (Messages.init session))
                         ]

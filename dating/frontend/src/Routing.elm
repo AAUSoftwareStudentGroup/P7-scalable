@@ -1,7 +1,7 @@
 module Routing exposing (Route(..), fromUrl, href, replaceUrl, pushUrl, routeToString)
 
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
+import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string, int)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
@@ -15,7 +15,7 @@ type Route
     | Login
     | ListUsers
     | Messages
-    | Profile
+    | Profile Int
 
 
 parser : Parser (Route -> a) a
@@ -26,7 +26,7 @@ parser =
         , Parser.map CreateUser (s "create-user")
         , Parser.map ListUsers (s "list-users")  
         , Parser.map Messages (s "messages")
-        , Parser.map Profile (s "user")
+        , Parser.map Profile (s "user" </> int)
         ]
 
 
@@ -80,8 +80,8 @@ routeToString page =
                 Messages ->
                     [ "messages" ]
 
-                Profile ->
-                    [ "user" ]
+                Profile id ->
+                    [ "user" ++ String.fromInt id ]
 
     in
     "#/" ++ String.join "/" pieces
