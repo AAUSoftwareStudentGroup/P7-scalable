@@ -1,5 +1,4 @@
-#!/bin/sh
-
+#!/bin/bash
 echo "Monitoring files:"
 
 monitored_files=""
@@ -8,11 +7,9 @@ do
     if [ ! -f "$1" ] ; then
         break
     fi
-
     echo $1
     monitored_files="$monitored_files $f"
     shift
-
 done
 
 echo ""
@@ -24,10 +21,6 @@ do
 done
 
 echo ""
-echo ""
-echo $monitored_files
-echo ""
-
 
 while inotifywait -e close_write $monitored_files
 do
