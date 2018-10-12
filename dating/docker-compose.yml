@@ -9,7 +9,7 @@ services:
       ports:
         - "6379:6379"
     dating:
-        build: ./docker/dating
+        build: ./
         image: dating
         command: bash -c "ghcid --command=\"stack --allow-different-user ghci\" --test=\"Main.main\"" 
         volumes:
