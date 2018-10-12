@@ -104,11 +104,16 @@ createButtonRight url caption =
 
 createButton attributes url caption =
     link
-        ([ Font.size 14
+        ([ paddingXY 35 15
+         , Background.color primaryColorL
+         , Border.rounded 4
+         , Border.width 1
+         , Border.solid
          , fonts
-         , Background.color (rgba 0 0 0 0)
-         , Border.rounded 2
-         , padding 16
+         , Font.size 14
+         , Font.semiBold
+         , Font.color secondaryColor
+         , mouseOver [ Font.color secondaryColorD ]
          ]
             ++ attributes
         )
@@ -185,6 +190,34 @@ fonts =
         , Font.typeface "Helvetica Neue"
         , Font.sansSerif
         ]
+
+
+primaryColor =
+    rgb255 207 216 220
+
+
+primaryColorL =
+    rgb255 255 255 255
+
+
+primaryColorD =
+    rgb255 158 167 170
+
+
+secondaryColor =
+    rgb255 96 125 139
+
+
+secondaryColorL =
+    rgb255 142 172 187
+
+
+secondaryColorD =
+    rgb255 52 81 94
+
+
+textColor =
+    rgb255 0 0 0
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session.Data -> Cmd msg
