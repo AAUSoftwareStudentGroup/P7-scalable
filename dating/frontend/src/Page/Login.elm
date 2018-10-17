@@ -67,7 +67,7 @@ update msg model =
                 Ok token ->
                     ( Debug.log "tokenIsSet" { model | session = Session.LoggedIn (Session.navKey model.session) token }
                     , Cmd.batch [
-                     storeTokenInCache token
+                    storeTokenInCache token
                     , Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString ListUsers )] )
 
                 Err errResponse ->
@@ -172,6 +172,7 @@ logout =
 tokenDecoder : Decoder Token
 tokenDecoder =
     Decode.string
+
 
 decodeToken : Value -> Result Decode.Error Token
 decodeToken val = Decode.decodeValue tokenDecoder val
