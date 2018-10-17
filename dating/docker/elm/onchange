@@ -22,12 +22,12 @@ done
 
 echo ""
 
-while inotifywait -e close_write $monitored_files
-do
 
+while inotifywait -e close_write -e attrib $monitored_files
+do
+    echo "Changes: "
     for cmd in "$@"
     do
         $cmd
     done
 done
-
