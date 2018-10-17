@@ -81,7 +81,7 @@ routeToString page =
                     [ "messages" ]
 
                 Profile id ->
-                    [ "user" ++ String.fromInt id ]
+                    [ "user", String.fromInt id ]
 
     in
     "?path=/" ++ String.join "/" pieces

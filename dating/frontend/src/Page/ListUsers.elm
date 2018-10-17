@@ -19,6 +19,7 @@ import Skeleton
 import String exposing (toUpper)
 import String.Extra exposing (toSentenceCase)
 import Url
+import Routing exposing (replaceUrl, Route(..))
 
 
 
@@ -91,10 +92,10 @@ view model =
 
 showUser : User -> Element Msg
 showUser user =
-    createLink ("user/" ++ user.userUsername) (concat [ [ width fill, mouseOver profileShadowHover ], profileShadow ]) <|
+    createLink (Routing.routeToString <| (Profile 8)) (concat [ [ width fill, mouseOver profileShadowHover ], profileShadow ]) <|
         row [ spacing 10, padding 20, width fill ]
             [ el [ Font.size 24, alignLeft ] (text (toSentenceCase user.userUsername))
-            , createButtonRight ("chat/" ++ user.userUsername) "chat"
+            , createButtonRight (Routing.routeToString <| (Profile 1)) "chat"
             ]
 
 
