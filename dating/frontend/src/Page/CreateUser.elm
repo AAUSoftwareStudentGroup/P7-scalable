@@ -6,7 +6,7 @@ import Session
 import Generated.DatingApi exposing (..)
 import GenHelpers exposing (Gender(..))
 import Http
-import Routing exposing (replaceUrl)
+import Routing exposing (replaceUrl, Route(..))
 
 import Element exposing (..)
 import Element.Background as Background
@@ -71,7 +71,7 @@ update msg model =
         HandleUserCreated result ->
             case result of
                 Ok uid ->
-                    (model, Routing.replaceUrl (Session.navKey model.session) "login")
+                    (model, Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString Login))
 
                 Err errResponse ->
                     case errResponse of

@@ -7,7 +7,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
 import Html exposing (Html)
-
+import Routing exposing (Route(..))
 
 type alias Details msg =
     { title : String
@@ -46,9 +46,9 @@ viewHeader title =
             [ Region.heading 1, paddingXY 40 10, Font.size 40 ]
             (text "Dating")
         , row [ alignRight, spacingXY 60 20, padding 40 ] <|
-            [ link linkStyle { url = "create-user", label = text "Create User" }
-            , link linkStyle { url = "login", label = text "Login" }
-            , link linkStyle { url = "messages", label = text "Messages" }
+            [ link linkStyle { url = Routing.routeToString CreateUser, label = text "Create User" }
+            , link linkStyle { url = Routing.routeToString Login, label = text "Login" }
+            , link linkStyle { url = Routing.routeToString Messages, label = text "Messages" }
             ]
         ]
 

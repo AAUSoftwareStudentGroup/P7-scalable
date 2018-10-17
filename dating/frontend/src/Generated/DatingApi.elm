@@ -72,7 +72,7 @@ getUsersByUserid capture_userid token =
             [Http.header "Auth-Token" ("dating-auth-cookie=" ++ token)]
         , url =
             String.join "/"
-                [ "http://localhost:8080"
+                [ "http://api.dating.local:8002"
                 , "users"
                 , capture_userid |> String.fromInt |> Url.percentEncode
                 ]
@@ -95,7 +95,7 @@ getUsers token =
             [Http.header "Auth-Token" ("dating-auth-cookie=" ++ token)]
         , url =
             String.join "/"
-                [ "http://localhost:8080"
+                [ "http://api.dating.local:8002"
                 , "users"
                 ]
         , body =
@@ -117,7 +117,7 @@ postUsers body =
             []
         , url =
             String.join "/"
-                [ "http://localhost:8080"
+                [ "http://api.dating.local:8002"
                 , "users"
                 ]
         , body =
@@ -139,7 +139,7 @@ postLogin body =
             []
         , url =
             String.join "/"
-                [ "http://localhost:8080"
+                [ "http://api.dating.local:8002"
                 , "login"
                 ]
         , body =

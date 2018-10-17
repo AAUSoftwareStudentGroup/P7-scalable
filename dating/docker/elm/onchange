@@ -1,0 +1,33 @@
+#!/bin/bash
+echo "Monitoring files:"
+
+monitored_files=""
+for f in "$@"
+do
+    if [ ! -f "$1" ] ; then
+        break
+    fi
+    echo $1
+    monitored_files="$monitored_files $f"
+    shift
+done
+
+echo ""
+
+echo "and running commands:"
+for c in "$@"
+do
+    echo $c
+done
+
+echo ""
+
+
+while inotifywait -e close_write -e attrib $monitored_files
+do
+    echo "Changes: "
+    for cmd in "$@"
+    do
+        $cmd
+    done
+done

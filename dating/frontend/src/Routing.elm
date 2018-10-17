@@ -84,4 +84,4 @@ routeToString page =
                     [ "user" ++ String.fromInt id ]
 
     in
-    "#/" ++ String.join "/" pieces
+    "?path=/" ++ String.join "/" pieces
