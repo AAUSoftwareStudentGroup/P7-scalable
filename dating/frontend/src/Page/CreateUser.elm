@@ -56,7 +56,7 @@ update msg model =
         HandleUserCreated result ->
             case result of
                 Ok uid ->
-                    (model, Routing.replaceUrl (Session.navKey model.session) Routing.routeToString Login)
+                    (model, Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString Login))
 
                 Err errResponse ->
                     case errResponse of

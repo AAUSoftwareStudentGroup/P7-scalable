@@ -54,7 +54,7 @@ view model =
 viewContent : String -> Content -> Element msg
 viewContent title (Content messages) =
       column [padding 20, spacing 20, Background.color blue] <| (List.map toText messages) ++ 
-      [ link [] {url = (Routing.routeToString CreateUser), label = toText "Create User"}]
+      [ link [] {url = (Routing.routeToString CreateUser), label = toText "To Create User"}]
 
 toText : String -> Element msg
 toText str = el [Font.size 20] <| text str 

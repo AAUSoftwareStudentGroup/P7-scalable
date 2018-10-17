@@ -64,7 +64,7 @@ update msg model =
             case result of
                 Ok token ->
                     ( Debug.log "tokenIsSet" { model | session = Session.LoggedIn (Session.navKey model.session) token }
-                    , Routing.replaceUrl (Session.navKey model.session) Routing.routeToString Messages )
+                    , Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString Messages ))
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
