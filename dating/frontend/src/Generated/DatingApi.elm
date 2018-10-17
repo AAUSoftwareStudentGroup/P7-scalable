@@ -1,6 +1,6 @@
-module Generated.DatingApi exposing (..)
+port module Generated.DatingApi exposing (..)
 
-import Json.Decode exposing (..)
+import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
 import Http
@@ -20,10 +20,6 @@ type alias User =
     , userAuthToken : String
     }
 
-type alias Credentials =
-    { username : String
-    , password : String
-    }
 
 decodeUser : Decoder User
 decodeUser =
@@ -64,7 +60,7 @@ encodeCredentials x =
         ]
 
 getUsersByUserid : Int -> String -> Http.Request (User)
-getUsersByUserid capture_userid token =
+getUsersByUserid userId token =
     Http.request
         { method =
             "GET"
@@ -74,7 +70,7 @@ getUsersByUserid capture_userid token =
             String.join "/"
                 [ "http://api.dating.local:8002"
                 , "users"
-                , capture_userid |> String.fromInt |> Url.percentEncode
+                , userId |> String.fromInt |> Url.percentEncode
                 ]
         , body =
             Http.emptyBody
@@ -85,6 +81,7 @@ getUsersByUserid capture_userid token =
         , withCredentials =
             False
         }
+
 
 getUsers : String -> Http.Request (List (User))
 getUsers token =
@@ -151,3 +148,15 @@ postLogin body =
         , withCredentials =
             False
         }
+
+
+-- The following has been stolen more or less directly from the SPA example.. SUE ME!
+type alias Credentials =
+    { username : String
+    , password : String
+    }
+
+
+
+
+

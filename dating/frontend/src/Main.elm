@@ -1,4 +1,4 @@
-module Main exposing (Model, Msg(..), Page(..), exit, init, main, route, stepCreateUser, stepMessages, stepUrl, subscriptions, update, view)
+port module Main exposing (Model, Msg(..), Page(..), exit, init, main, route, stepCreateUser, stepMessages, stepUrl, subscriptions, update, view)
 
 import Browser
 import Browser.Navigation as Nav
@@ -16,12 +16,12 @@ import Skeleton
 import Session
 import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
 import Url.Parser.Query as Query
-
+import Json.Decode as Decode exposing (decodeString, string)
 
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program (Maybe String) Model Msg
 main =
     Browser.application
         { init = init
@@ -52,11 +52,17 @@ type Page
     | Profile Profile.Model
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url key =
+init : Maybe String -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeToken url key =
+    let
+        session =
+            case maybeToken of
+                Nothing -> Session.empty key
+                Just token -> Session.LoggedIn key <| Result.withDefault "" (decodeString Decode.string token)
+    in
     stepUrl url
         { key = key
-        , page = NotFound (Session.empty key)
+        , page = NotFound session
         }
 
 

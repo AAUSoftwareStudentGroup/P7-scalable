@@ -1,4 +1,4 @@
-module Page.Login exposing (Model, Msg, init, view, update)
+port module Page.Login exposing (Model, Msg, init, view, update, decodeToken)
 
 import Browser
 import Element exposing (..)
@@ -14,7 +14,9 @@ import Session
 import Skeleton
 import String
 import Routing exposing (replaceUrl, Route(..))
-
+import Json.Decode as Decode exposing (..)
+import Json.Decode.Pipeline exposing (..)
+import Json.Encode
 
 
 -- MODEL
@@ -64,7 +66,9 @@ update msg model =
             case result of
                 Ok token ->
                     ( Debug.log "tokenIsSet" { model | session = Session.LoggedIn (Session.navKey model.session) token }
-                    , Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString ListUsers ) )
+                    , Cmd.batch [
+                     storeTokenInCache token
+                    , Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString ListUsers )] )
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
@@ -147,6 +151,30 @@ handleErrorResponse model errResponse =
 loginCmd : String -> String -> Cmd Msg
 loginCmd username password =
     Http.send HandleUserLogin <| postLogin (Credentials username password)
+
+
+type alias Token = String
+
+
+--port onStoreChange : (Value -> msg) -> Sub msg
+port storeCache : Maybe Value -> Cmd msg
+
+
+storeTokenInCache : String -> Cmd msg
+storeTokenInCache token =
+  storeCache (Just (Json.Encode.string token))
+
+
+logout : Cmd msg
+logout =
+    storeCache Nothing
+
+tokenDecoder : Decoder Token
+tokenDecoder =
+    Decode.string
+
+decodeToken : Value -> Result Decode.Error Token
+decodeToken val = Decode.decodeValue tokenDecoder val
 
 
 responseToString : Maybe String -> String
