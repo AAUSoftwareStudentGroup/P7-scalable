@@ -2,7 +2,7 @@ module Page.Messages exposing (Content(..), Messages, Model, Msg(..), blue, init
 
 import Html exposing (Html)
 import Skeleton
-import Session
+import Session exposing (Session)
 import Routing exposing (Route(..))
 
 import Element exposing (..)
@@ -14,7 +14,7 @@ import Element.Input as Input
 
 -- MODEL
 type alias Model = 
-    { session : Session.Data
+    { session : Session
     , title : String
     , content : Content
     }
@@ -27,7 +27,7 @@ type Content
 type alias Messages =
     List String
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
   ( Model (Debug.log "messages session:" session) "Messages" (Content ["Message 1", "Message 2", "Message 3"])
   , Cmd.none
@@ -54,6 +54,7 @@ update msg model =
 view : Model -> Skeleton.Details msg
 view model =
     { title = model.title
+    , session = model.session
     , kids = [ viewContent model.title model.content ]
     }
 

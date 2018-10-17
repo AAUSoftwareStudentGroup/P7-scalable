@@ -14,7 +14,7 @@ import Html exposing (Html)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, int, list, string)
 import List exposing (concat)
-import Session
+import Session exposing (Session)
 import Skeleton
 import String exposing (toUpper)
 import String.Extra exposing (toSentenceCase)
@@ -26,13 +26,13 @@ import Url
 
 
 type alias Model =
-    { session : Session.Data
+    { session : Session
     , title : String
     , users : List User
     }
 
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
     ( Model session "List Users" []
     , sendGetUsers UsersFetched session
@@ -75,6 +75,7 @@ subscriptions _ =
 view : Model -> Skeleton.Details Msg
 view model =
     { title = "All users"
+    , session = model.session
     , kids =
         [ column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ]
             (el
@@ -220,9 +221,9 @@ textColor =
     rgb255 0 0 0
 
 
-sendGetUsers : (Result Http.Error (List User) -> msg) -> Session.Data -> Cmd msg
-sendGetUsers responseMsg data =
-    case data of
+sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
+sendGetUsers responseMsg session =
+    case session of
         Session.LoggedIn navKey token ->
             Http.send responseMsg (getUsers token)
 

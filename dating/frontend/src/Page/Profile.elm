@@ -12,12 +12,12 @@ import GenHelpers exposing (Gender(..))
 import Generated.DatingApi exposing (..)
 import Http
 import String
-import Session
+import Session exposing (Session)
 import Skeleton
 
 
 type alias Model =
-    { session : Session.Data
+    { session : Session
     , title : String
     , id : Int
     , user : User
@@ -32,7 +32,7 @@ type Msg
     = HandleGetUser (Result Http.Error (User))
 
 
-init : Session.Data -> Int -> ( Model, Cmd Msg )
+init : Session -> Int -> ( Model, Cmd Msg )
 init session id =
   ( Model session "Profile" id emptyUser
   , (sendGetUser HandleGetUser id (authenticationToken session))
@@ -55,9 +55,10 @@ update msg model =
                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }, Cmd.none )
 
 
---view : Model -> Skeleton.Details msg
+view : Model -> Skeleton.Details Msg
 view model =
     { title = model.user.userUsername ++ "'s profile"
+    , session = model.session
     , kids = [
         Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
             [ el
@@ -106,7 +107,7 @@ mkWarning warning =
         ]
         (text warning)
 
-authenticationToken : Session.Data -> String
+authenticationToken : Session -> String
 authenticationToken data =
     case data of
         Session.LoggedIn navKey token ->

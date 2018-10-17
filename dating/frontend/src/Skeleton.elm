@@ -8,12 +8,13 @@ import Element.Font as Font
 import Element.Region as Region
 import Html exposing (Html)
 import Routing exposing (Route(..))
+import Session exposing (Session)
 
 type alias Details msg =
     { title : String
+    , session: Session
     , kids : List (Element msg)
     }
-
 
 view : (a -> msg) -> Details a -> Browser.Document msg
 view toMsg details =
@@ -26,7 +27,7 @@ view toMsg details =
             ]
           <|
             column [ width fill, height fill ] <|
-                [ viewHeader details.title
+                [ viewHeader details
                 , Element.map toMsg <| column [ centerX, padding 30, Background.color white ] <| details.kids
                 , viewFooter
                 ]
@@ -34,8 +35,8 @@ view toMsg details =
     }
 
 
-viewHeader : String -> Element msg
-viewHeader title =
+viewHeader : Details a -> Element msg
+viewHeader details =
     row
         [ padding 5
         , width fill
@@ -47,10 +48,19 @@ viewHeader title =
             (text "Dating")
         , row [ alignRight, spacingXY 60 20, padding 40 ] <|
             [ link linkStyle { url = Routing.routeToString CreateUser, label = text "Create User" }
-            , link linkStyle { url = Routing.routeToString Login, label = text "Login" }
             , link linkStyle { url = Routing.routeToString Messages, label = text "Messages" }
+            , accountLink details.session
             ]
         ]
+
+accountLink : Session -> Element msg
+accountLink session =
+    case session of
+        Session.LoggedIn _ _ ->
+            link linkStyle { url = Routing.routeToString Login, label = text "Logout" }
+
+        Session.Guest key ->
+            link linkStyle { url = Routing.routeToString Login, label = text "Login" }
 
 
 viewFooter : Element msg

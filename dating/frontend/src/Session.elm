@@ -4,14 +4,14 @@ import Browser.Navigation as Nav
 
 -- TYPES
 
-type Data
+type Session
     = LoggedIn Nav.Key String
     | Guest Nav.Key
 
-empty : Nav.Key -> Data
+empty : Nav.Key -> Session
 empty key = Guest key
 
-navKey : Data -> Nav.Key
+navKey : Session -> Nav.Key
 navKey session =
     case session of
         LoggedIn key _ ->

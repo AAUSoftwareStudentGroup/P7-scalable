@@ -13,7 +13,7 @@ import Page.Profile as Profile
 import Page.Login as Login
 import Url
 import Skeleton
-import Session
+import Session exposing (Session)
 import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
 import Url.Parser.Query as Query
 import Json.Decode as Decode exposing (decodeString, string)
@@ -32,8 +32,6 @@ main =
         , onUrlRequest = LinkClicked
         }
 
-
-
 -- MODEL
 
 
@@ -44,7 +42,7 @@ type alias Model =
 
 
 type Page
-    = NotFound Session.Data
+    = NotFound Session
     | CreateUser CreateUser.Model
     | Login Login.Model
     | ListUsers ListUsers.Model
@@ -57,7 +55,7 @@ init maybeToken url key =
     let
         session =
             case maybeToken of
-                Nothing -> Session.empty key
+                Nothing -> Session.Guest key
                 Just token -> Session.LoggedIn key <| Result.withDefault "" (decodeString Decode.string token)
     in
     stepUrl url
@@ -73,8 +71,8 @@ init maybeToken url key =
 view : Model -> Browser.Document Msg
 view model =
     case model.page of
-        NotFound _ ->
-            Skeleton.view never NotFound.view
+        NotFound session ->
+            Skeleton.view never (NotFound.view session)
 
         CreateUser createUser ->
             Skeleton.view CreateUserMsg (CreateUser.view createUser)
@@ -205,7 +203,7 @@ stepMessages model ( messages, cmds ) =
 -- EXIT
 
 
-exit : Model -> Session.Data
+exit : Model -> Session
 exit model =
     case model.page of
         NotFound session ->

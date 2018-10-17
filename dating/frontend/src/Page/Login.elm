@@ -10,7 +10,7 @@ import Element.Region as Region
 import Generated.DatingApi exposing (..)
 import Html exposing (Html)
 import Http
-import Session
+import Session exposing (Session)
 import Skeleton
 import String
 import Routing exposing (replaceUrl, Route(..))
@@ -23,7 +23,7 @@ import Json.Encode
 
 
 type alias Model =
-    { session : Session.Data
+    { session : Session
     , title : String
     , username : String
     , password : String
@@ -31,7 +31,7 @@ type alias Model =
     }
 
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , title = "Login"
@@ -81,6 +81,7 @@ update msg model =
 view : Model -> Skeleton.Details Msg
 view model =
     { title = model.title
+    , session = model.session
     , kids =
         [ viewContent model ]
     }
@@ -168,6 +169,7 @@ storeTokenInCache token =
 logout : Cmd msg
 logout =
     storeCache Nothing
+
 
 tokenDecoder : Decoder Token
 tokenDecoder =

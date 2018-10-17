@@ -2,7 +2,7 @@ module Page.CreateUser exposing (..)
 
 import Html exposing (Html)
 import Skeleton
-import Session
+import Session exposing (Session)
 import Generated.DatingApi exposing (..)
 import GenHelpers exposing (Gender(..))
 import Http
@@ -17,7 +17,7 @@ import Element.Region as Region
 
 -- MODEL
 type alias Model = 
-    { session : Session.Data
+    { session : Session
     , title : String
     , response : Maybe String
     , email : String
@@ -29,27 +29,12 @@ type alias Model =
     , profileText : String
     }
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session = 
   ( Model session "" Nothing "" "" "" Other "" "" ""
   , Cmd.none
   )
 
-{-
-<<<<<<< HEAD
-emptyUser : User
-emptyUser =
-  User "kasper@bargsteen.com" "bargsteen" "repsak" Male "1994-05-06" "Aalborg" "Wuhu" "mySecretToken"
-
-type Content
-    = Content User ResponseString
-
-type alias ResponseString =
-    Maybe String
-
-=======
->>>>>>> origin/develop
--}
 
 -- UPDATE
 
@@ -110,6 +95,7 @@ pure model =
 view : Model -> Skeleton.Details Msg
 view model =
     { title = model.title
+    , session = model.session
     , kids = [ viewContent model.title model ]
     }
 

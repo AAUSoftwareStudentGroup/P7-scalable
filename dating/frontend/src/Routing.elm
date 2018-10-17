@@ -67,7 +67,6 @@ routeToString page =
             case page of
                 Home ->
                     []
-
                 CreateUser ->
                     ["create-user"]
 

@@ -1,7 +1,7 @@
 module Page.NotFound exposing (..)
 
 import Html exposing (Html)
-import Session
+import Session exposing (Session)
 import Skeleton
 
 import Element exposing (..)
@@ -10,7 +10,7 @@ import Element.Font as Font
 
 -- MODEL
 type alias Model = 
-    { session : Session.Data
+    { session : Session
     , title : String
     , content : Content
     }
@@ -21,7 +21,7 @@ type Content
 type alias Messages =
     List String
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session = 
   ( Model session "Page Not Found Title" (Content <| "Not found..")
   , Cmd.none
@@ -42,11 +42,13 @@ update msg model =
 
 -- VIEW
 
-view : Skeleton.Details msg
-view =
+view : Session -> Skeleton.Details msg
+view session =
     { title = "Not found!"
+    , session = session
     , kids = [ viewContent "Not Found" (Content "This page was not found.") ]
     }
+
 
 viewContent : String -> Content -> Element msg
 viewContent title (Content message) =
