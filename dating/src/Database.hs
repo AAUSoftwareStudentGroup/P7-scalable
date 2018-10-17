@@ -17,7 +17,8 @@ import           Data.ByteString             (ByteString)
 import           Data.ByteString.Char8       (pack, unpack)
 import           Data.Int                    (Int64)
 import           Data.Maybe                  (listToMaybe)
-import qualified Data.Text                   as T (Text, unpack, pack)
+import qualified Data.Text                   as T (unpack, pack)
+import Data.Text (Text)
 import qualified Data.Text.Encoding          (decodeUtf8)
 import           Database.Esqueleto
 import           Database.Persist.Postgresql (ConnectionString, SqlPersistT,
@@ -35,7 +36,10 @@ import           Schema
 type PGInfo = ConnectionString
 type RedisInfo = ConnectInfo
 
-data Credentials = Credentials { username :: T.Text, password :: T.Text}
+data Credentials = Credentials { username :: Text, password :: Text}
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, ElmType)
+
+data Conversation = Conversation { userId :: Int64, receiverUsername :: Text}
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ElmType)
 
 localConnString :: PGInfo
@@ -76,7 +80,7 @@ deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
         return ()
 
 
--- | DATABASE
+-- -- DATABASE
 
 -- User
 
@@ -108,6 +112,7 @@ fetchAllUsersPG pgInfo = (fmap . fmap) entityVal $ runAction pgInfo selectAction
       users <- select $ from $ \user -> return user
       return users
 
+
 deleteUserPG :: PGInfo -> Int64 -> IO ()
 deleteUserPG pgInfo uid = runAction pgInfo $ do
   delete $
@@ -128,10 +133,13 @@ fetchUserIdByAuthTokenPG pgInfo authToken = runAction pgInfo selectAction
         return (user ^. UserId)
       return $ listToMaybe $ fmap unValue userIdsFound
 
-fetchAuthTokenByCredentialsPG :: PGInfo -> Credentials -> IO (Maybe T.Text)
+
+-- Authentication
+
+fetchAuthTokenByCredentialsPG :: PGInfo -> Credentials -> IO (Maybe Text)
 fetchAuthTokenByCredentialsPG pgInfo (Credentials {username = usr, password = psw}) = runAction pgInfo selectAction
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe T.Text)
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe Text)
     selectAction = do
       tokensFound <- select $
                      from $ \user -> do
@@ -139,7 +147,52 @@ fetchAuthTokenByCredentialsPG pgInfo (Credentials {username = usr, password = ps
                        return (user ^. UserAuthToken)
       return $ unValue <$> listToMaybe tokensFound
 
--- | REDIS
+-- Messages
+
+createMessagePG :: PGInfo -> Message -> IO ()
+createMessagePG pgInfo message = void $ runAction pgInfo $ insert message
+
+-- -- TODO: 2nd should be user.
+fetchMessagesBetweenPG :: PGInfo -> User -> Int64 -> IO [Message]
+fetchMessagesBetweenPG pgInfo userOne userTwoId = runAction pgInfo selectAction
+  where
+    selectAction :: SqlPersistT (LoggingT IO) [Message]
+    selectAction = do
+      maybeUserOneId <- ((fmap unValue) . listToMaybe) <$>
+        (select . from $ \(user :: SqlExpr (Entity User)) -> do
+            where_ (user ^. UserUsername ==. val (userUsername userOne))
+            return (user ^. UserId))
+      case maybeUserOneId of
+        Nothing -> return []
+        Just userOneId -> (fmap entityVal) <$> (select . from $ \(msg :: SqlExpr (Entity Message)) -> do
+                                                where_ (msg ^. MessageSender ==. val userOneId
+                                                        &&. msg ^. MessageReceiver ==. valkey userTwoId ||.
+                                                        msg ^. MessageSender ==. valkey userTwoId
+                                                        &&. msg ^. MessageReceiver ==. val userOneId)
+                                                return msg)
+
+
+fetchConversationsPG :: PGInfo -> User -> IO [Conversation]
+fetchConversationsPG pgInfo userId = runAction pgInfo selectAction
+  where
+    selectAction :: SqlPersistT (LoggingT IO) [Conversation]
+    selectAction = do
+      ids <- (select $ from $ \msg -> do
+                 where_ (msg ^. MessageReceiver ==. valkey userId)
+                 return (msg ^. MessageReceiver))
+             ++.
+             (select $ from $ \msg -> do
+                 where_ (msg ^. MessageSender ==. valkey userId)
+                 return (msg ^. MsgSender))
+      return ids
+
+fetchUserIdByUser :: PGInfo -> User -> IO (Maybe Int64)
+fetchUserIdByUser pgInfo user = runAction pgInfo selectAction
+  where
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe Int64)
+
+
+-- -- REDIS
 
 runRedisAction :: RedisInfo -> Redis a -> IO a
 runRedisAction redisInfo action = do

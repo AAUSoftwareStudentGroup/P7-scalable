@@ -26,11 +26,15 @@ import           Data.ByteString                  (ByteString)
 import           Data.Map                         (Map, fromList)
 import qualified Data.Map                         as Map
 import           Data.Text                        (Text)
-import           Database                         (Credentials, PGInfo,
-                                                   RedisInfo, createUserPG,
+import           Database                         (Conversation, Credentials,
+                                                   PGInfo, RedisInfo,
+                                                   createMessagePG,
+                                                   createUserPG,
                                                    createUserRedis,
                                                    fetchAllUsersPG,
                                                    fetchAuthTokenByCredentialsPG,
+                                                   fetchConversationsPG,
+                                                   fetchMessagesBetweenPG,
                                                    fetchPostgresConnection,
                                                    fetchRedisConnection,
                                                    fetchUserIdByAuthTokenPG,
@@ -42,11 +46,20 @@ import           Web.Cookie                       (parseCookies)
 
 
 -- | The API.
-type DatingAPI =
+type DatingAPI = AuthAPI :<|> UserAPI :<|> MessageAPI
+
+type UserAPI =
        "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] User
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
-  :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
+
+type AuthAPI = "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
+
+type MessageAPI =
+       "messages" :> AuthProtect "cookie-auth" :> ReqBody '[JSON] Message :> Post '[JSON] ()
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [Conversation]
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] [Message]
+
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -74,7 +87,20 @@ fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 createUserHandler :: PGInfo -> User -> Handler Int64
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 
+-- | Creates a new message between two users
+createMessageHandler :: PGInfo -> User -> Message -> Handler ()
+createMessageHandler pgInfo _ msg = liftIO $ createMessagePG pgInfo msg
 
+-- | Fetches all messages between two users.
+fetchMessagesBetweenHandler :: PGInfo -> User -> Int64 -> Handler [Message]
+fetchMessagesBetweenHandler pgInfo user otherUserId = liftIO $
+  fetchMessagesBetweenPG pgInfo user otherUserId
+
+fetchConversationsHandler :: PGInfo -> User -> Handler [Conversation]
+fetchConversationsHandler pgInfo user = liftIO $ fetchConversationsPG pgInfo user
+
+
+-- | Returns an authToken when given correct credentials
 loginHandler :: PGInfo -> Credentials -> Handler Text
 loginHandler pgInfo credentials = do
   maybeAuthToken <- liftIO $ fetchAuthTokenByCredentialsPG pgInfo credentials
@@ -108,12 +134,15 @@ type instance AuthServerData (AuthProtect "cookie-auth") = UserId
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: PGInfo -> RedisInfo -> Server DatingAPI
-datingServer pgInfo redisInfo =
-  fetchUserHandler pgInfo redisInfo :<|>
-  fetchAllUsersHandler pgInfo :<|>
-  createUserHandler pgInfo :<|>
-  loginHandler pgInfo
-
+datingServer pgInfo redisInfo = authHandlers :<|> userHandlers :<|> messageHandlers
+  where
+    authHandlers = loginHandler pgInfo
+    userHandlers = fetchUserHandler pgInfo redisInfo :<|>
+                   fetchAllUsersHandler pgInfo :<|>
+                   createUserHandler pgInfo
+    messageHandlers = createMessageHandler :<|>
+                      fetchConversationsHandler :<|>
+                      fetchMessagesBetweenHandler
 
 -- | The context is sort of the state, being authenticated or not. Starts empty.
 datingServerContext :: PGInfo -> Context (AuthHandler Request UserId ': '[])
