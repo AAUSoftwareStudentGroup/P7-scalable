@@ -65,13 +65,13 @@ migrateDB pgInfo = runAction pgInfo (runMigration migrateAll)
 
 deleteEverythingInDB :: PGInfo -> IO ()
 deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
-  where 
+  where
     deleteAction :: SqlPersistT (LoggingT IO) ()
     deleteAction = do
       delete $
         from $ \(message :: SqlExpr (Entity Message)) ->
         return ()
-      delete $ 
+      delete $
         from $ \(user :: SqlExpr (Entity User)) ->
         return ()
 
@@ -80,17 +80,15 @@ deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
 
 -- User
 
-fromEntity = (fmap . fmap) entityVal
-
 createUserPG :: PGInfo -> User -> IO Int64
-createUserPG pgInfo user = do 
+createUserPG pgInfo user = do
   g <- Random.newStdGen
   let authToken = T.pack $ take 64 $ Random.randomRs ('a', 'z') g
   let user' = user { userAuthToken = authToken }
   fromSqlKey <$> runAction pgInfo (insert user')
 
-fetchUserPG :: PGInfo -> Int64 -> IO (Maybe User)
-fetchUserPG pgInfo uid = fromEntity $ runAction pgInfo selectAction
+fetchUserPG :: PGInfo -> Int64 -> IO (Maybe (Entity User))
+fetchUserPG pgInfo uid = runAction pgInfo selectAction
   where
     selectAction :: SqlPersistT (LoggingT IO) (Maybe (Entity User))
     selectAction = do
@@ -149,11 +147,11 @@ runRedisAction redisInfo action = do
 
 -- User
 
-createUserRedis :: RedisInfo -> Int64 -> User -> IO ()
+createUserRedis :: RedisInfo -> Int64 -> Entity User -> IO ()
 createUserRedis redisInfo uid user = runRedisAction redisInfo
   $ void $ setex (pack . show $ uid) 3600 (pack . show $ user)
 
-fetchUserRedis :: RedisInfo -> Int64 -> IO (Maybe User)
+fetchUserRedis :: RedisInfo -> Int64 -> IO (Maybe (Entity User))
 fetchUserRedis redisInfo uid = runRedisAction redisInfo $ do
   result <- Redis.get (pack . show $ uid)
   case result of
