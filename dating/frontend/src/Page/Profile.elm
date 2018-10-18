@@ -14,6 +14,7 @@ import Http
 import String
 import Session
 import Skeleton
+import Routing exposing (Route(..))
 
 
 type alias Model =
@@ -59,29 +60,59 @@ update msg model =
 view model =
     { title = model.user.userUsername ++ "'s profile"
     , kids = [
-        Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
-            [ el
-                [ Region.heading 1
-                , centerX
-                , Font.size 36
-                , Border.color darkBlue
+        Element.column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ] [
+        el  [ Region.heading 1
+            , centerX
+            , Font.size 36
+            , Border.color darkBlue
+            ] (text (model.user.userUsername ++ "'s profile"))
+            , Element.row [ width (px 600), height shrink, centerY, centerX] [
+                Element.column [ width fill, height fill, spacing 36, padding 10]
+                    [ el [ spacing 12, Border.color darkBlue ]
+                        (text <| "Username: " ++ model.user.userUsername)
+                    , el [ spacing 12, Border.color darkBlue ]
+                        (text <| "Email: " ++ model.user.userEmail)
+                    , el [ spacing 12, Border.color darkBlue ]
+                        (text <| "Gender: " ++ genderToString model.user.userGender)
+                    , el [ spacing 12, Border.color darkBlue ]
+                        (text <| "Birthday: " ++ model.user.userBirthday)
+                    , el [ spacing 12, Border.color darkBlue ]
+                        (text model.user.userTown)
+                    , Element.column [spacing 12, Border.color darkBlue] [
+                        el [] (text ("Description"))
+                        ,  paragraph [ spacing 12, Border.color darkBlue ]
+                           [ text model.user.userProfileText ]
+                    ]
                 ]
-                (text (model.user.userUsername ++ "'s profile"))
-            , el [ spacing 12, Border.color darkBlue ]
-                (text model.user.userUsername)
-            , el [ spacing 12, Border.color darkBlue ]
-                (text model.user.userEmail)
-            , el [ spacing 12, Border.color darkBlue ]
-                (text <| genderToString model.user.userGender)
-            , el [ spacing 12, Border.color darkBlue ]
-                (text model.user.userBirthday)
-            , el [ spacing 12, Border.color darkBlue ]
-                (text model.user.userTown)
-            , paragraph [ spacing 12, Border.color darkBlue ]
-                [ text model.user.userProfileText ]
+            , createButtonRight (Routing.routeToString <| (Chat 1)) "chat"
             ]
         ]
-    }
+    ]}
+
+
+
+
+
+createButtonRight url caption =
+    createButton [ alignRight, Element.alignTop ] url caption
+
+
+createButton attributes url caption =
+    link
+        ([ paddingXY 35 15
+         , Background.color primaryColorL
+         , Border.rounded 4
+         , Border.width 1
+         , Border.solid
+         , fonts
+         , Font.size 14
+         , Font.semiBold
+         , Font.color secondaryColor
+         , mouseOver [ Font.color secondaryColorD ]
+         ]
+            ++ attributes
+        )
+        { url = url, label = text (String.toUpper caption) }
 
 
 genderToString : Gender -> String
@@ -140,3 +171,28 @@ red =
 
 darkBlue =
     Element.rgb 0 0 0.9
+
+fonts =
+    Font.family
+        [ Font.typeface "-apple-system"
+        , Font.typeface "BlinkMacSystemFont"
+        , Font.typeface "Segoe UI"
+        , Font.typeface "Roboto"
+        , Font.typeface "Oxygen-Sans"
+        , Font.typeface "Ubuntu"
+        , Font.typeface "Cantarell"
+        , Font.typeface "Helvetica Neue"
+        , Font.sansSerif
+        ]
+
+primaryColorL =
+    rgb255 255 255 255
+
+
+
+secondaryColor =
+    rgb255 96 125 139
+
+
+secondaryColorD =
+    rgb255 52 81 94
