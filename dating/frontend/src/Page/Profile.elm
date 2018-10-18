@@ -84,7 +84,10 @@ view model =
                            [ text model.user.userProfileText ]
                     ]
                 ]
-            , createButtonRight (Routing.routeToString <| (Chat model.user.userId)) "chat"
+            , Element.column [Element.alignTop] [
+                createButtonRight (Routing.routeToString <| (Chat model.user.userId)) "chat"
+            ,   createButtonRight (Routing.routeToString <| ListUsers) "listUsers"
+            ]
             ]
         ]
     ]}
@@ -94,7 +97,7 @@ view model =
 
 
 createButtonRight url caption =
-    createButton [ alignRight, Element.alignTop ] url caption
+    createButton [ alignRight ] url caption
 
 
 createButton attributes url caption =
