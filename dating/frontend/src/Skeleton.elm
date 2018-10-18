@@ -60,8 +60,7 @@ accountLink : Session -> Element msg
 accountLink session =
     case session of
         Session.LoggedIn _ _ ->
-            link linkStyle { url = Routing.routeToString Login, label = text "Login" }
-            --link linkStyle { url = Routing.routeToString (Profile 1), label = text "My account" }
+            link linkStyle { url = Routing.routeToString Login, label = text "Logout" }
 
         Session.Guest key ->
             link linkStyle { url = Routing.routeToString Login, label = text "Login" }

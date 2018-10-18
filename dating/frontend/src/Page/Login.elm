@@ -2,6 +2,7 @@ module Page.Login exposing (Model, Msg, init, view, update, subscriptions)
 
 import Browser
 import Element exposing (..)
+import Element.Events as Events
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -48,6 +49,7 @@ init session =
 type Msg
     = TextChanged Model
     | LoginClicked
+    | LogoutClicked
     | HandleUserLogin (Result Http.Error String)
     | SessionChanged Session
 
@@ -60,6 +62,9 @@ update msg model =
 
         LoginClicked ->
             ( model, loginCmd model.username model.password )
+
+        LogoutClicked ->
+            ( model, Session.logout )
 
         HandleUserLogin result ->
             case result of
@@ -139,6 +144,7 @@ viewContent model =
                 , label = text "Not yet a user? Click here to sign up."
                 }
             , el [] (text (responseToString model.response))
+            , el [Events.onClick LogoutClicked] (text "Log out!")
             ]
 
 
