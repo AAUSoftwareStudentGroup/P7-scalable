@@ -7,7 +7,7 @@
     </head>
     <body>
         <script>
-            var storageKey = "store";
+            var storageKey = "session";
             var flags = localStorage.getItem(storageKey);
             var app = Elm.Main.init({flags: flags});
 
@@ -19,7 +19,9 @@
                 }
 
                 // Report that the new session was stored successfully.
-                setTimeout(function() { app.ports.onStoreChange.send(localStorage.getItem(storageKey)); }, 0);
+                setTimeout(function() {
+                    app.ports.onStoreChange.send(localStorage.getItem(storageKey));
+                }, 0);
             });
 
 
