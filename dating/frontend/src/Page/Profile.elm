@@ -26,7 +26,7 @@ type alias Model =
 
 emptyUser : User
 emptyUser =
-    User "" "" "" Other "" "" "" ""
+    User "" "" "" Other "" "" 0 "" ""
 
 
 type Msg
@@ -84,7 +84,7 @@ view model =
                            [ text model.user.userProfileText ]
                     ]
                 ]
-            , createButtonRight (Routing.routeToString <| (Chat 1)) "chat"
+            , createButtonRight (Routing.routeToString <| (Chat model.user.userId)) "chat"
             ]
         ]
     ]}

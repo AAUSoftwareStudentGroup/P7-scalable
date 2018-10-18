@@ -16,6 +16,7 @@ type alias User =
     , userGender : Gender
     , userBirthday : String
     , userTown : String
+    , userId : Int
     , userProfileText : String
     , userAuthToken : String
     }
@@ -30,6 +31,7 @@ decodeUser =
         |> custom decodeGender
         |> required "birthday" string
         |> required "town" string
+        |> required "id" int
         |> required "profileText" string
         |> required "authToken" string
 

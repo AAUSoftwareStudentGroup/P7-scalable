@@ -94,10 +94,10 @@ showUser : User -> Element Msg
 showUser user =
     el (concat [ [ width fill, mouseOver profileShadowHover ], profileShadow ]) <|
         row [ spacing 10, padding 20, width fill]
-            [ createLink (Routing.routeToString <| (Profile 1))
+            [ createLink (Routing.routeToString <| (Profile user.userId))
                 [width fill, height fill]
                 (el [ Font.size 24, alignLeft ] <| text <| toSentenceCase <| user.userUsername)
-            , createButtonRight (Routing.routeToString <| (Chat 1)) "chat"
+            , createButtonRight (Routing.routeToString <| (Chat user.userId)) "chat"
             ]
 
 
