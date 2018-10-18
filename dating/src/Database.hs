@@ -100,8 +100,8 @@ fetchUserPG pgInfo uid = fromEntity $ runAction pgInfo selectAction
                     return user
       return $ listToMaybe $ usersFound
 
-fetchAllUsersPG :: PGInfo -> IO [User]
-fetchAllUsersPG pgInfo = (fmap . fmap) entityVal $ runAction pgInfo selectAction
+fetchAllUsersPG :: PGInfo -> IO [Entity User]
+fetchAllUsersPG pgInfo = runAction pgInfo selectAction
   where
     selectAction :: SqlPersistT (LoggingT IO) [Entity User]
     selectAction = do

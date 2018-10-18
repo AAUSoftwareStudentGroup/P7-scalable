@@ -44,29 +44,29 @@ import           Servant.Foreign                  (Arg (..), Foreign,
 import           Servant.Server.Experimental.Auth
 
 
-instance (KnownSymbol sym, HasForeign lang ftype sublayout)
-    => HasForeign lang ftype (AuthProtect sym :> sublayout) where
-    type Foreign ftype (AuthProtect sym :> sublayout) = Foreign ftype sublayout
+-- instance (KnownSymbol sym, HasForeign lang ftype sublayout)
+--     => HasForeign lang ftype (AuthProtect sym :> sublayout) where
+--     type Foreign ftype (AuthProtect sym :> sublayout) = Foreign ftype sublayout
 
-    foreignFor lang ftype Proxy req =
-      foreignFor lang ftype (Proxy :: Proxy sublayout) req
+--     foreignFor lang ftype Proxy req =
+--       foreignFor lang ftype (Proxy :: Proxy sublayout) req
 
-myElmOpts :: ElmOptions
-myElmOpts = defElmOptions { urlPrefix = Static "http://localhost:8080" }
+-- myElmOpts :: ElmOptions
+-- myElmOpts = defElmOptions { urlPrefix = Static "http://localhost:8080" }
 
-myDefElmImports :: Text
-myDefElmImports = defElmImports <> pack "\nimport GenHelpers"
+-- myDefElmImports :: Text
+-- myDefElmImports = defElmImports <> pack "\nimport GenHelpers"
 
-userSpec :: Spec
-userSpec = Spec ["Generated", "DatingApi"]
-      (myDefElmImports
-       : toElmTypeSource (Proxy :: Proxy (EntId User))
-       : toElmTypeSource (Proxy :: Proxy Credentials)
-       : toElmDecoderSource (Proxy :: Proxy (EntId User))
-       : toElmDecoderSource (Proxy :: Proxy Credentials)
-       : toElmEncoderSource (Proxy :: Proxy (EntId User))
-       : toElmEncoderSource (Proxy :: Proxy Credentials)
-       : generateElmForAPIWith myElmOpts (Proxy :: Proxy DatingAPI ))
+-- userSpec :: Spec
+-- userSpec = Spec ["Generated", "DatingApi"]
+--       (myDefElmImports
+--        : toElmTypeSource (Proxy :: Proxy (EntId User))
+--        : toElmTypeSource (Proxy :: Proxy Credentials)
+--        : toElmDecoderSource (Proxy :: Proxy (EntId User))
+--        : toElmDecoderSource (Proxy :: Proxy Credentials)
+--        : toElmEncoderSource (Proxy :: Proxy (EntId User))
+--        : toElmEncoderSource (Proxy :: Proxy Credentials)
+--        : generateElmForAPIWith myElmOpts (Proxy :: Proxy DatingAPI ))
 
-genUsersApiCode :: IO ()
-genUsersApiCode = specsToDir [userSpec] "frontend/src"
+-- genUsersApiCode :: IO ()
+-- genUsersApiCode = specsToDir [userSpec] "frontend/src"
