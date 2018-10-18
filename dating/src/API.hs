@@ -43,7 +43,7 @@ import           Web.Cookie                       (parseCookies)
 
 -- | The API.
 type DatingAPI =
-       "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] User
+       "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] (Entity User)
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [Entity User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
   :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
@@ -54,7 +54,7 @@ datingAPI = Proxy :: Proxy DatingAPI
 
 
 -- | Fetches a user by id. First it tries redis, then postgres. It saves to cache if it goes to the db.
-fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler User
+fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler (Entity User)
 fetchUserHandler pgInfo redisInfo _ uid = do
   maybeCachedUser <- liftIO $ fetchUserRedis redisInfo uid
   case maybeCachedUser of
