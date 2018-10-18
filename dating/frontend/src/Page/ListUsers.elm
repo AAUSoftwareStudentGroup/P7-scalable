@@ -19,6 +19,7 @@ import Skeleton
 import String exposing (toUpper)
 import String.Extra exposing (toSentenceCase)
 import Url
+import Routing exposing (..)
 
 
 
@@ -45,6 +46,7 @@ init session =
 
 type Msg
     = UsersFetched (Result Http.Error (List User))
+    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,15 +59,22 @@ update msg model =
 
                 Err error ->
                     Debug.log (Debug.toString error) ( { model | users = [] }, Cmd.none )
-
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString Home)
+                     )
+                Session.LoggedIn key _ ->
+                  ( { model | session = session }
+                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                  )
 
 
 -- SUBSCRIPTIONS
-
-
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
 
 
 

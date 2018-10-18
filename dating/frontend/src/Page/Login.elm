@@ -1,4 +1,4 @@
-port module Page.Login exposing (Model, Msg, init, view, update, decodeToken)
+module Page.Login exposing (Model, Msg, init, view, update, subscriptions)
 
 import Browser
 import Element exposing (..)
@@ -10,13 +10,11 @@ import Element.Region as Region
 import Generated.DatingApi exposing (..)
 import Html exposing (Html)
 import Http
-import Session exposing (Session)
+import Session exposing (Session, getNavKey, login, onChange)
 import Skeleton
 import String
 import Routing exposing (replaceUrl, Route(..))
-import Json.Decode as Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
-import Json.Encode
+
 
 
 -- MODEL
@@ -51,6 +49,7 @@ type Msg
     = TextChanged Model
     | LoginClicked
     | HandleUserLogin (Result Http.Error String)
+    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -65,14 +64,27 @@ update msg model =
         HandleUserLogin result ->
             case result of
                 Ok token ->
-                    ( Debug.log "tokenIsSet" { model | session = Session.LoggedIn (Session.navKey model.session) token }
-                    , Cmd.batch [
-                    storeTokenInCache token
-                    , Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString ListUsers )] )
+                    ( model, Session.login token )
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
 
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString Home)
+                     )
+                Session.LoggedIn key _ ->
+                  ( { model | session = session }
+                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                  )
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
 
 
 -- VIEW
@@ -152,32 +164,6 @@ handleErrorResponse model errResponse =
 loginCmd : String -> String -> Cmd Msg
 loginCmd username password =
     Http.send HandleUserLogin <| postLogin (Credentials username password)
-
-
-type alias Token = String
-
-
---port onStoreChange : (Value -> msg) -> Sub msg
-port storeCache : Maybe Value -> Cmd msg
-
-
-storeTokenInCache : String -> Cmd msg
-storeTokenInCache token =
-  storeCache (Just (Json.Encode.string token))
-
-
-logout : Cmd msg
-logout =
-    storeCache Nothing
-
-
-tokenDecoder : Decoder Token
-tokenDecoder =
-    Decode.string
-
-
-decodeToken : Value -> Result Decode.Error Token
-decodeToken val = Decode.decodeValue tokenDecoder val
 
 
 responseToString : Maybe String -> String

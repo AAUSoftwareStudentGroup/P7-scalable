@@ -6,15 +6,18 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Region as Region
+import Element.Events as Events
 import Html exposing (Html)
 import Routing exposing (Route(..))
 import Session exposing (Session)
+
 
 type alias Details msg =
     { title : String
     , session: Session
     , kids : List (Element msg)
     }
+
 
 view : (a -> msg) -> Details a -> Browser.Document msg
 view toMsg details =
@@ -57,7 +60,8 @@ accountLink : Session -> Element msg
 accountLink session =
     case session of
         Session.LoggedIn _ _ ->
-            link linkStyle { url = Routing.routeToString Login, label = text "Logout" }
+            link linkStyle { url = Routing.routeToString Login, label = text "Login" }
+            --link linkStyle { url = Routing.routeToString (Profile 1), label = text "My account" }
 
         Session.Guest key ->
             link linkStyle { url = Routing.routeToString Login, label = text "Login" }

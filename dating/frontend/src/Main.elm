@@ -10,18 +10,19 @@ import Page.ListUsers as ListUsers
 import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
-import Page.Login as Login
+import Page.Login as Login exposing (subscriptions)
 import Url
 import Skeleton
 import Session exposing (Session)
 import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
 import Url.Parser.Query as Query
+import Json.Encode as Encode exposing (..)
 import Json.Decode as Decode exposing (decodeString, string)
 
 -- MAIN
 
 
-main : Program (Maybe String) Model Msg
+main : Program (Maybe Encode.Value) Model Msg
 main =
     Browser.application
         { init = init
@@ -50,17 +51,11 @@ type Page
     | Profile Profile.Model
 
 
-init : Maybe String -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init maybeToken url key =
-    let
-        session =
-            case maybeToken of
-                Nothing -> Session.Guest key
-                Just token -> Session.LoggedIn key <| Result.withDefault "" (decodeString Decode.string token)
-    in
+init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeValue url key =
     stepUrl url
         { key = key
-        , page = NotFound session
+        , page = NotFound (Session.createSessionFromLocalStorageValue maybeValue key)
         }
 
 
@@ -74,29 +69,44 @@ view model =
         NotFound session ->
             Skeleton.view never (NotFound.view session)
 
-        CreateUser createUser ->
-            Skeleton.view CreateUserMsg (CreateUser.view createUser)
+        CreateUser createUserModel ->
+            Skeleton.view CreateUserMsg (CreateUser.view createUserModel)
 
-        Login login ->
-            Skeleton.view LoginMsg (Login.view login)
+        Login loginModel ->
+            Skeleton.view LoginMsg (Login.view loginModel)
 
-        Messages unused ->
-            Skeleton.view MessagesMsg (Messages.view unused)
+        Messages messagesModel ->
+            Skeleton.view MessagesMsg (Messages.view messagesModel)
 
-        ListUsers listUsers ->
-            Skeleton.view ListUsersMsg (ListUsers.view listUsers)
+        ListUsers listUsersModel ->
+            Skeleton.view ListUsersMsg (ListUsers.view listUsersModel)
 
-        Profile profile ->
-          Skeleton.view ProfileMsg (Profile.view profile)
+        Profile profileModel ->
+          Skeleton.view ProfileMsg (Profile.view profileModel)
 
 
 -- SUBSCRIPTIONS
 
-
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    case model.page of
+        NotFound _ ->
+            Sub.none
 
+        CreateUser createUserModel ->
+            Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
+
+        Login loginModel ->
+            Sub.map LoginMsg (Login.subscriptions loginModel)
+
+        Messages messagesModel ->
+            Sub.map MessagesMsg (Messages.subscriptions messagesModel)
+
+        ListUsers listUsersModel ->
+            Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
+
+        Profile profileModel ->
+            Sub.map ProfileMsg (Profile.subscriptions profileModel)
 
 
 -- UPDATE

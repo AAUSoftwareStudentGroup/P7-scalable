@@ -42,6 +42,7 @@ type Msg
     = EntryChanged Model
     | CreateUserClicked
     | HandleUserCreated (Result Http.Error Int)
+    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -56,7 +57,7 @@ update msg model =
         HandleUserCreated result ->
             case result of
                 Ok uid ->
-                    (model, Routing.replaceUrl (Session.navKey model.session) (Routing.routeToString Login))
+                    (model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login))
 
                 Err errResponse ->
                     case errResponse of
@@ -74,6 +75,24 @@ update msg model =
 
                         Http.BadStatus statusResponse ->
                             ({model | response = Just <| "badstatus" ++ .body statusResponse}, Cmd.none)
+
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString Home)
+                     )
+                Session.LoggedIn key _ ->
+                  ( { model | session = session }
+                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                  )
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
+
 
 
 mkUserFromEntries : Model -> User
