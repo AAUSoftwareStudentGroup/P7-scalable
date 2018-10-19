@@ -40,7 +40,6 @@ services:
             - ./frontend/:/opt/app
         ports:
             - "8001:8000"
-        command: "ls -lah ./**/*.elm"
         #command: "bash -c \"ls -lah ./**/*.elm\""
         command: "bash -c \"shopt -s globstar; onchange ./src/**/*.elm \\\"elm make src/Main.elm --output main.js --debug\\\"\""
 
