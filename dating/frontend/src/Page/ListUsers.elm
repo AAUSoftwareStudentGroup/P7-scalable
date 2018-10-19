@@ -1,25 +1,24 @@
-module Page.ListUsers exposing (Model, Msg(..), createLink, init, sendGetUsers, showUser, subscriptions, update, view)
+module Page.ListUsers exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
-import Debug
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Region as Region
-import GenHelpers exposing (Gender(..))
-import Generated.DatingApi exposing (User, getUsers)
 import Html exposing (Html)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, int, list, string)
-import List exposing (concat)
-import Session exposing (Session)
-import Skeleton
 import String exposing (toUpper)
 import String.Extra exposing (toSentenceCase)
+import List exposing (concat)
 import Url
-import Routing exposing (..)
+
+import DatingApi as Api exposing (User)
+import Session exposing (Session)
+import Skeleton
+import Routing exposing (Route(..))
 
 
 -- MODEL
@@ -71,6 +70,8 @@ update msg model =
 
 
 -- SUBSCRIPTIONS
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Session.onChange SessionChanged (Session.getNavKey model.session)
@@ -237,12 +238,10 @@ edges =
     , left = 0
     }
 
-
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
 sendGetUsers responseMsg session =
     case session of
-        Session.LoggedIn navKey token ->
-            Http.send responseMsg (getUsers token)
-
-        Session.Guest navKey ->
-            Http.send responseMsg (getUsers "")
+        Session.LoggedIn _ userInfo ->
+            Http.send responseMsg (Api.getUsers userInfo)
+        Session.Guest _ ->
+            Cmd.none

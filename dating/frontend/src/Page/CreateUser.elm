@@ -1,12 +1,4 @@
-module Page.CreateUser exposing (..)
-
-import Html exposing (Html)
-import Skeleton
-import Session exposing (Session)
-import Generated.DatingApi exposing (..)
-import GenHelpers exposing (Gender(..))
-import Http
-import Routing exposing (replaceUrl, Route(..))
+module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -14,6 +6,14 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
+import Html exposing (Html)
+import Http
+
+import DatingApi as Api exposing (User, Gender(..))
+import Skeleton
+import Session exposing (Session)
+import Routing exposing (Route(..))
+
 
 -- MODEL
 type alias Model = 
@@ -101,7 +101,7 @@ mkUserFromEntries {email, password, username, gender, birthday, town, profileTex
 
 createUserCmd : User -> Cmd Msg
 createUserCmd user =
-    Http.send HandleUserCreated (postUsers user)
+    Http.send HandleUserCreated (Api.postUsers user)
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -272,4 +272,4 @@ darkBlue =
 
 sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
 sendCreateUser responseMsg user =
-    Http.send responseMsg (postUsers user)
+    Http.send responseMsg (Api.postUsers user)

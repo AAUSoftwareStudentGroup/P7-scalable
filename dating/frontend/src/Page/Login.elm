@@ -1,4 +1,4 @@
-module Page.Login exposing (Model, Msg, init, view, update, subscriptions)
+module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser
 import Element exposing (..)
@@ -8,14 +8,14 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Generated.DatingApi exposing (..)
 import Html exposing (Html)
 import Http
-import Session exposing (Session, getNavKey, login, onChange)
-import Skeleton
 import String
-import Routing exposing (replaceUrl, Route(..))
 
+import DatingApi as Api exposing (User, Credentials)
+import Session exposing (Session)
+import Skeleton
+import Routing exposing (Route(..))
 
 
 -- MODEL
@@ -50,7 +50,7 @@ type Msg
     = TextChanged Model
     | LoginClicked
     | LogoutClicked
-    | HandleUserLogin (Result Http.Error String)
+    | HandleUserLogin (Result Http.Error User)
     | SessionChanged Session
 
 
@@ -61,15 +61,15 @@ update msg model =
             ( changedModel, Cmd.none )
 
         LoginClicked ->
-            ( model, loginCmd model.username model.password )
+            ( model, sendLogin (Credentials model.username model.password) )
 
         LogoutClicked ->
             ( model, Session.logout )
 
         HandleUserLogin result ->
             case result of
-                Ok token ->
-                    ( model, Session.login token )
+                Ok user ->
+                    ( model, Session.login user )
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
@@ -77,13 +77,13 @@ update msg model =
         SessionChanged session ->
             case session of
                 Session.Guest key ->
-                     ( { model | session = session }
-                     , Routing.replaceUrl key (Routing.routeToString Home)
-                     )
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString Home)
+                    )
                 Session.LoggedIn key _ ->
-                  ( { model | session = session }
-                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                  )
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                    )
 
 
 -- SUBSCRIPTIONS
@@ -167,9 +167,10 @@ handleErrorResponse model errResponse =
             { model | response = Just <| "Badstatus" ++ .body statusResponse }
 
 
-loginCmd : String -> String -> Cmd Msg
-loginCmd username password =
-    Http.send HandleUserLogin <| postLogin (Credentials username password)
+
+sendLogin : Credentials -> Cmd Msg
+sendLogin creds =
+    Http.send HandleUserLogin (Api.postLogin creds)
 
 
 responseToString : Maybe String -> String

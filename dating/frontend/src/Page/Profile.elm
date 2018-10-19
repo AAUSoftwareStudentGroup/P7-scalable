@@ -1,6 +1,5 @@
-module Page.Profile exposing (Model, Msg(..), blue, darkBlue, emptyUser, grey, init, mkWarning, noLabel, red, subscriptions, update, view, white)
+module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Element.Background as Background
@@ -8,14 +7,13 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import GenHelpers exposing (Gender(..))
-import Generated.DatingApi exposing (..)
 import Http
 import String
-import Session exposing (Session)
-import Skeleton
 
-import Routing exposing (..)
+import DatingApi as Api exposing (Gender(..), User)
+import Session exposing (Session)
+import Routing exposing (Route(..))
+import Skeleton
 
 
 
@@ -39,7 +37,7 @@ type Msg
 init : Session -> Int -> ( Model, Cmd Msg )
 init session id =
   ( Model session "Profile" id emptyUser
-  , (sendGetUser HandleGetUser id (authenticationToken session))
+  , (sendGetUser HandleGetUser id session)
   )
 
 
@@ -51,19 +49,19 @@ update msg model =
             case result of
                 Ok fetchedUser ->
                     ( {model | user = fetchedUser }, Cmd.none)
-
                 Err errResponse ->
                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }, Cmd.none )
+
         SessionChanged session ->
             case session of
                 Session.Guest key ->
-                     ( { model | session = session }
-                     , Routing.replaceUrl key (Routing.routeToString Home)
-                     )
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString Home)
+                    )
                 Session.LoggedIn key _ ->
-                  ( { model | session = session }
-                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                  )
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                    )
 
 
 -- SUBSCRIPTIONS
@@ -156,17 +154,13 @@ mkWarning warning =
         ]
         (text warning)
 
-authenticationToken : Session -> String
-authenticationToken data =
-    case data of
-        Session.LoggedIn navKey token ->
-            token
-        Session.Guest navKey ->
-            ""
-
-sendGetUser : (Result Http.Error User -> msg) -> Int -> String -> Cmd msg
-sendGetUser responseMsg userId token =
-    Http.send responseMsg (getUsersByUserid userId token)
+sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
+sendGetUser responseMsg userId session =
+    case session of
+        Session.LoggedIn _ userInfo ->
+            Http.send responseMsg (Api.getUserById userId userInfo)
+        Session.Guest _ ->
+            Cmd.none
 
 noLabel =
     Input.labelAbove [] none

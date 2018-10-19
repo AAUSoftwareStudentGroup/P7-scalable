@@ -8,6 +8,7 @@ import Element.Font as Font
 import Element.Region as Region
 import Element.Events as Events
 import Html exposing (Html)
+
 import Routing exposing (Route(..))
 import Session exposing (Session)
 
@@ -59,8 +60,8 @@ viewHeader details =
 accountLink : Session -> Element msg
 accountLink session =
     case session of
-        Session.LoggedIn _ _ ->
-            link linkStyle { url = Routing.routeToString Login, label = text "Logout" }
+        Session.LoggedIn _ userInfo ->
+            link linkStyle { url = Routing.routeToString (Profile userInfo.userId), label = text "Account" }
 
         Session.Guest key ->
             link linkStyle { url = Routing.routeToString Login, label = text "Login" }
