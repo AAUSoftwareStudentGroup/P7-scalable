@@ -40,16 +40,22 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
     UniqueAuthToken authToken
     deriving Show Read Eq Generic
 
+  Conversation json sql=conversations
+    members [Text]
+    deriving Show Read Eq Generic
+
   Message json sql=messages
-    sender    UserId
-    receiver  UserId
-    timeStamp UTCTime
-    content   Text
+    conversationId ConversationId
+    author         UserUsername
+    timeStamp      UTCTime
+    content        Text
     deriving Show Read Eq Generic
 |]
 
 instance ElmType User
 instance ElmType Message
+instance ElmType Conversation
 
 deriving instance ElmType UserId
 deriving instance ElmType MessageId
+deriving instance ElmType ConversationId
