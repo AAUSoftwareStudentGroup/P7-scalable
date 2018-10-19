@@ -43,7 +43,7 @@ type alias Model =
 
 
 type Page
-    = NotFound Session
+    = NotFound NotFound.Model
     | CreateUser CreateUser.Model
     | Login Login.Model
     | ListUsers ListUsers.Model
@@ -55,19 +55,18 @@ init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeValue url key =
     stepUrl url
         { key = key
-        , page = NotFound (Session.createSessionFromLocalStorageValue maybeValue key)
+        , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
         }
 
 
 
 -- VIEW
 
-
 view : Model -> Browser.Document Msg
 view model =
     case model.page of
-        NotFound session ->
-            Skeleton.view never (NotFound.view session)
+        NotFound notFoundModel ->
+            Skeleton.view NotFoundMsg (NotFound.view notFoundModel)
 
         CreateUser createUserModel ->
             Skeleton.view CreateUserMsg (CreateUser.view createUserModel)
@@ -90,8 +89,8 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.page of
-        NotFound _ ->
-            Sub.none
+        NotFound notFoundModel ->
+            Sub.map NotFoundMsg (NotFound.subscriptions notFoundModel)
 
         CreateUser createUserModel ->
             Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
@@ -116,6 +115,7 @@ type Msg
   = NoOp
   | LinkClicked Browser.UrlRequest
   | UrlChanged Url.Url
+  | NotFoundMsg NotFound.Msg
   | CreateUserMsg CreateUser.Msg
   | ListUsersMsg ListUsers.Msg
   | LoginMsg Login.Msg
@@ -143,81 +143,94 @@ update message model =
         UrlChanged url ->
             stepUrl url model
 
+        NotFoundMsg msg ->
+            case model.page of
+                NotFound notFoundModel ->
+                    stepNotFound model (NotFound.update msg notFoundModel)
+                _ ->
+                    ( model, Cmd.none )
+
         CreateUserMsg msg ->
             case model.page of
-                CreateUser createUser ->
-                    stepCreateUser model (CreateUser.update msg createUser)
-
+                CreateUser createUserModel ->
+                    stepCreateUser model (CreateUser.update msg createUserModel)
                 _ ->
                     ( model, Cmd.none )
 
         LoginMsg msg ->
             case model.page of
-                Login login ->
-                    stepLogin model (Login.update msg login)
+                Login loginModel ->
+                    stepLogin model (Login.update msg loginModel)
                 _ ->
                     ( model, Cmd.none )
 
         ListUsersMsg msg ->
             case model.page of
-                ListUsers listUsers ->
-                    stepListUsers model (ListUsers.update msg listUsers)
+                ListUsers listUsersModel ->
+                    stepListUsers model (ListUsers.update msg listUsersModel)
                 _ -> ( model, Cmd.none )
 
         ProfileMsg msg ->
             case model.page of
-                Profile profile ->
-                    stepProfile model (Profile.update msg profile)
+                Profile profileModel ->
+                    stepProfile model (Profile.update msg profileModel)
                 _ -> ( model, Cmd.none )
 
         MessagesMsg msg ->
             case model.page of
-                Messages messages ->
-                    stepMessages model (Messages.update msg messages)
+                Messages messagesModel ->
+                    stepMessages model (Messages.update msg messagesModel)
                 _ -> ( model, Cmd.none )
 
 
 
+stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )
+stepNotFound model ( notFoundModel, cmds ) =
+    ( { model | page = NotFound notFoundModel }
+    , Cmd.map NotFoundMsg cmds
+    )
+
 stepCreateUser : Model -> ( CreateUser.Model, Cmd CreateUser.Msg ) -> ( Model, Cmd Msg )
-stepCreateUser model ( createUser, cmds ) =
-    ( { model | page = CreateUser createUser }
+stepCreateUser model ( createUserModel, cmds ) =
+    ( { model | page = CreateUser createUserModel }
     , Cmd.map CreateUserMsg cmds
     )
 
 
 stepLogin : Model -> ( Login.Model, Cmd Login.Msg ) -> ( Model, Cmd Msg )
-stepLogin model ( login, cmds ) =
-    ( { model | page = Login login }
+stepLogin model ( loginModel, cmds ) =
+    ( { model | page = Login loginModel }
     , Cmd.map LoginMsg cmds
     )
 
 
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
-stepListUsers model (listUsers, cmds) =
-    ( { model | page = ListUsers listUsers}
+stepListUsers model (listUsersModel, cmds) =
+    ( { model | page = ListUsers listUsersModel}
     , Cmd.map ListUsersMsg cmds
     )
 
 stepProfile : Model -> ( Profile.Model, Cmd Profile.Msg ) -> ( Model, Cmd Msg )
-stepProfile model (profile, cmds) =
-    ( { model | page = Profile profile }
+stepProfile model (profileModel, cmds) =
+    ( { model | page = Profile profileModel }
     , Cmd.map ProfileMsg cmds
     )
 
 stepMessages : Model -> ( Messages.Model, Cmd Messages.Msg ) -> ( Model, Cmd Msg )
-stepMessages model ( messages, cmds ) =
-    ( { model | page = Messages messages }
+stepMessages model ( messagesModel, cmds ) =
+    ( { model | page = Messages messagesModel }
     , Cmd.map MessagesMsg cmds
     )
 
--- EXIT
 
+
+-- EXIT
 
 exit : Model -> Session
 exit model =
     case model.page of
-        NotFound session ->
-            session
+        NotFound m ->
+            m.session
 
         CreateUser m ->
             m.session
@@ -267,7 +280,7 @@ stepUrl url model =
             answer
 
         Nothing ->
-            ( { model | page = NotFound session }
+            ( { model | page = NotFound (NotFound.createModel session) }
             , Cmd.none
             )
 
