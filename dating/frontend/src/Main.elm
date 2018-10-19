@@ -268,8 +268,8 @@ stepUrl url model =
                     (stepLogin model (Login.init session))
                 , route (s "list-users")
                     ( stepListUsers model (ListUsers.init session))
-                , route (s "user")
-                    ( stepProfile model (Profile.init session 10))
+                , route (s "user" </> Parser.int)
+                    (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
                 , route (s "messages")
                     (stepMessages model (Messages.init session))
                 ]

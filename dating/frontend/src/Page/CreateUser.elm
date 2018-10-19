@@ -97,7 +97,7 @@ subscriptions model =
 
 mkUserFromEntries : Model -> User
 mkUserFromEntries {email, password, username, gender, birthday, town, profileText}
-    = User email password username gender birthday town profileText "token"
+    = User email password username gender birthday town 0 profileText "token"
 
 createUserCmd : User -> Cmd Msg
 createUserCmd user =
