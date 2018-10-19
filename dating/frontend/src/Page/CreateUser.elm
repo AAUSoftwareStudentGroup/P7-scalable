@@ -1,12 +1,4 @@
-module Page.CreateUser exposing (..)
-
-import Html exposing (Html)
-import Skeleton
-import Session
-import Generated.DatingApi exposing (..)
-import GenHelpers exposing (Gender(..))
-import Http
-import Routing exposing (replaceUrl)
+module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -14,11 +6,18 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
+import Html exposing (Html)
+import Http
+
+import DatingApi as Api exposing (User, Gender(..))
+import Skeleton
+import Session exposing (Session)
+import Routing exposing (Route(..))
 
 
 -- MODEL
 type alias Model = 
-    { session : Session.Data
+    { session : Session
     , title : String
     , response : Maybe String
     , email : String
@@ -30,11 +29,12 @@ type alias Model =
     , profileText : String
     }
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session = 
   ( Model session "" Nothing "" "" "" Other "" "" ""
   , Cmd.none
   )
+
 
 -- UPDATE
 
@@ -42,6 +42,7 @@ type Msg
     = EntryChanged Model
     | CreateUserClicked
     | HandleUserCreated (Result Http.Error Int)
+    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -56,7 +57,7 @@ update msg model =
         HandleUserCreated result ->
             case result of
                 Ok uid ->
-                    (model, Routing.replaceUrl (Session.navKey model.session) "login")
+                    (model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login))
 
                 Err errResponse ->
                     case errResponse of
@@ -75,14 +76,32 @@ update msg model =
                         Http.BadStatus statusResponse ->
                             ({model | response = Just <| "badstatus" ++ .body statusResponse}, Cmd.none)
 
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString Home)
+                     )
+                Session.LoggedIn key _ ->
+                  ( { model | session = session }
+                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                  )
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
+
+
 
 mkUserFromEntries : Model -> User
 mkUserFromEntries {email, password, username, gender, birthday, town, profileText}
-    = User email password username gender birthday town profileText "token" 10
+    = User email password username gender birthday town 0 profileText "token"
 
 createUserCmd : User -> Cmd Msg
 createUserCmd user =
-    Http.send HandleUserCreated (postUsers user)
+    Http.send HandleUserCreated (Api.postUsers user)
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -95,8 +114,10 @@ pure model =
 view : Model -> Skeleton.Details Msg
 view model =
     { title = model.title
+    , session = model.session
     , kids = [ viewContent model.title model ]
     }
+
 
 viewContent : String -> Model -> Element Msg
 viewContent title model =
@@ -248,3 +269,7 @@ red =
 
 darkBlue =
     Element.rgb 0 0 0.9
+
+sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
+sendCreateUser responseMsg user =
+    Http.send responseMsg (Api.postUsers user)

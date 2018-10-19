@@ -2,7 +2,6 @@ module Main where
 
 import Database (localConnString, migrateDB, deleteEverythingInDB)
 import API (runServer)
-import qualified ElmCodeGen (genUsersApiCode)
 
 main :: IO ()
 main = do 

@@ -37,6 +37,7 @@ import           Database                         (Conversation, Credentials,
                                                    fetchMessagesBetweenPG,
                                                    fetchPostgresConnection,
                                                    fetchRedisConnection,
+                                                   fetchUserByCredentialsPG,
                                                    fetchUserIdByAuthTokenPG,
                                                    fetchUserPG, fetchUserRedis)
 import           Schema
@@ -53,7 +54,7 @@ type UserAPI =
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
 
-type AuthAPI = "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
+type AuthAPI = "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] (Entity User)
 
 type MessageAPI =
        "messages" :> AuthProtect "cookie-auth" :> ReqBody '[JSON] Message :> Post '[JSON] ()
@@ -67,7 +68,7 @@ datingAPI = Proxy :: Proxy DatingAPI
 
 
 -- | Fetches a user by id. First it tries redis, then postgres. It saves to cache if it goes to the db.
-fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler User
+fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler (Entity User)
 fetchUserHandler pgInfo redisInfo _ uid = do
   maybeCachedUser <- liftIO $ fetchUserRedis redisInfo uid
   case maybeCachedUser of
@@ -79,7 +80,7 @@ fetchUserHandler pgInfo redisInfo _ uid = do
         Nothing -> Handler $ throwE $ err401 { errBody = "Could not find user with that ID"}
 
 -- | Fetches all users from db if you are authenticated.
-fetchAllUsersHandler :: PGInfo -> UserId -> Handler [User]
+fetchAllUsersHandler :: PGInfo -> UserId -> Handler [Entity User]
 fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 
 
@@ -101,12 +102,12 @@ fetchConversationsHandler pgInfo user = liftIO $ fetchConversationsPG pgInfo use
 
 
 -- | Returns an authToken when given correct credentials
-loginHandler :: PGInfo -> Credentials -> Handler Text
+loginHandler :: PGInfo -> Credentials -> Handler (Entity User)
 loginHandler pgInfo credentials = do
-  maybeAuthToken <- liftIO $ fetchAuthTokenByCredentialsPG pgInfo credentials
-  case maybeAuthToken of
-    Just token -> return token
-    Nothing    -> throwError (err403 {errBody = "Invalid credentials"})
+  maybeUser <- liftIO $ fetchUserByCredentialsPG pgInfo credentials
+  case maybeUser of
+    Just user -> return user
+    Nothing   -> throwError (err403 {errBody = "Invalid credentials"})
 
 -- | Given an AuthToken it returns either the UserId or throws and 403 error.
 lookupByAuthToken :: PGInfo -> ByteString -> Handler UserId

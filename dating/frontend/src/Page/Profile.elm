@@ -1,6 +1,5 @@
-module Main exposing (Model(..), Msg(..), blue, darkBlue, emptyUser, grey, init, main, mkWarning, noLabel, pure, red, subscriptions, update, view, white)
+module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Element.Background as Background
@@ -8,104 +7,129 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import GenHelpers exposing (Gender(..))
-import Generated.DatingApi exposing (..)
 import Http
-import Page.Header
 import String
 
-
-main =
-    Browser.document
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
+import DatingApi as Api exposing (Gender(..), User)
+import Session exposing (Session)
+import Routing exposing (Route(..))
+import Skeleton
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Model emptyUser, Http.send HandleGetUser (getUsersByUserid 14) )
 
+type alias Model =
+    { session : Session
+    , title : String
+    , id : Int
+    , user : User
+    }
 
 emptyUser : User
 emptyUser =
-    User "" "" "" Other "" "" "" ""
+    User "" "" "" Other "" "" 0 "" ""
 
 
 type Msg
-    = GetUser Int
-    | Update User
-    | HandleGetUser (Result Http.Error User)
+    = HandleGetUser (Result Http.Error (User))
+    | SessionChanged Session
 
 
-type Model
-    = Model User
+init : Session -> Int -> ( Model, Cmd Msg )
+init session id =
+  ( Model session "Profile" id emptyUser
+  , (sendGetUser HandleGetUser id session)
+  )
 
-
-subscriptions userEntries =
-    Sub.none
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg (Model user) =
+update msg model =
     case msg of
-        Update newFormEntries ->
-            pure (Model newFormEntries)
-
-        GetUser userid ->
-            ( Model user, Http.send HandleGetUser (getUsersByUserid userid) )
-
         HandleGetUser result ->
             case result of
                 Ok fetchedUser ->
-                    pure (Model fetchedUser)
-
+                    ( {model | user = fetchedUser }, Cmd.none)
                 Err errResponse ->
-                    pure <| Debug.log (Debug.toString errResponse) <| Model user
+                   Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }, Cmd.none )
+
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString Home)
+                    )
+                Session.LoggedIn key _ ->
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                    )
 
 
-pure : Model -> ( Model, Cmd Msg )
-pure userEntries =
-    ( userEntries, Cmd.none )
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
 
-
-view : Model -> Browser.Document Msg
-view (Model userEntries) =
-    { title = userEntries.userUsername ++ "'s profile"
-    , body =
-        [ Element.layout
-            [ Font.size 20
-            ]
-          <|
-            Element.column [ width fill ]
-                [ Element.column [ width fill, height shrink ]
-                    [ Page.Header.getHeader Nothing ]
-                , Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
-                    [ el
-                        [ Region.heading 1
-                        , centerX
-                        , Font.size 36
-                        , Border.color darkBlue
-                        ]
-                        (text (userEntries.userUsername ++ "'s profile"))
+view : Model -> Skeleton.Details Msg
+view model =
+    { title = model.user.userUsername ++ "'s profile"
+    , session = model.session
+    , kids = [
+        Element.column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ] [
+        el  [ Region.heading 1
+            , centerX
+            , Font.size 36
+            , Border.color darkBlue
+            ] (text (model.user.userUsername ++ "'s profile"))
+            , Element.row [ width (px 600), height shrink, centerY, centerX] [
+                Element.column [ width fill, height fill, spacing 36, padding 10]
+                    [ el [ spacing 12, Border.color darkBlue ]
+                        (text <| "Username: " ++ model.user.userUsername)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userUsername)
+                        (text <| "Email: " ++ model.user.userEmail)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userEmail)
+                        (text <| "Gender: " ++ genderToString model.user.userGender)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text <| genderToString userEntries.userGender)
+                        (text <| "Birthday: " ++ model.user.userBirthday)
                     , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userBirthday)
-                    , el [ spacing 12, Border.color darkBlue ]
-                        (text userEntries.userTown)
-                    , paragraph [ spacing 12, Border.color darkBlue ]
-                        [ text userEntries.userProfileText ]
+                        (text model.user.userTown)
+                    , Element.column [spacing 12, Border.color darkBlue] [
+                        el [] (text ("Description"))
+                        ,  paragraph [ spacing 12, Border.color darkBlue ]
+                           [ text model.user.userProfileText ]
                     ]
                 ]
+            , Element.column [Element.alignTop] [
+                createButtonRight (Routing.routeToString <| (Chat model.user.userId)) "chat"
+            ,   createButtonRight (Routing.routeToString <| ListUsers) "listUsers"
+            ]
+            ]
         ]
-    }
+    ]}
+
+
+
+
+
+createButtonRight url caption =
+    createButton [ alignRight ] url caption
+
+
+createButton attributes url caption =
+    link
+        ([ paddingXY 35 15
+         , Background.color primaryColorL
+         , Border.rounded 4
+         , Border.width 1
+         , Border.solid
+         , fonts
+         , Font.size 14
+         , Font.semiBold
+         , Font.color secondaryColor
+         , mouseOver [ Font.color secondaryColorD ]
+         ]
+            ++ attributes
+        )
+        { url = url, label = text (String.toUpper caption) }
 
 
 genderToString : Gender -> String
@@ -130,6 +154,13 @@ mkWarning warning =
         ]
         (text warning)
 
+sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
+sendGetUser responseMsg userId session =
+    case session of
+        Session.LoggedIn _ userInfo ->
+            Http.send responseMsg (Api.getUserById userId userInfo)
+        Session.Guest _ ->
+            Cmd.none
 
 noLabel =
     Input.labelAbove [] none
@@ -153,3 +184,28 @@ red =
 
 darkBlue =
     Element.rgb 0 0 0.9
+
+fonts =
+    Font.family
+        [ Font.typeface "-apple-system"
+        , Font.typeface "BlinkMacSystemFont"
+        , Font.typeface "Segoe UI"
+        , Font.typeface "Roboto"
+        , Font.typeface "Oxygen-Sans"
+        , Font.typeface "Ubuntu"
+        , Font.typeface "Cantarell"
+        , Font.typeface "Helvetica Neue"
+        , Font.sansSerif
+        ]
+
+primaryColorL =
+    rgb255 255 255 255
+
+
+
+secondaryColor =
+    rgb255 96 125 139
+
+
+secondaryColorD =
+    rgb255 52 81 94

@@ -9,24 +9,37 @@ services:
       ports:
         - "6379:6379"
     dating:
-        build: ./docker/dating
+        build: ./
         image: dating
         command: bash -c "ghcid --command=\"stack --allow-different-user ghci\" --test=\"Main.main\"" 
         volumes:
           - ./:/app/user
         ports:
            - "1234:1234"
+
     nginx:
         build: ./docker/nginx
         image: nginx
         ports:
-          - "8080:80"
+          - "8002:80"
 
-    elm-reactor:
+
+    caddy:
+      image: abiosoft/caddy
+      ports:
+        - "80:80"
+#        - "443:443"
+      volumes:
+        - "./frontend:/srv/elm-frontend"
+        - "./docker/caddy/Caddyfile:/etc/Caddyfile"
+
+    elm:
         build: ./docker/elm
         image: elm
         volumes:
             - ./frontend/:/opt/app
         ports:
-            - "8000:8000"
-        command: "reactor"
+            - "8001:8000"
+        #command: "bash -c \"ls -lah ./**/*.elm\""
+        command: "bash -c \"shopt -s globstar; onchange ./src/**/*.elm \\\"elm make src/Main.elm --output main.js --debug\\\"\""
+

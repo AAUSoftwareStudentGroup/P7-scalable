@@ -1,27 +1,28 @@
-module Page.Login exposing (Model, Msg, init, view, update)
+module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser
 import Element exposing (..)
+import Element.Events as Events
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Generated.DatingApi exposing (..)
 import Html exposing (Html)
 import Http
-import Session
-import Skeleton
 import String
-import Routing exposing (replaceUrl)
 
+import DatingApi as Api exposing (User, Credentials)
+import Session exposing (Session)
+import Skeleton
+import Routing exposing (Route(..))
 
 
 -- MODEL
 
 
 type alias Model =
-    { session : Session.Data
+    { session : Session
     , title : String
     , username : String
     , password : String
@@ -29,7 +30,7 @@ type alias Model =
     }
 
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , title = "Login"
@@ -48,7 +49,9 @@ init session =
 type Msg
     = TextChanged Model
     | LoginClicked
-    | HandleUserLogin (Result Http.Error String)
+    | LogoutClicked
+    | HandleUserLogin (Result Http.Error User)
+    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -58,17 +61,35 @@ update msg model =
             ( changedModel, Cmd.none )
 
         LoginClicked ->
-            ( model, loginCmd model.username model.password )
+            ( model, sendLogin (Credentials model.username model.password) )
+
+        LogoutClicked ->
+            ( model, Session.logout )
 
         HandleUserLogin result ->
             case result of
-                Ok token ->
-                    ( Debug.log "tokenIsSet" { model | session = Session.LoggedIn (Session.navKey model.session) token }
-                    , Routing.replaceUrl (Session.navKey model.session) "messages" )
+                Ok user ->
+                    ( model, Session.login user )
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
 
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString Home)
+                    )
+                Session.LoggedIn key _ ->
+                    ( { model | session = session }
+                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                    )
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
 
 
 -- VIEW
@@ -77,6 +98,7 @@ update msg model =
 view : Model -> Skeleton.Details Msg
 view model =
     { title = model.title
+    , session = model.session
     , kids =
         [ viewContent model ]
     }
@@ -122,6 +144,7 @@ viewContent model =
                 , label = text "Not yet a user? Click here to sign up."
                 }
             , el [] (text (responseToString model.response))
+            , el [Events.onClick LogoutClicked] (text "Log out!")
             ]
 
 
@@ -144,9 +167,10 @@ handleErrorResponse model errResponse =
             { model | response = Just <| "Badstatus" ++ .body statusResponse }
 
 
-loginCmd : String -> String -> Cmd Msg
-loginCmd username password =
-    Http.send HandleUserLogin <| postLogin (Credentials username password)
+
+sendLogin : Credentials -> Cmd Msg
+sendLogin creds =
+    Http.send HandleUserLogin (Api.postLogin creds)
 
 
 responseToString : Maybe String -> String

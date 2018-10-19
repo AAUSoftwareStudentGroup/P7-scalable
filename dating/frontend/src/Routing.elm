@@ -1,7 +1,7 @@
-module Routing exposing (Route(..), fromUrl, href, replaceUrl, routeToString)
+module Routing exposing (Route(..), fromUrl, href, replaceUrl, pushUrl, routeToString)
 
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
+import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string, int)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
@@ -15,6 +15,8 @@ type Route
     | Login
     | ListUsers
     | Messages
+    | Profile Int
+    | Chat Int
 
 
 parser : Parser (Route -> a) a
@@ -24,7 +26,9 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map CreateUser (s "create-user")
         , Parser.map ListUsers (s "list-users")  
-        , Parser.map Messages (s "messages")           
+        , Parser.map Messages (s "messages")
+        , Parser.map Profile (s "user" </> int)
+        , Parser.map Chat (s "chat" </> int)
         ]
 
 
@@ -41,6 +45,9 @@ replaceUrl : Nav.Key -> String -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key route
 
+pushUrl : Nav.Key -> String -> Cmd msg
+pushUrl key route =
+    Nav.pushUrl key route
 
 fromUrl : Url -> Maybe Route
 fromUrl url =
@@ -62,7 +69,6 @@ routeToString page =
             case page of
                 Home ->
                     []
-
                 CreateUser ->
                     ["create-user"]
 
@@ -75,5 +81,11 @@ routeToString page =
                 Messages ->
                     [ "messages" ]
 
+                Profile id ->
+                    [ "user", String.fromInt id ]
+
+                Chat id ->
+                    [ "chat", String.fromInt id ]
+
     in
-    "#/" ++ String.join "/" pieces
+    "?path=/" ++ String.join "/" pieces

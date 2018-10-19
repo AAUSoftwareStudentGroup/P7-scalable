@@ -1,0 +1,17 @@
+http://api.dating.local {
+    cors
+    proxy / 0.0.0.0:8002
+    tls off
+}
+
+http://dating.local {
+    cors
+    tls off
+    
+    root /srv/elm-frontend
+
+    rewrite {
+        to {path} {path}/ /index.html?path={path}
+    }
+}
+

@@ -1,25 +1,29 @@
-module Main exposing (Model, Msg(..), Page(..), exit, init, main, route, stepCreateUser, stepMessages, stepUrl, subscriptions, update, view)
+module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import Debug
 import Element exposing (..)
 import Html exposing (Html)
-import Page.CreateUser as CreateUser
-import Page.Login as Login
-import Page.Messages as Messages
-import Page.NotFound as NotFound
-import Session
-import Skeleton
 import Url
 import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
+import Url.Parser.Query as Query
+import Json.Encode as Encode
+import Json.Decode as Decode
 
+import Page.CreateUser as CreateUser
+import Page.ListUsers as ListUsers
+import Page.Messages as Messages
+import Page.NotFound as NotFound
+import Page.Profile as Profile
+import Page.Login as Login exposing (subscriptions)
+import Skeleton
+import Session exposing (Session)
 
 
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program (Maybe Encode.Value) Model Msg
 main =
     Browser.application
         { init = init
@@ -29,8 +33,6 @@ main =
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
         }
-
-
 
 -- MODEL
 
@@ -42,61 +44,84 @@ type alias Model =
 
 
 type Page
-    = NotFound Session.Data
+    = NotFound NotFound.Model
     | CreateUser CreateUser.Model
     | Login Login.Model
+    | ListUsers ListUsers.Model
     | Messages Messages.Model
+    | Profile Profile.Model
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url key =
+init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeValue url key =
     stepUrl url
         { key = key
-        , page = NotFound (Session.empty key)
+        , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
         }
 
 
 
 -- VIEW
 
-
 view : Model -> Browser.Document Msg
 view model =
     case model.page of
-        NotFound _ ->
-            Skeleton.view never NotFound.view
+        NotFound notFoundModel ->
+            Skeleton.view NotFoundMsg (NotFound.view notFoundModel)
 
-        CreateUser createUser ->
-            Skeleton.view CreateUserMsg (CreateUser.view createUser)
+        CreateUser createUserModel ->
+            Skeleton.view CreateUserMsg (CreateUser.view createUserModel)
 
-        Login login ->
-            Skeleton.view LoginMsg (Login.view login)
+        Login loginModel ->
+            Skeleton.view LoginMsg (Login.view loginModel)
 
-        Messages unused ->
-            Skeleton.view MessagesMsg (Messages.view unused)
+        Messages messagesModel ->
+            Skeleton.view MessagesMsg (Messages.view messagesModel)
 
+        ListUsers listUsersModel ->
+            Skeleton.view ListUsersMsg (ListUsers.view listUsersModel)
+
+        Profile profileModel ->
+          Skeleton.view ProfileMsg (Profile.view profileModel)
 
 
 -- SUBSCRIPTIONS
 
-
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    case model.page of
+        NotFound notFoundModel ->
+            Sub.map NotFoundMsg (NotFound.subscriptions notFoundModel)
 
+        CreateUser createUserModel ->
+            Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
+
+        Login loginModel ->
+            Sub.map LoginMsg (Login.subscriptions loginModel)
+
+        Messages messagesModel ->
+            Sub.map MessagesMsg (Messages.subscriptions messagesModel)
+
+        ListUsers listUsersModel ->
+            Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
+
+        Profile profileModel ->
+            Sub.map ProfileMsg (Profile.subscriptions profileModel)
 
 
 -- UPDATE
 
 
 type Msg
-    = NoOp
-    | LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
-    | CreateUserMsg CreateUser.Msg
-    | LoginMsg Login.Msg
-    | MessagesMsg Messages.Msg
-
+  = NoOp
+  | LinkClicked Browser.UrlRequest
+  | UrlChanged Url.Url
+  | NotFoundMsg NotFound.Msg
+  | CreateUserMsg CreateUser.Msg
+  | ListUsersMsg ListUsers.Msg
+  | LoginMsg Login.Msg
+  | MessagesMsg Messages.Msg
+  | ProfileMsg Profile.Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -119,46 +144,82 @@ update message model =
         UrlChanged url ->
             stepUrl url model
 
-        LoginMsg msg ->
+        NotFoundMsg msg ->
             case model.page of
-                Login login ->
-                    stepLogin model (Login.update msg login)
+                NotFound notFoundModel ->
+                    stepNotFound model (NotFound.update msg notFoundModel)
                 _ ->
                     ( model, Cmd.none )
+
         CreateUserMsg msg ->
             case model.page of
-                CreateUser createUser ->
-                    stepCreateUser model (CreateUser.update msg createUser)
-
+                CreateUser createUserModel ->
+                    stepCreateUser model (CreateUser.update msg createUserModel)
                 _ ->
                     ( model, Cmd.none )
+
+        LoginMsg msg ->
+            case model.page of
+                Login loginModel ->
+                    stepLogin model (Login.update msg loginModel)
+                _ ->
+                    ( model, Cmd.none )
+
+        ListUsersMsg msg ->
+            case model.page of
+                ListUsers listUsersModel ->
+                    stepListUsers model (ListUsers.update msg listUsersModel)
+                _ -> ( model, Cmd.none )
+
+        ProfileMsg msg ->
+            case model.page of
+                Profile profileModel ->
+                    stepProfile model (Profile.update msg profileModel)
+                _ -> ( model, Cmd.none )
 
         MessagesMsg msg ->
             case model.page of
-                Messages messages ->
-                    stepMessages model (Messages.update msg messages)
+                Messages messagesModel ->
+                    stepMessages model (Messages.update msg messagesModel)
+                _ -> ( model, Cmd.none )
 
-                _ ->
-                    ( model, Cmd.none )
 
+
+stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )
+stepNotFound model ( notFoundModel, cmds ) =
+    ( { model | page = NotFound notFoundModel }
+    , Cmd.map NotFoundMsg cmds
+    )
 
 stepCreateUser : Model -> ( CreateUser.Model, Cmd CreateUser.Msg ) -> ( Model, Cmd Msg )
-stepCreateUser model ( createUser, cmds ) =
-    ( { model | page = CreateUser createUser }
+stepCreateUser model ( createUserModel, cmds ) =
+    ( { model | page = CreateUser createUserModel }
     , Cmd.map CreateUserMsg cmds
     )
 
 
 stepLogin : Model -> ( Login.Model, Cmd Login.Msg ) -> ( Model, Cmd Msg )
-stepLogin model ( login, cmds ) =
-    ( { model | page = Login login }
+stepLogin model ( loginModel, cmds ) =
+    ( { model | page = Login loginModel }
     , Cmd.map LoginMsg cmds
     )
 
 
+stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
+stepListUsers model (listUsersModel, cmds) =
+    ( { model | page = ListUsers listUsersModel}
+    , Cmd.map ListUsersMsg cmds
+    )
+
+stepProfile : Model -> ( Profile.Model, Cmd Profile.Msg ) -> ( Model, Cmd Msg )
+stepProfile model (profileModel, cmds) =
+    ( { model | page = Profile profileModel }
+    , Cmd.map ProfileMsg cmds
+    )
+
 stepMessages : Model -> ( Messages.Model, Cmd Messages.Msg ) -> ( Model, Cmd Msg )
-stepMessages model ( messages, cmds ) =
-    ( { model | page = Messages messages }
+stepMessages model ( messagesModel, cmds ) =
+    ( { model | page = Messages messagesModel }
     , Cmd.map MessagesMsg cmds
     )
 
@@ -166,20 +227,25 @@ stepMessages model ( messages, cmds ) =
 
 -- EXIT
 
-
-exit : Model -> Session.Data
+exit : Model -> Session
 exit model =
     case model.page of
-        NotFound session ->
-            session
+        NotFound m ->
+            m.session
 
         CreateUser m ->
             m.session
 
-        Messages m ->
+        Login m ->
             m.session
 
-        Login m ->
+        ListUsers m ->
+            m.session
+
+        Profile m ->
+            m.session
+
+        Messages m ->
             m.session
 
 
@@ -189,28 +255,35 @@ stepUrl url model =
         session =
             exit model
 
+        queryToPathUrl =
+            { url | path = Maybe.withDefault "" url.query, query = Nothing}
+
         parser =
-            s "src"
-                </> oneOf
-                        [ route (s "Main.elm")
-                            (stepLogin model (Login.init session))
-                        , route (s "create-user")
-                            (stepCreateUser model (CreateUser.init session))
-                        , route (s "login")
-                            (stepLogin model (Login.init session))
-                        , route (s "messages")
-                            (stepMessages model (Messages.init session))
-                        ]
+            s "path=" </>
+            oneOf
+                [ route (s "Main.elm")
+                    (stepLogin model (Login.init session))
+                , route (s "create-user")
+                    (stepCreateUser model (CreateUser.init session))
+                , route (s "login")
+                    (stepLogin model (Login.init session))
+                , route (s "list-users")
+                    ( stepListUsers model (ListUsers.init session))
+                , route (s "user" </> Parser.int)
+                    (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
+                , route (s "messages")
+                    (stepMessages model (Messages.init session))
+                ]
+
     in
-    case Parser.parse parser (Debug.log "url:" url) of
+    case Parser.parse parser (Debug.log "queryToPathUrl:" queryToPathUrl) of
         Just answer ->
             answer
 
         Nothing ->
-            ( { model | page = NotFound session }
+            ( { model | page = NotFound (NotFound.createModel session) }
             , Cmd.none
             )
-
 
 route : Parser a b -> a -> Parser (b -> c) c
 route parser handler =
