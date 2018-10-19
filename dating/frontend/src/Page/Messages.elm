@@ -1,10 +1,10 @@
-module Page.Messages exposing (Content(..), Model, Msg(..), blue, init, toText, update, view, viewContent)
+module Page.Messages exposing (Content(..), Model, Msg(..), blue, init, toText, update, view, viewContent, subscriptions)
 
 import Html exposing (Html)
 import Skeleton
-import Session
+import Session exposing (Session)
 import Routing exposing (Route(..))
-import Generated.DatingApi exposing (getMessages, Message)
+import DatingApi exposing (getMessages, Message)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -16,7 +16,7 @@ import Http
 
 -- MODEL
 type alias Model = 
-    { session : Session.Data
+    { session : Session
     , title : String
     , content : Content
     }
@@ -29,10 +29,10 @@ type Content
 --type alias Messages =
 --    List String
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
   ( Model (Debug.log "messages session:" session) "Messages" (Content [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")])
-  , (sendGetMessages HandleGetMessages "someAuthToken")
+  , (sendGetMessages HandleGetMessages session)
   )
 
 -- UPDATE
@@ -41,6 +41,7 @@ init session =
 type Msg
     = NoOp
     | HandleGetMessages (Result Http.Error (List Message))
+    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -55,6 +56,22 @@ update msg model =
 
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( model, Cmd.none )
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString Home)
+                     )
+                Session.LoggedIn key _ ->
+                  ( { model | session = session }
+                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                  )
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
 
 
 
@@ -64,6 +81,7 @@ update msg model =
 view : Model -> Skeleton.Details msg
 view model =
     { title = model.title
+    , session = model.session
     , kids = [ viewContent model.title model.content ]
     }
 
@@ -79,9 +97,14 @@ toText message =
     ]
 
 
-sendGetMessages : (Result Http.Error (List Message) -> msg) -> String -> Cmd msg
-sendGetMessages responseMsg token =
-    Http.send responseMsg (getMessages token)
+sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd msg
+sendGetMessages responseMsg session =
+    case session of
+        Session.LoggedIn _ userInfo ->
+            Http.send responseMsg (getMessages userInfo)
+        Session.Guest _ ->
+            Cmd.none
+
 
 blue =
     Element.rgb 0.4 0.4 0.8

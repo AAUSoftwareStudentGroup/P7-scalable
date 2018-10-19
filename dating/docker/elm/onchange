@@ -22,6 +22,10 @@ done
 
 echo ""
 
+for cmd in "$@"
+do
+	$cmd
+done
 
 while inotifywait -e close_write -e attrib $monitored_files
 do

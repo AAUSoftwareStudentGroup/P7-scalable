@@ -1,39 +1,37 @@
-module Page.ListUsers exposing (Model, Msg(..), createLink, init, sendGetUsers, showUser, subscriptions, update, view)
+module Page.ListUsers exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
-import Debug
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Region as Region
-import GenHelpers exposing (Gender(..))
-import Generated.DatingApi exposing (User, getUsers)
 import Html exposing (Html)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, int, list, string)
-import List exposing (concat)
-import Session
-import Skeleton
 import String exposing (toUpper)
 import String.Extra exposing (toSentenceCase)
+import List exposing (concat)
 import Url
-import Routing exposing (replaceUrl, Route(..))
 
+import DatingApi as Api exposing (User)
+import Session exposing (Session)
+import Skeleton
+import Routing exposing (Route(..))
 
 
 -- MODEL
 
 
 type alias Model =
-    { session : Session.Data
+    { session : Session
     , title : String
     , users : List User
     }
 
 
-init : Session.Data -> ( Model, Cmd Msg )
+init : Session -> ( Model, Cmd Msg )
 init session =
     ( Model session "List Users" []
     , sendGetUsers UsersFetched session
@@ -46,6 +44,7 @@ init session =
 
 type Msg
     = UsersFetched (Result Http.Error (List User))
+    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -58,15 +57,24 @@ update msg model =
 
                 Err error ->
                     Debug.log (Debug.toString error) ( { model | users = [] }, Cmd.none )
-
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString Home)
+                     )
+                Session.LoggedIn key _ ->
+                  ( { model | session = session }
+                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                  )
 
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
 
 
 
@@ -76,6 +84,7 @@ subscriptions _ =
 view : Model -> Skeleton.Details Msg
 view model =
     { title = "All users"
+    , session = model.session
     , kids =
         [ column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ]
             (el
@@ -97,7 +106,7 @@ showUser user =
             [ createLink (Routing.routeToString <| (Profile user.userId))
                 [width fill, height fill]
                 (el [ Font.size 24, alignLeft ] <| text <| toSentenceCase <| user.userUsername)
-            , createButtonRight (Routing.routeToString <| (Chat user.userId 6)) "chat"
+            , createButtonRight (Routing.routeToString <| (Chat user.userId)) "chat"
             ]
 
 
@@ -229,11 +238,10 @@ edges =
     , left = 0
     }
 
-sendGetUsers : (Result Http.Error (List User) -> msg) -> Session.Data -> Cmd msg
-sendGetUsers responseMsg data =
-    case data of
-        Session.LoggedIn navKey token ->
-            Http.send responseMsg (getUsers token)
-
-        Session.Guest navKey ->
-            Http.send responseMsg (getUsers "")
+sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
+sendGetUsers responseMsg session =
+    case session of
+        Session.LoggedIn _ userInfo ->
+            Http.send responseMsg (Api.getUsers userInfo)
+        Session.Guest _ ->
+            Cmd.none

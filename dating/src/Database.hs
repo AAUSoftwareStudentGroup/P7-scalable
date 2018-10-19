@@ -126,16 +126,16 @@ fetchUserIdByAuthTokenPG pgInfo authToken = runAction pgInfo selectAction
         return (user ^. UserId)
       return $ listToMaybe $ fmap unValue userIdsFound
 
-fetchAuthTokenByCredentialsPG :: PGInfo -> Credentials -> IO (Maybe T.Text)
-fetchAuthTokenByCredentialsPG pgInfo (Credentials {username = usr, password = psw}) = runAction pgInfo selectAction
+fetchUserByCredentialsPG :: PGInfo -> Credentials -> IO (Maybe (Entity User))
+fetchUserByCredentialsPG pgInfo (Credentials {username = usr, password = psw}) = runAction pgInfo selectAction
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe T.Text)
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe (Entity User))
     selectAction = do
-      tokensFound <- select $
+      userFound <- select $
                      from $ \user -> do
                        where_ (user ^. UserUsername ==. val usr &&. user ^. UserPassword ==. val psw)
-                       return (user ^. UserAuthToken)
-      return $ unValue <$> listToMaybe tokensFound
+                       return user
+      return $ listToMaybe userFound
 
 -- | REDIS
 

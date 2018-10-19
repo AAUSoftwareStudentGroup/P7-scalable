@@ -16,7 +16,7 @@ type Route
     | ListUsers
     | Messages
     | Profile Int
-    | Chat Int Int
+    | Chat Int
 
 
 parser : Parser (Route -> a) a
@@ -28,7 +28,7 @@ parser =
         , Parser.map ListUsers (s "list-users")  
         , Parser.map Messages (s "messages")
         , Parser.map Profile (s "user" </> int)
-        , Parser.map Chat (s "chat" </> int </> int)
+        , Parser.map Chat (s "chat" </> int)
         ]
 
 
@@ -69,7 +69,6 @@ routeToString page =
             case page of
                 Home ->
                     []
-
                 CreateUser ->
                     ["create-user"]
 
@@ -85,8 +84,8 @@ routeToString page =
                 Profile id ->
                     [ "user", String.fromInt id ]
 
-                Chat idFriend idYou ->
-                    [ "chat", String.fromInt idFriend, String.fromInt idYou]
+                Chat idFriend ->
+                    [ "chat", String.fromInt idFriend ]
 
     in
     "?path=/" ++ String.join "/" pieces

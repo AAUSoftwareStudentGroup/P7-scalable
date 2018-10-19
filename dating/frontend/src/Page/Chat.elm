@@ -1,10 +1,9 @@
 module Page.Chat exposing (..)
 import Html exposing (Html)
 import Skeleton
-import Session
+import Session exposing (Session)
 import Routing exposing (Route(..))
-import Generated.DatingApi exposing (..)
-import GenHelpers exposing (..)
+import DatingApi as Api exposing (User, Gender(..), Message)
 import Http
 import Element exposing (..)
 import Element.Background as Background
@@ -15,10 +14,10 @@ import Element.Input as Input
 
 -- MODEL
 type alias Model =
-    { session : Session.Data
+    { session : Session
     , title : String
     , content : Content
-    , userYou : User
+    , idYou : Int
     , userFriend: User
     }
 
@@ -31,11 +30,14 @@ emptyUser : User
 emptyUser =
     User "" "" "" Other "" "" 0 "" ""
 
-init : Session.Data -> Int -> Int -> ( Model, Cmd Msg )
-init session idFriend idYou =
-  ( Model (Debug.log "messages session:" session) "Messages" (Content [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")])
-        emptyUser emptyUser
-  , (sendGetUser HandleGetUser idYou (authenticationToken session) ))
+init : Session -> Int -> ( Model, Cmd Msg )
+init session idFriend =
+  ( Model (Debug.log "messages session:" session)
+    "Messages"
+    (Content [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")])
+    (Maybe.withDefault -1 (Session.getUserId session))
+    emptyUser
+  , (sendGetUser HandleGetUser idFriend session ))
 
 
 -- UPDATE
@@ -43,6 +45,8 @@ init session idFriend idYou =
 type Msg
     = NoOp
     | HandleGetUser (Result Http.Error (User))
+    | SessionChanged Session
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -52,10 +56,29 @@ update msg model =
         HandleGetUser result ->
             case result of
                 Ok fetchedUser ->
-                    Debug.log (Debug.toString fetchedUser) ( {model | userYou = fetchedUser }, Cmd.none)
+                    Debug.log (Debug.toString fetchedUser) ( {model | userFriend = fetchedUser }, Cmd.none)
 
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( { model | userFriend = emptyUser }, Cmd.none )
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString Home)
+                     )
+                Session.LoggedIn key _ ->
+                  ( { model | session = session }
+                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                  )
+                  
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Session.onChange SessionChanged (Session.getNavKey model.session)
+
+
 
 
 -- VIEW
@@ -64,9 +87,10 @@ update msg model =
 view : Model -> Skeleton.Details msg
 view model =
     { title = model.title
+    , session = model.session
     , kids = [
         Element.column [ width (px 600), height shrink, centerY, centerX, spacing 10, padding 10 ]
-            (viewContent model.content model)
+            <| (viewContent model.content model)
     ]}
 
 viewContent : Content -> Model -> List (Element msg)
@@ -77,7 +101,7 @@ viewContent (Content messages) model =
 viewMessages : Model -> Message -> Element msg
 viewMessages model message =
     el [ padding 10, width (fill |> maximum 255), Border.width 2, Border.rounded 20,
-         (getPosition message.userId model.userYou.userId), Font.center
+         (getPosition message.userId model.idYou), Font.center
        ] (text message.message)
 
 
@@ -90,17 +114,13 @@ getPosition idMessage idYou =
             Element.alignLeft
 
 
-authenticationToken : Session.Data -> String
-authenticationToken data =
-    case data of
-        Session.LoggedIn navKey token ->
-            token
-        Session.Guest navKey ->
-            ""
-
-sendGetUser : (Result Http.Error User -> msg) -> Int -> String -> Cmd msg
-sendGetUser responseMsg userId token =
-    Http.send responseMsg (getUsersByUserid userId token)
+sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
+sendGetUser responseMsg userId session =
+    case session of
+        Session.LoggedIn _ userInfo ->
+            Http.send responseMsg (Api.getUserById userId userInfo)
+        Session.Guest _ ->
+            Cmd.none
 
 
 blue =

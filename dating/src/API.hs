@@ -30,9 +30,9 @@ import           Database                         (Credentials, PGInfo,
                                                    RedisInfo, createUserPG,
                                                    createUserRedis,
                                                    fetchAllUsersPG,
-                                                   fetchAuthTokenByCredentialsPG,
                                                    fetchPostgresConnection,
                                                    fetchRedisConnection,
+                                                   fetchUserByCredentialsPG,
                                                    fetchUserIdByAuthTokenPG,
                                                    fetchUserPG, fetchUserRedis)
 import           Schema
@@ -46,7 +46,7 @@ type DatingAPI =
        "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] (Entity User)
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [Entity User]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
-  :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] Text
+  :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] (Entity User)
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -74,13 +74,13 @@ fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 createUserHandler :: PGInfo -> User -> Handler Int64
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 
-
-loginHandler :: PGInfo -> Credentials -> Handler Text
+-- | Handles a login request. Returns user with id on success.
+loginHandler :: PGInfo -> Credentials -> Handler (Entity User)
 loginHandler pgInfo credentials = do
-  maybeAuthToken <- liftIO $ fetchAuthTokenByCredentialsPG pgInfo credentials
-  case maybeAuthToken of
-    Just token -> return token
-    Nothing    -> throwError (err403 {errBody = "Invalid credentials"})
+  maybeUser <- liftIO $ fetchUserByCredentialsPG pgInfo credentials
+  case maybeUser of
+    Just user -> return user
+    Nothing   -> throwError (err403 {errBody = "Invalid credentials"})
 
 -- | Given an AuthToken it returns either the UserId or throws and 403 error.
 lookupByAuthToken :: PGInfo -> ByteString -> Handler UserId
