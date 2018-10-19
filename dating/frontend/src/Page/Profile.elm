@@ -85,7 +85,7 @@ view model =
                     ]
                 ]
             , Element.column [Element.alignTop] [
-                createButtonRight (Routing.routeToString <| (Chat model.user.userId)) "chat"
+                createButtonRight (Routing.routeToString <| (Chat model.user.userId 6)) "chat"
             ,   createButtonRight (Routing.routeToString <| ListUsers) "listUsers"
             ]
             ]

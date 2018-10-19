@@ -97,7 +97,7 @@ showUser user =
             [ createLink (Routing.routeToString <| (Profile user.userId))
                 [width fill, height fill]
                 (el [ Font.size 24, alignLeft ] <| text <| toSentenceCase <| user.userUsername)
-            , createButtonRight (Routing.routeToString <| (Chat user.userId)) "chat"
+            , createButtonRight (Routing.routeToString <| (Chat user.userId 6)) "chat"
             ]
 
 
@@ -228,7 +228,6 @@ edges =
     , bottom = 0
     , left = 0
     }
-
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session.Data -> Cmd msg
 sendGetUsers responseMsg data =

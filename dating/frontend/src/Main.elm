@@ -11,6 +11,7 @@ import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
 import Page.Login as Login
+import Page.Chat as Chat
 import Url
 import Skeleton
 import Session
@@ -50,6 +51,7 @@ type Page
     | ListUsers ListUsers.Model
     | Messages Messages.Model
     | Profile Profile.Model
+    | Chat Chat.Model
 
 
 init : Maybe String -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -89,7 +91,10 @@ view model =
             Skeleton.view ListUsersMsg (ListUsers.view listUsers)
 
         Profile profile ->
-          Skeleton.view ProfileMsg (Profile.view profile)
+            Skeleton.view ProfileMsg (Profile.view profile)
+
+        Chat chatModel ->
+            Skeleton.view ChatMsg (Chat.view chatModel)
 
 
 -- SUBSCRIPTIONS
@@ -113,6 +118,7 @@ type Msg
   | LoginMsg Login.Msg
   | MessagesMsg Messages.Msg
   | ProfileMsg Profile.Msg
+  | ChatMsg Chat.Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -168,6 +174,12 @@ update message model =
                     stepMessages model (Messages.update msg messages)
                 _ -> ( model, Cmd.none )
 
+        ChatMsg msg ->
+            case model.page of
+                Chat chat ->
+                    stepChat model (Chat.update msg chat)
+                _ -> ( model, Cmd.none )
+
 
 
 stepCreateUser : Model -> ( CreateUser.Model, Cmd CreateUser.Msg ) -> ( Model, Cmd Msg )
@@ -202,6 +214,13 @@ stepMessages model ( messages, cmds ) =
     , Cmd.map MessagesMsg cmds
     )
 
+stepChat : Model -> ( Chat.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
+stepChat model ( chat, cmds ) =
+    ( { model | page = Chat chat }
+    , Cmd.map ChatMsg cmds
+    )
+
+
 -- EXIT
 
 
@@ -224,6 +243,9 @@ exit model =
             m.session
 
         Messages m ->
+            m.session
+
+        Chat m ->
             m.session
 
 
@@ -251,6 +273,8 @@ stepUrl url model =
                     (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
                 , route (s "messages")
                     (stepMessages model (Messages.init session))
+                , route (s "chat" </> Parser.int </> Parser.int)
+                    (\idFriend -> \idYou -> stepChat model (Chat.init session idFriend idYou))
                 ]
 
     in

@@ -35,6 +35,14 @@ decodeUser =
         |> required "profileText" string
         |> required "authToken" string
 
+decodeMessage : Decoder Message
+decodeMessage =
+    succeed Message
+        |> required "username" string
+        |> required "id" int
+        |> required "text" string
+        --|> required "time" string
+
 decodeCredentials : Decoder Credentials
 decodeCredentials =
     succeed Credentials
@@ -152,13 +160,40 @@ postLogin body =
         }
 
 
+getMessages : String -> Http.Request (List (Message))
+getMessages token =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            [Http.header "Auth-Token" ("dating-auth-cookie=" ++ token)]
+        , url =
+            String.join "/"
+                [ "http://api.dating.local:8002"
+                , "messages"
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson (list decodeMessage)
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+
 -- The following has been stolen more or less directly from the SPA example.. SUE ME!
 type alias Credentials =
     { username : String
     , password : String
     }
 
-
+type alias Message =
+    { username: String
+    , userId : Int
+    , message : String
+    }
 
 
 
