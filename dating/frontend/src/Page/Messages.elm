@@ -1,4 +1,4 @@
-module Page.Messages exposing (Content(..), Model, Msg(..), blue, init, toText, update, view, viewContent, subscriptions)
+module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html)
 import Skeleton
@@ -18,26 +18,18 @@ import Http
 type alias Model = 
     { session : Session
     , title : String
-    , content : Content
+    , content : List Message
     }
 
 
-type Content
-    = Content (List Message)
-
-
---type alias Messages =
---    List String
-
 init : Session -> ( Model, Cmd Msg )
 init session =
-  ( Model (Debug.log "messages session:" session) "Messages" (Content [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")])
+  ( Model (Debug.log "messages session:" session) "Messages" [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")]
   , (sendGetMessages HandleGetMessages session)
   )
 
+
 -- UPDATE
-
-
 type Msg
     = NoOp
     | HandleGetMessages (Result Http.Error (List Message))
@@ -52,7 +44,7 @@ update msg model =
         HandleGetMessages result ->
             case result of
                 Ok fetchedMessages ->
-                    Debug.log (Debug.toString fetchedMessages) ( {model | content = (Content fetchedMessages) }, Cmd.none)
+                    Debug.log (Debug.toString fetchedMessages) ( {model | content = fetchedMessages }, Cmd.none)
 
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( model, Cmd.none )
@@ -63,9 +55,9 @@ update msg model =
                      , Routing.replaceUrl key (Routing.routeToString Home)
                      )
                 Session.LoggedIn key _ ->
-                  ( { model | session = session }
-                  , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                  )
+                     ( { model | session = session }
+                     , Routing.replaceUrl key (Routing.routeToString ListUsers)
+                     )
 
 
 -- SUBSCRIPTIONS
@@ -76,25 +68,23 @@ subscriptions model =
 
 
 -- VIEW
-
-
 view : Model -> Skeleton.Details msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = [ viewContent model.title model.content ]
+    , kids = [ column [width (px 600), padding 20, spacing 20, Border.width 2]
+        <| (List.map viewMessage model.content)
+    ]
     }
 
-viewContent : String -> Content -> Element msg
-viewContent title (Content messages) =
-      column [padding 20, spacing 20, Border.width 2] <| (List.map toText messages)
 
-toText : Message -> Element msg
-toText message =
+viewMessage : Message -> Element msg
+viewMessage message =
     row [padding 20, spacing 20, Border.width 2, Background.color blue, width fill ]
     [ el [ Font.size 20, width fill ] <| text message.username
     , el [ Font.size 20, width fill, Background.color yellow ] <| text message.message
     ]
+
 
 
 sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd msg

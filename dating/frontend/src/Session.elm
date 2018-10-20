@@ -42,6 +42,7 @@ getUserId session =
         Guest _ ->
             Nothing
 
+
 -- PERSISTENCE
 
 port storeLocally : Maybe Encode.Value -> Cmd msg
