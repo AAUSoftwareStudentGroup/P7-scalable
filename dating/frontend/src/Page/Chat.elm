@@ -10,6 +10,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Element.Events as Events
+import String as String
 
 
 -- MODEL
@@ -45,6 +47,7 @@ type Msg
     = NoOp
     | EntryChanged Model
     | SubmitMessage
+    | DoNothing
     | HandleMessageSent (Result Http.Error (String.String))
     | HandleGetUser (Result Http.Error (User))
     | SessionChanged Session
@@ -57,6 +60,9 @@ update msg model =
             ( model, Cmd.none )
         EntryChanged updatedModel ->
             (updatedModel, Cmd.none)
+
+        DoNothing ->
+            (model, Cmd.none)
 
         SubmitMessage ->
             (model, sendMessage <| model)
@@ -108,28 +114,48 @@ view model =
         [ Element.column [ width (px 600), height fill, spacing 10, padding 10, explain Debug.todo ]
           <| (List.map (viewMessages model) model.content) ++
               [ Element.row [ width (px 600), height fill, alignBottom, centerX]
-                [ Input.text [width fill]
-                    { text = model.newMessageText
-                    , onChange = (\new -> EntryChanged { model | newMessageText = new })
-                    , placeholder = Nothing
-                    , label = Input.labelAbove [ Font.size 14 ] (text "message:")
-                    }
-                , Input.button
-                    [ --Background.color red
-                    --, Font.color white
-                    --, Border.color darkBlue
-                     paddingXY 32 16
-                    , Border.rounded 3
-                    , width fill
-                    ]
-                    { onPress = Just SubmitMessage
-                    , label = Element.text "Create!"
-                    }
+                [ Input.button
+                   [ --Background.color red
+                   --, Font.color white
+                   --, Border.color darkBlue
+                    paddingXY 10 15
+                   , Border.rounded 4
+                   , width fill
+                   , Events.onClick DoNothing
+                   ]
+                   { onPress = Just SubmitMessage
+                   , label = Input.multiline [width fill]
+                             { text = model.newMessageText
+                             , onChange = (\new -> EntryChanged { model | newMessageText = new })
+                             , placeholder = Nothing
+                             , label = Input.labelLeft [ Font.size 14, centerY ] (text "")
+                             , spellcheck = True
+                             }
+                   }
+                   , createButtonRight SubmitMessage "Create!"
+
                 ]
               ]
-
         ]
     }
+
+
+createButtonRight : Msg -> String -> Element Msg
+createButtonRight msg caption =
+    Input.button
+        [ paddingXY 35 15
+         , Background.color primaryColorL
+         , Border.rounded 4
+         , Border.width 1
+         , Border.solid
+         , fonts
+         , Font.size 14
+         , Font.semiBold
+         , Font.color secondaryColor
+         , mouseOver [ Font.color secondaryColorD ]
+         , alignRight
+         ]
+        { onPress = Just msg, label = text (String.toUpper caption) }
 
 
 viewMessages : Model -> Message -> Element Msg
@@ -171,3 +197,27 @@ sendMessage model =
 
 blue =
     Element.rgb 0.4 0.4 0.8
+
+fonts =
+    Font.family
+        [ Font.typeface "-apple-system"
+        , Font.typeface "BlinkMacSystemFont"
+        , Font.typeface "Segoe UI"
+        , Font.typeface "Roboto"
+        , Font.typeface "Oxygen-Sans"
+        , Font.typeface "Ubuntu"
+        , Font.typeface "Cantarell"
+        , Font.typeface "Helvetica Neue"
+        , Font.sansSerif
+        ]
+
+primaryColorL =
+    rgb255 255 255 255
+
+secondaryColor =
+    rgb255 96 125 139
+
+
+secondaryColorD =
+    rgb255 52 81 94
+    
