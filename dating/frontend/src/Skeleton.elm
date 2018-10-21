@@ -32,7 +32,7 @@ view toMsg details =
           <|
             column [ width fill, height fill ] <|
                 [ viewHeader details
-                , Element.map toMsg <| column [ centerX, padding 30, Background.color white ] <| details.kids
+                , Element.map toMsg <| column [ centerX, padding 30, Background.color white, height fill ] <| details.kids
                 , viewFooter
                 ]
         ]

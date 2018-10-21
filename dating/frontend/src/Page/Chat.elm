@@ -113,7 +113,7 @@ view model =
     , kids =
         [ Element.column [ width (px 600), height fill, spacing 10, padding 10, explain Debug.todo ]
           <| (List.map (viewMessages model) model.content) ++
-              [ Element.row [ width (px 600), height fill, alignBottom, centerX]
+              [ Element.row [ width (px 600), alignBottom, centerX]
                 [ Input.button
                    [ --Background.color red
                    --, Font.color white
@@ -154,6 +154,7 @@ createButtonRight msg caption =
          , Font.color secondaryColor
          , mouseOver [ Font.color secondaryColorD ]
          , alignRight
+         , centerY
          ]
         { onPress = Just msg, label = text (String.toUpper caption) }
 
@@ -220,4 +221,3 @@ secondaryColor =
 
 secondaryColorD =
     rgb255 52 81 94
-    
