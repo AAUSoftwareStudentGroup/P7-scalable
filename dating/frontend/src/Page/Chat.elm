@@ -21,7 +21,7 @@ type alias Model =
     , content : List Message
     , idYou : Int
     , idFriend : Int
-    , yourself : User
+    , username : String
     , newMessageText: String
     }
 
@@ -36,9 +36,9 @@ init session idFriend =
     [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")]
     (Maybe.withDefault -1 (Session.getUserId session))
     idFriend
-    emptyUser
+    (Maybe.withDefault "" (Session.getUsername session))
     ""
-  , (sendGetUser HandleGetUser (Maybe.withDefault -1 (Session.getUserId session)) session ))
+  , (Cmd.none))
 
 
 
@@ -49,7 +49,6 @@ type Msg
     | SubmitMessage
     | DoNothing
     | HandleMessageSent (Result Http.Error (String.String))
-    | HandleGetUser (Result Http.Error (User))
     | SessionChanged Session
 
 
@@ -67,22 +66,13 @@ update msg model =
         SubmitMessage ->
             (model, sendMessage <| model)
 
-        HandleGetUser result ->
-            case result of
-                Ok fetchedUser ->
-                    Debug.log (Debug.toString fetchedUser) ( { model | yourself = fetchedUser }, Cmd.none)
-
-                Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( { model | yourself = emptyUser }, Cmd.none )
-
         HandleMessageSent result ->
             case result of
                 Ok responseString ->
-                    ({ model | content = (model.content ++ [(Message model.yourself.userUsername model.idYou model.newMessageText)])
+                    ({ model | content = (model.content ++ [(Message model.username model.idYou model.newMessageText)])
                      , newMessageText = "" }, Cmd.none)
                 Err _ ->
                     (model , Cmd.none)
-
 
         SessionChanged session ->
             case session of
@@ -115,10 +105,7 @@ view model =
           <| (List.map (viewMessages model) model.content) ++
               [ Element.row [ width (px 600), alignBottom, centerX]
                 [ Input.button
-                   [ --Background.color red
-                   --, Font.color white
-                   --, Border.color darkBlue
-                    paddingXY 10 15
+                   [ paddingXY 10 15
                    , Border.rounded 4
                    , width fill
                    , Events.onClick DoNothing
@@ -175,22 +162,13 @@ getPosition idMessage idYou =
         False ->
             Element.alignLeft
 
-
-sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
-sendGetUser responseMsg userId session =
-    case session of
-        Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (Api.getUserById userId userInfo)
-        Session.Guest _ ->
-            Cmd.none
-
 sendMessage : Model -> Cmd Msg
 sendMessage model =
     case (String.isEmpty model.newMessageText) of
         False ->
             case model.session of
                 Session.LoggedIn _ userInfo ->
-                    Http.send HandleMessageSent (Api.postMessage userInfo (PostMessage 0 model.yourself.userUsername model.newMessageText) model.idFriend)
+                    Http.send HandleMessageSent (Api.postMessage userInfo (PostMessage 0 model.username model.newMessageText) model.idFriend)
                 Session.Guest _ ->
                     Cmd.none
         True ->

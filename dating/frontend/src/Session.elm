@@ -1,4 +1,4 @@
-port module Session exposing (Session(..), getNavKey, getUserId, onChange, login, logout, createSessionFromLocalStorageValue)
+port module Session exposing (Session(..), getNavKey, getUserId, getUsername, onChange, login, logout, createSessionFromLocalStorageValue)
 
 import Browser.Navigation as Nav
 import Json.Decode as Decode exposing (..)
@@ -42,6 +42,14 @@ getUserId session =
         Guest _ ->
             Nothing
 
+
+getUsername : Session -> Maybe String
+getUsername session =
+    case session of
+        LoggedIn _ userInfo ->
+            Just userInfo.username
+        Guest _ ->
+            Nothing
 
 -- PERSISTENCE
 
@@ -88,17 +96,19 @@ decodeLocalStorageSession val =
 
 userInfoFromUser : User -> UserInfo
 userInfoFromUser user =
-    UserInfo user.userId user.userAuthToken
+    UserInfo user.userId user.userAuthToken user.userUsername
 
 userInfoDecoder : Decoder UserInfo
 userInfoDecoder =
     succeed UserInfo
         |> required "userId" Decode.int
         |> required "authToken" Decode.string
+        |> required "userUsername" Decode.string
 
 encodeUserInfo : UserInfo -> Encode.Value
 encodeUserInfo userInfo =
     Encode.object
         [ ( "userId", Encode.int userInfo.userId )
         , ( "authToken", Encode.string userInfo.authToken )
+        , ( "userUsername", Encode.string userInfo.username )
         ]

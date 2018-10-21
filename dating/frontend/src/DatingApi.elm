@@ -28,6 +28,7 @@ type Gender
 type alias UserInfo =
     { userId : Int
     , authToken : String
+    , username : String
     }
 
 type alias Credentials =
