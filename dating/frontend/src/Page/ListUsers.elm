@@ -16,8 +16,7 @@ import List exposing (concat)
 import Url
 
 import DatingApi as Api exposing (User)
-import Session exposing (Session)
-import Skeleton
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 
 
@@ -81,7 +80,7 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = "All users"
     , session = model.session

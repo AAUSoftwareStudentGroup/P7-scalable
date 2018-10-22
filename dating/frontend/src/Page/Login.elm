@@ -13,8 +13,7 @@ import Http
 import String
 
 import DatingApi as Api exposing (User, Credentials)
-import Session exposing (Session)
-import Skeleton
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 
 
@@ -91,7 +90,7 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session

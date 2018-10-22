@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Monitoring directories:"
-
+rm -rf elm-stuff
 monitored_files=""
 for f in "$@"
 do
@@ -32,7 +32,7 @@ inotifywait -m -e close_write -e attrib -r $monitored_files |
 while read -r path action file
 do
     if [[ "$file" =~ .*elm$ ]]; then # Does the file end with .xml?
-        echo "$action: $path"
+        echo "$action: $path$file"
         for cmd in "$@"
         do
             $cmd
