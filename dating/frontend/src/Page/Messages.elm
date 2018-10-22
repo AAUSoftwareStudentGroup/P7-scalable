@@ -23,7 +23,7 @@ type alias Model =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-  ( Model (Debug.log "messages session:" session) "Messages" [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")]
+  ( Model (Debug.log "messages session:" session) "Messages" []
   , (sendGetMessages HandleGetMessages session)
   )
 
@@ -80,8 +80,8 @@ view model =
 viewMessage : Message -> Element msg
 viewMessage message =
     row [padding 20, spacing 20, Border.width 2, Background.color blue, width fill ]
-    [ el [ Font.size 20, width fill ] <| text message.username
-    , el [ Font.size 20, width fill, Background.color yellow ] <| text message.message
+    [ el [ Font.size 20, width fill ] <| text "N/A"
+    , el [ Font.size 20, width fill, Background.color yellow ] <| text message.body
     ]
 
 

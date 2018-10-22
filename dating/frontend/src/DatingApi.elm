@@ -6,7 +6,7 @@ import Json.Decode.Pipeline as Pipeline
 import Http
 import String
 import Url
-
+import Time as Time
 
 type alias User =
     { userEmail : String
@@ -38,14 +38,16 @@ type alias Credentials =
     }
 
 type alias Message =
-    { username: String
-    , userId : Int
-    , message : String
+    { body : String
+    , authorId : Int
+    , conversationId : Int
+    , timeStamp : String
     }
 
 type alias PostMessage =
     { convId : Int
-    , username : String
+    , authorId : Int
+    , time : String
     , message : String
     }
 
@@ -90,8 +92,9 @@ encodeMessage : PostMessage -> Encode.Value
 encodeMessage x =
     Encode.object
         [ ( "conversationId", Encode.int x.convId )
-        , ( "author", Encode.string x.username )
-        , ( "content", Encode.string x.message )
+        , ( "authorId", Encode.int x.authorId )
+        , ( "timeStamp", Encode.string x.time)
+        , ( "body", Encode.string x.message )
         ]
 
 userDecoder : Decoder User
@@ -110,10 +113,10 @@ userDecoder =
 messageDecoder : Decoder Message
 messageDecoder =
     Decode.succeed Message
-        |> Pipeline.required "username" Decode.string
-        |> Pipeline.required "id" Decode.int
-        |> Pipeline.required "text" Decode.string
-        --|> required "time" string
+        |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "authorId" Decode.int
+        |> Pipeline.required "conversationId" Decode.int
+        |> Pipeline.required "timeStamp" Decode.string
 
 credentialsDecoder : Decoder Credentials
 credentialsDecoder =
@@ -300,6 +303,30 @@ getMessages userInfo =
         , withCredentials =
             False
         }
+
+{-
+getConversation : UserInfo -> Int -> Int -> Http.Request (List Int)
+getConversation userInfo idYou idFriend =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            [createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "messages"
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson (Decode.list messageDecoder)
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+-}
 
 createAuthHeader : UserInfo -> Http.Header
 createAuthHeader userInfo =

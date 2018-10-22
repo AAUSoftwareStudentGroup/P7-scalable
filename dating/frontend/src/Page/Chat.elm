@@ -36,7 +36,7 @@ init : Session -> Int -> ( Model, Cmd Msg )
 init session idFriend =
   ( Model (Debug.log "messages session:" session)
     "Messages"
-    [(Message "User1" 5 "Hi"), (Message "User2" 6 "Hello"), (Message "User1" 5 "What's up?")]
+    []
     (Maybe.withDefault -1 (Session.getUserId session))
     idFriend
     (Maybe.withDefault "" (Session.getUsername session))
@@ -78,10 +78,12 @@ update msg model =
             (model, sendMessage <| model)
 
         HandleMessageSent result ->
-            case result of
+            case (Debug.log "response: "result) of
                 Ok responseString ->
-                    ( { model | content = (model.content ++
-                        [(Message model.username model.idYou model.newMessageText)])
+                    ( { model | content = (
+                        [(Message model.newMessageText model.idYou 0 (toUtcString model.time model.zone))] ++
+                        model.content
+                        )
                         , newMessageText = ""
                       }
                     , Cmd.none)
@@ -138,7 +140,7 @@ view model =
     , session = model.session
     , kids =
         [ Element.column [ width (px 600), height fill, spacing 10, padding 10, centerX, alignTop, explain Debug.todo ]
-          <| (List.map (viewMessages model) model.content) ++
+          <| List.reverse ((List.map (viewMessages model) model.content)) ++
               [ Element.row [ width (px 600), alignBottom, centerX]
                 [ Input.button
                    [ paddingXY 10 15
@@ -185,8 +187,8 @@ createButtonRight msg caption =
 viewMessages : Model -> Message -> Element Msg
 viewMessages model message =
     el [ padding 10, width (fill |> maximum 255), Border.width 2, Border.rounded 20,
-         (getPosition message.userId model.idYou), Font.center
-       ] (text message.message)
+         (getPosition message.authorId model.idYou), Font.center
+       ] (text message.body)
 
 
 
@@ -204,11 +206,46 @@ sendMessage model =
         False ->
             case model.session of
                 Session.LoggedIn _ userInfo ->
-                    Http.send HandleMessageSent (Api.postMessage userInfo (PostMessage 0 model.username model.newMessageText) model.idFriend)
+                    Http.send HandleMessageSent
+                        ( Api.postMessage
+                          userInfo
+                          (PostMessage 0 model.idYou (toUtcString model.time model.zone) model.newMessageText)
+                          model.idFriend
+                        )
                 Session.Guest _ ->
                     Cmd.none
         True ->
             Cmd.none
+
+
+toUtcString : Time.Posix -> Time.Zone -> String
+toUtcString time zone =
+    String.fromInt (Time.toYear zone time)
+    ++ "-" ++
+    (case (Time.toMonth zone time) of
+        Time.Jan -> "01"
+        Time.Feb -> "02"
+        Time.Mar -> "03"
+        Time.Apr -> "04"
+        Time.May -> "05"
+        Time.Jun -> "06"
+        Time.Jul -> "07"
+        Time.Aug -> "08"
+        Time.Sep -> "09"
+        Time.Oct -> "10"
+        Time.Nov -> "11"
+        Time.Dec -> "12"
+    )
+    ++ "-" ++
+    String.fromInt (Time.toDay zone time)
+    ++ "T" ++
+    String.fromInt (Time.toHour zone time)
+    ++ ":" ++
+    String.fromInt (Time.toMinute zone time)
+    ++ ":" ++
+    String.fromInt (Time.toSecond zone time)
+    ++ "Z"
+
 
 blue =
     Element.rgb 0.4 0.4 0.8
