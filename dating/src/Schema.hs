@@ -41,14 +41,14 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
     deriving Show Read Eq Generic
 
   Conversation json sql=conversations
-    members [Text]
+    memberIds [UserId]
     deriving Show Read Eq Generic
 
   Message json sql=messages
     conversationId ConversationId
-    author         UserUsername
+    authorId       UserId
     timeStamp      UTCTime
-    content        Text
+    body           Text
     deriving Show Read Eq Generic
 |]
 

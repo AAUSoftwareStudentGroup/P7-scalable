@@ -26,15 +26,15 @@ import           Data.ByteString                  (ByteString)
 import           Data.Map                         (Map, fromList)
 import qualified Data.Map                         as Map
 import           Data.Text                        (Text)
-import           Database                         (Conversation, Credentials,
-                                                   PGInfo, RedisInfo,
+import           Database                         (Credentials, PGInfo,
+                                                   RecentMessage, RedisInfo,
                                                    createMessagePG,
+                                                   userId,
                                                    createUserPG,
                                                    createUserRedis,
                                                    fetchAllUsersPG,
-                                                   fetchAuthTokenByCredentialsPG,
-                                                   fetchConversationsPG,
                                                    fetchMessagesBetweenPG,
+                                                   fetchRecentMessagesListPG,
                                                    fetchPostgresConnection,
                                                    fetchRedisConnection,
                                                    fetchUserByCredentialsPG,
@@ -47,18 +47,12 @@ import           Web.Cookie                       (parseCookies)
 
 
 -- | The API.
-type DatingAPI = AuthAPI :<|> UserAPI :<|> MessageAPI
-
-type UserAPI =
-       "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] User
-  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [User]
+type DatingAPI = "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] (Entity User)
+  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] (Entity User)
+  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [(Entity User)]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
-
-type AuthAPI = "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] (Entity User)
-
-type MessageAPI =
-       "messages" :> AuthProtect "cookie-auth" :> ReqBody '[JSON] Message :> Post '[JSON] ()
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [Conversation]
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> ReqBody '[JSON] Message :> Post '[JSON] ()
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [RecentMessage]
   :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] [Message]
 
 
@@ -89,16 +83,16 @@ createUserHandler :: PGInfo -> User -> Handler Int64
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 
 -- | Creates a new message between two users
-createMessageHandler :: PGInfo -> User -> Message -> Handler ()
-createMessageHandler pgInfo _ msg = liftIO $ createMessagePG pgInfo msg
+createMessageHandler :: PGInfo -> UserId -> Int64 -> Message -> Handler ()
+createMessageHandler pgInfo _ otherUserId msg = liftIO $ createMessagePG pgInfo otherUserId msg
 
 -- | Fetches all messages between two users.
-fetchMessagesBetweenHandler :: PGInfo -> User -> Int64 -> Handler [Message]
-fetchMessagesBetweenHandler pgInfo user otherUserId = liftIO $
-  fetchMessagesBetweenPG pgInfo user otherUserId
+fetchMessagesBetweenHandler :: PGInfo -> UserId -> Int64 -> Handler [Message]
+fetchMessagesBetweenHandler pgInfo ownUserId otherUserId = liftIO $
+  fetchMessagesBetweenPG pgInfo ownUserId otherUserId
 
-fetchConversationsHandler :: PGInfo -> User -> Handler [Conversation]
-fetchConversationsHandler pgInfo user = liftIO $ fetchConversationsPG pgInfo user
+fetchRecentMessagesHandler :: PGInfo -> UserId -> Handler [RecentMessage]
+fetchRecentMessagesHandler pgInfo ownUserId = liftIO $ fetchRecentMessagesListPG pgInfo ownUserId
 
 
 -- | Returns an authToken when given correct credentials
@@ -135,15 +129,13 @@ type instance AuthServerData (AuthProtect "cookie-auth") = UserId
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: PGInfo -> RedisInfo -> Server DatingAPI
-datingServer pgInfo redisInfo = authHandlers :<|> userHandlers :<|> messageHandlers
-  where
-    authHandlers = loginHandler pgInfo
-    userHandlers = fetchUserHandler pgInfo redisInfo :<|>
-                   fetchAllUsersHandler pgInfo :<|>
-                   createUserHandler pgInfo
-    messageHandlers = createMessageHandler :<|>
-                      fetchConversationsHandler :<|>
-                      fetchMessagesBetweenHandler
+datingServer pgInfo redisInfo = loginHandler pgInfo
+                                 :<|> fetchUserHandler pgInfo redisInfo
+                                 :<|> fetchAllUsersHandler pgInfo
+                                 :<|> createUserHandler pgInfo
+                                 :<|> createMessageHandler pgInfo
+                                 :<|> fetchRecentMessagesHandler pgInfo
+                                 :<|> fetchMessagesBetweenHandler pgInfo
 
 -- | The context is sort of the state, being authenticated or not. Starts empty.
 datingServerContext :: PGInfo -> Context (AuthHandler Request UserId ': '[])
