@@ -1,7 +1,6 @@
 module Page.Chat exposing (Model, Msg(..), init, subscriptions, update, view)
 import Html exposing (Html)
-import Skeleton
-import Session as Session exposing (Session)
+import Session as Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import DatingApi as Api exposing (User, Gender(..), Message, PostMessage)
 import Http
@@ -133,12 +132,12 @@ subscriptions model =
 
 
 -- VIEW
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ Element.column [ width (px 600), height fill, spacing 10, padding 10, centerX, explain Debug.todo ]
+        [ Element.column [ width (px 600), height fill, spacing 10, padding 10, centerX, alignTop, explain Debug.todo ]
           <| (List.map (viewMessages model) model.content) ++
               [ Element.row [ width (px 600), alignBottom, centerX]
                 [ Input.button

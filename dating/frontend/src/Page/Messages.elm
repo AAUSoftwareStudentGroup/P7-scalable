@@ -1,8 +1,7 @@
 module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html)
-import Skeleton
-import Session exposing (Session)
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import DatingApi exposing (getMessages, Message)
 
@@ -68,11 +67,11 @@ subscriptions model =
 
 
 -- VIEW
-view : Model -> Skeleton.Details msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = [ column [width (px 600), padding 20, spacing 20, Border.width 2, centerX]
+    , kids = [ column [width (px 600), padding 20, spacing 20, Border.width 2, centerX, alignTop]
         <| (List.map viewMessage model.content)
     ]
     }

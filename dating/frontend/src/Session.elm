@@ -1,9 +1,10 @@
-port module Session exposing (Session(..), getNavKey, getUserId, getUsername, onChange, login, logout, createSessionFromLocalStorageValue)
+port module Session exposing (Session(..), Details, getNavKey, getUserId, getUsername, onChange, login, logout, createSessionFromLocalStorageValue)
 
 import Browser.Navigation as Nav
 import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
+import Element as Element exposing (Element)
 
 import DatingApi as Api exposing (User, UserInfo)
 
@@ -12,6 +13,14 @@ import DatingApi as Api exposing (User, UserInfo)
 type Session
     = LoggedIn Nav.Key UserInfo
     | Guest Nav.Key
+
+
+type alias Details msg =
+    { title : String
+    , session : Session
+    , kids : List (Element msg)
+    }
+
 
 empty : Nav.Key -> Session
 empty key = Guest key

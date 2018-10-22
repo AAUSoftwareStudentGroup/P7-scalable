@@ -63,7 +63,7 @@ footer =
 
 content : (a -> msg) -> List (Element a) -> Element msg
 content toMsg children =
-    Element.map toMsg (column contentStyle children)
+    Element.map toMsg (column (contentStyle ++ fillStyles) children)
 
 
 link : List (Attribute msg) -> String -> String -> Element msg

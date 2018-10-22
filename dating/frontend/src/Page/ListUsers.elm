@@ -16,8 +16,7 @@ import List exposing (concat)
 import Url
 
 import DatingApi as Api exposing (User)
-import Session exposing (Session)
-import Skeleton
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 
 
@@ -81,12 +80,12 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = "All users"
     , session = model.session
     , kids =
-        [ column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ]
+        [ column [ width (px 600), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ]
             (el
                 [ Region.heading 1
                 , centerX
