@@ -7,10 +7,11 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Http
-import Routing exposing (Route(..))
-import Session exposing (Session)
-import Skeleton
 import String
+
+import DatingApi as Api exposing (Gender(..), User)
+import Routing exposing (Route(..))
+import Session exposing (Session, Details)
 import UI.Elements as El
 import UI.Styles exposing (centeredFillStyle)
 
@@ -71,8 +72,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Session.onChange SessionChanged (Session.getNavKey model.session)
 
-
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.user.userUsername ++ "'s profile"
     , session = model.session

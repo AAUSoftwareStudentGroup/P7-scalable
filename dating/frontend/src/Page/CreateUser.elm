@@ -11,9 +11,10 @@ import Html exposing (Html)
 import String
 import Http
 
+import DatingApi as Api exposing (User, Gender(..))
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import Session exposing (Session)
-import Skeleton
 import UI.Elements as El
 import UI.Styles exposing (formInputStyle, formLabelStyle, acceptButtonStyle, centeredFillStyle)
 
@@ -121,8 +122,7 @@ createUserCmd user =
 
 -- VIEW
 
-
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session

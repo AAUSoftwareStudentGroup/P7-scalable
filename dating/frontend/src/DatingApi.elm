@@ -20,6 +20,7 @@ type alias User =
     , userAuthToken : String
     }
 
+
 type Gender
     = Male
     | Female
