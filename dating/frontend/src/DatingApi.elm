@@ -1,4 +1,4 @@
-port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), getUserById, getUsers, postUsers, postLogin)
+port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), emptyUser, genderToString, getUserById, getUsers, postUsers, postLogin)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -34,6 +34,20 @@ type alias Credentials =
     { username : String
     , password : String
     }
+
+emptyUser : User
+emptyUser =
+    User "" "" "" Other "" "" 0 "" ""
+
+genderToString : Gender -> String
+genderToString gender =
+    case gender of
+        Male ->
+            "Male"
+        Female ->
+            "Female"
+        Other ->
+            "Other"
 
 apiLocation : String
 apiLocation =

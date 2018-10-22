@@ -1,7 +1,7 @@
 module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
-import DatingApi as Api exposing (Gender(..), User)
+import DatingApi as Api exposing (Gender(..), User, emptyUser, genderToString)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -22,11 +22,6 @@ type alias Model =
     , id : Int
     , user : User
     }
-
-
-emptyUser : User
-emptyUser =
-    User "" "" "" Other "" "" 0 "" ""
 
 
 type Msg
@@ -97,19 +92,6 @@ view model =
                 ]
             ]
     }
-
-
-genderToString : Gender -> String
-genderToString gender =
-    case gender of
-        Male ->
-            "Male"
-
-        Female ->
-            "Female"
-
-        Other ->
-            "Other"
 
 
 sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
