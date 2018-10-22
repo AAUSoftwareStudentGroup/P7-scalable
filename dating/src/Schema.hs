@@ -14,6 +14,7 @@
 
 module Schema where
 
+import           Data.Int                      (Int64)
 import           Data.Text                     (Text)
 import           Data.Time.Calendar            (Day)
 import           Data.Time.Clock               (UTCTime)
@@ -40,16 +41,23 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
     UniqueAuthToken authToken
     deriving Show Read Eq Generic
 
+  Conversation json sql=conversations
+    userOneId UserId
+    userTwoId UserId
+    deriving Show Read Eq Generic
+
   Message json sql=messages
-    sender    UserId
-    receiver  UserId
-    timeStamp UTCTime
-    content   Text
+    conversationId ConversationId
+    authorId       UserId
+    timeStamp      UTCTime
+    body           Text
     deriving Show Read Eq Generic
 |]
 
 instance ElmType User
 instance ElmType Message
+instance ElmType Conversation
 
 deriving instance ElmType UserId
 deriving instance ElmType MessageId
+deriving instance ElmType ConversationId

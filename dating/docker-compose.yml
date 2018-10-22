@@ -4,6 +4,10 @@ services:
         image: postgres:9.6
         ports:
           - "5432:5432"
+        environment:
+          - POSTGRES_USER=datingdbuser
+          - POSTGRES_PASSWORD=datingdbpassword
+          - POSTGRES_DB=datingdb
     redis:
       image: redis:4.0
       ports:
