@@ -152,19 +152,17 @@ fetchUserByCredentialsPG pgInfo (Credentials {username = usr, password = psw}) =
 createConversationPG :: PGInfo -> Int64 -> Int64 -> IO ConversationId
 createConversationPG pgInfo ownUserId otherUserId = runAction pgInfo $ insert conversation
   where
-    members = toMembersList [ownUserId, otherUserId]
-    conversation = Conversation members
+    members = toMembersTuple ownUserId otherUserId
+    conversation = uncurry Conversation $ members
 
 fetchConversationByUserIdsPG :: PGInfo -> Int64 -> Int64 -> IO (Maybe (Entity Conversation))
 fetchConversationByUserIdsPG pgInfo user1 user2 = runAction pgInfo selectAction
   where
-    members = toMembersList [user1, user2]
+    membersTuple = toMembersTuple user1 user2
     selectAction = listToMaybe <$> (select . from $ (\conv -> do
-                                       where_ (conv ^. ConversationMemberIds ==. val members)
+                                       where_ (conv ^. ConversationUserOneId ==. val (fst membersTuple) &&.
+                                               conv ^. ConversationUserTwoId ==. val (snd membersTuple))
                                        return conv))
-
-toMembersList :: [Int64] -> [UserId]
-toMembersList = map toSqlKey . sort
 
 
 fetchRecentMessagesListPG :: PGInfo -> UserId -> IO [RecentMessage]
@@ -175,32 +173,32 @@ fetchRecentMessagesListPG pgInfo ownUserId = fmap toRecentMessage <$> runAction 
     toRecentMessage (convoWith, imLastAuthor, body, timeStamp) = RecentMessage (unSingle convoWith) (unSingle imLastAuthor) (unSingle body) (unSingle timeStamp)
 
     selectAction :: MonadIO m => ReaderT SqlBackend m [(Single Text, Single Bool, Single Text, Single UTCTime)]
-    selectAction = P.rawSql (T.pack stmt) (replicate 3 (PersistInt64 ownUserIdInt64))
-    stmt = "SELECT u.username convoWith, m.authorId = ? imLastAuthor, m.body, m.timeStamp" ++
-           "FROM conversations c JOIN" ++
-           "messages m" ++
-           "ON c.conversationId = m.conversationId" ++
-           "and ? = any (c.memberIds)" ++
-           "INNER JOIN (" ++
-           "  SELECT conversationId, MAX(timeStamp) maxtstamp" ++
+    selectAction = P.rawSql (T.pack stmt) (replicate 4 (PersistInt64 ownUserIdInt64))
+    stmt = "SELECT users.username convoWith, messages.author_id = ? im_last_author, messages.body, messages.time_stamp " ++
+           "FROM conversations JOIN " ++
+           "messages " ++
+           "ON conversations.id = messages.conversation_id " ++
+           "AND (? = conversations.user_one_id OR ? = conversations.user_two_id) " ++
+           "INNER JOIN ( " ++
+           "  SELECT conversation_id, MAX(time_stamp) maxtstamp " ++
            "  FROM messages" ++
-           "  GROUP BY conversationId" ++
-           ") temp" ++
-           "ON m.conversationId = temp.conversationId AND m.timeStamp = temp.maxtstamp" ++
-           "JOIN users u" ++
-           "ON u.userId != ? AND u.userId = ANY (c.memberIds);"
+           "  GROUP BY conversation_id " ++
+           ") temp " ++
+           "ON messages.conversation_id = temp.conversation_id AND messages.time_stamp = temp.maxtstamp " ++
+           "JOIN users " ++
+           "ON users.id != ? AND (users.id = conversations.user_one_id OR users.id = conversations.user_two_id);"
 
 
 fetchMessagesBetweenPG :: PGInfo -> UserId -> Int64 -> IO [Message]
-fetchMessagesBetweenPG pgInfo ownUserId otherUserId = fmap entityVal <$> runAction pgInfo selectAction
+fetchMessagesBetweenPG pgInfo ownUserId otherUserIdInt64 = fmap entityVal <$> runAction pgInfo selectAction
   where
     ownUserIdInt64 = fromSqlKey ownUserId
     selectAction :: MonadIO m => ReaderT SqlBackend m [(Entity Message)]
-    selectAction = P.rawSql (T.pack stmt) []
-    stmt = "SELECT ??" ++
-           "FROM conversations c JOIN messages m ON c.cid = m.convoid" ++
-           "WHERE ? = ANY (c.members) AND ? = ANY (c.members)" ++
-           "ORDER BY m.tstamp DESC;"
+    selectAction = P.rawSql (T.pack stmt) (PersistInt64 <$> sort [ownUserIdInt64, otherUserIdInt64])
+    stmt = "SELECT ?? " ++
+           "FROM conversations JOIN messages ON conversations.id = messages.conversation_id " ++
+           "WHERE ? = conversations.user_one_id AND ? = conversations.user_two_id " ++
+           "ORDER BY messages.time_stamp DESC; "
 
 getOther :: Text -> [Text] -> Text
 getOther self [] = self
@@ -209,6 +207,13 @@ getOther self (u1:u2:rest) = if self == u1 then u2 else u1
 
 userId :: Entity User -> Int64
 userId (Entity id _) = fromSqlKey id
+
+
+toMembersTuple :: Int64 -> Int64 -> (UserId, UserId)
+toMembersTuple userOneId userTwoId = if userOneId <= userTwoId then (userOneId', userTwoId') else (userTwoId', userOneId')
+  where
+    userOneId' = toSqlKey userOneId
+    userTwoId' = toSqlKey userTwoId
 
 -- Messages
 
