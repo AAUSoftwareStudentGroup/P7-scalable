@@ -1,4 +1,4 @@
-port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), Message, PostMessage, getUserById, getUsers, postUsers, postLogin, getMessages, postMessage)
+port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getMessages, postMessage)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -249,6 +249,29 @@ postMessage userInfo message userId =
             Http.jsonBody (encodeMessage <| message)
         , expect =
             Http.expectString
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+getMessagesFromId : UserInfo -> Int -> Http.Request (List (Message))
+getMessagesFromId userInfo id =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            [createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "messages"
+                , String.fromInt id
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson (Decode.list messageDecoder)
         , timeout =
             Nothing
         , withCredentials =

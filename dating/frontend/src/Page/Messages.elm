@@ -72,7 +72,7 @@ view : Model -> Skeleton.Details msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = [ column [width (px 600), padding 20, spacing 20, Border.width 2]
+    , kids = [ column [width (px 600), padding 20, spacing 20, Border.width 2, centerX]
         <| (List.map viewMessage model.content)
     ]
     }

@@ -32,7 +32,7 @@ view toMsg details =
           <|
             column [ width fill, height fill ] <|
                 [ viewHeader details
-                , Element.map toMsg <| column [ centerX, padding 30, Background.color white, height fill ] <| details.kids
+                , Element.map toMsg <| column [ centerX, padding 30, Background.color white, height fill, width fill ] <| details.kids
                 , viewFooter
                 ]
         ]
@@ -43,7 +43,7 @@ viewHeader : Details a -> Element msg
 viewHeader details =
     row
         [ padding 5
-        , width fill
+        , width (fill |> minimum 700)
         , Font.color white
         , Background.color red
         ]
@@ -70,7 +70,7 @@ accountLink session =
 viewFooter : Element msg
 viewFooter =
     row
-        [ width fill
+        [ width (fill |> minimum 700)
         , padding 5
         , Font.color white
         , alignBottom

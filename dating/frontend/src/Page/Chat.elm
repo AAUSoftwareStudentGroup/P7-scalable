@@ -12,6 +12,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Events as Events
 import String as String
+import Task as Task
+import Time as Time
 
 
 -- MODEL
@@ -23,6 +25,8 @@ type alias Model =
     , idFriend : Int
     , username : String
     , newMessageText: String
+    , zone : Time.Zone
+    , time : Time.Posix
     }
 
 emptyUser : User
@@ -38,7 +42,12 @@ init session idFriend =
     idFriend
     (Maybe.withDefault "" (Session.getUsername session))
     ""
-  , (Cmd.none))
+    Time.utc
+    (Time.millisToPosix 0)
+  , Cmd.batch [ Task.perform AdjustTimeZone Time.here
+              , Task.perform FetchMessages Time.now
+              ]
+  )
 
 
 
@@ -50,6 +59,9 @@ type Msg
     | DoNothing
     | HandleMessageSent (Result Http.Error (String.String))
     | SessionChanged Session
+    | FetchMessages Time.Posix
+    | HandleFetchedMessages (Result Http.Error (List Message))
+    | AdjustTimeZone Time.Zone
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,8 +81,11 @@ update msg model =
         HandleMessageSent result ->
             case result of
                 Ok responseString ->
-                    ({ model | content = (model.content ++ [(Message model.username model.idYou model.newMessageText)])
-                     , newMessageText = "" }, Cmd.none)
+                    ( { model | content = (model.content ++
+                        [(Message model.username model.idYou model.newMessageText)])
+                        , newMessageText = ""
+                      }
+                    , Cmd.none)
                 Err _ ->
                     (model , Cmd.none)
 
@@ -85,12 +100,34 @@ update msg model =
                     , Routing.replaceUrl key (Routing.routeToString ListUsers)
                     )
 
+        FetchMessages newTime ->
+            case (model.session) of
+                Session.Guest _ ->
+                    ( { model | time = newTime }, Cmd.none)
+                Session.LoggedIn _ userInfo ->
+                    ( { model | time = (Debug.log "current time: " newTime) }
+                    , Http.send HandleFetchedMessages (Api.getMessagesFromId userInfo model.idFriend)
+                    )
+
+        HandleFetchedMessages result ->
+            case result of
+                Ok messages ->
+                    ( { model | content = messages }, Cmd.none)
+                Err _ ->
+                    (model, Cmd.none)
+
+        AdjustTimeZone newZone ->
+            ( { model | zone = newZone }, Cmd.none )
+
 
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Session.onChange SessionChanged (Session.getNavKey model.session)
+    Sub.batch
+        [ Session.onChange SessionChanged (Session.getNavKey model.session)
+        , Time.every 3000 FetchMessages
+        ]
 
 
 
@@ -101,7 +138,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ Element.column [ width (px 600), height fill, spacing 10, padding 10, explain Debug.todo ]
+        [ Element.column [ width (px 600), height fill, spacing 10, padding 10, centerX, explain Debug.todo ]
           <| (List.map (viewMessages model) model.content) ++
               [ Element.row [ width (px 600), alignBottom, centerX]
                 [ Input.button
