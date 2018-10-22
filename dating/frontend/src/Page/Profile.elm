@@ -7,7 +7,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Http
-
 import Routing exposing (Route(..))
 import Session exposing (Session)
 import Skeleton
@@ -79,8 +78,8 @@ view model =
     , session = model.session
     , kids =
         El.pageContent (model.user.userUsername ++ "'s profile") <|
-            [ Element.row centeredFillStyle
-                [ Element.column [ width fill, spacing 36, padding 10 ]
+            [ Element.row centeredFillStyle <|
+                [ El.formColumn
                     [ El.textProperty "Username" model.user.userUsername
                     , El.textProperty "Email" model.user.userEmail
                     , El.textProperty "Gender" (genderToString model.user.userGender)
@@ -88,7 +87,7 @@ view model =
                     , El.textProperty "Town" model.user.userTown
                     , El.paragraphProperty "Description" model.user.userProfileText
                     ]
-                , El.buttonRight (Routing.routeToString <| Chat model.user.userId) "chat"
+                , El.linkButtonRight (Routing.routeToString <| Chat model.user.userId) "chat"
                 ]
             ]
     }

@@ -58,7 +58,7 @@ footerElementStyle =
 
 mainContentStyle =
     [ Region.mainContent
-    , spacingXY 0 64
+    , spacingXY 0 48
     , paddingXY 0 64
     , width (px 600)
     , centerX
@@ -74,6 +74,21 @@ contentHeadingStyle =
     , Border.color colorBlack
     ]
 
+formColumnStyle =
+    [ width fill
+    , spacing 36
+    , padding 10
+    ]
+
+formInputStyle : Element msg -> List (Attribute msg)
+formInputStyle belowElement =
+    [ Element.below belowElement
+    , spacing 12
+    ]
+
+formLabelStyle =
+    [ Font.size 14
+    ]
 
 propertyStyle =
     [ spacing 12
@@ -96,15 +111,28 @@ centeredFillStyle =
 
 buttonStyle =
     [ paddingXY 35 15
-    , Background.color primaryColorL
     , Border.rounded 4
     , Border.width 1
     , Border.solid
     , fonts
     , Font.size 14
     , Font.semiBold
-    , Font.color secondaryColor
+    , Font.color colorWhite
     , mouseOver [ Font.color secondaryColorD ]
+    ]
+
+
+acceptButtonStyle =
+    [ Background.color acceptColor] ++ buttonStyle
+
+cancelButtonStyle =
+    [ Background.color cancelColor] ++ buttonStyle
+
+warningStyle =
+    [ Font.color cancelColor
+    , Font.size 14
+    , alignRight
+    , moveDown 6
     ]
 
 linkStyle =
@@ -148,6 +176,14 @@ colorWhite =
 
 primaryColor =
     rgb255 239 83 80
+
+
+acceptColor =
+    rgb255 76 175 80
+
+
+cancelColor =
+    rgb255 211 60 47
 
 
 primaryColorL =

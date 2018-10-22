@@ -1,6 +1,7 @@
 module UI.Elements exposing (..)
 
-import Element exposing (Attribute, Element, column, el, layout, row)
+import Element exposing (Attribute, Element, el, column, row)
+import Element.Input as Input exposing (Placeholder, Label)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -14,7 +15,7 @@ import UI.Styles as Styles exposing (..)
 
 site : (a -> msg) -> List (Element a) -> Session -> List (Html msg)
 site toMsg children session =
-    [ layout siteStyle <|
+    [ Element.layout siteStyle <|
         column fillStyle <|
             [ header session
             , content toMsg children
@@ -70,6 +71,20 @@ pageContent : String -> List (Element msg) -> List (Element msg)
 pageContent heading contentElements =
     el contentHeadingStyle (Element.text heading) :: contentElements
 
+formColumn : List (Element msg) -> Element msg
+formColumn children =
+    column formColumnStyle children
+
+placeholder : String -> Maybe (Placeholder msg)
+placeholder caption =
+    if caption == "" then
+        Nothing
+    else
+        Just (Input.placeholder [] (Element.text caption))
+
+formLabel : String -> Label msg
+formLabel caption =
+    Input.labelAbove formLabelStyle (Element.text caption)
 
 textProperty : String -> String -> Element msg
 textProperty labelText propertyText =
@@ -87,16 +102,41 @@ paragraphProperty labelText propertyText =
             [ Element.text propertyText ]
         ]
 
-buttonRight url caption =
-    button [ right ] url caption
+linkButtonRight url caption =
+    linkButton [ right ] url caption
 
-buttonLeft url caption =
-    button [ right ] url caption
+linkButtonLeft url caption =
+    linkButton [ right ] url caption
 
-button attributes url caption =
+linkButton attributes url caption =
     link (buttonStyle ++ attributes) url (String.toUpper caption)
 
 
+messageButtonRight msg caption =
+    messageButton [ right ] msg caption
+
+messageButtonLeft msg caption =
+    messageButton [ right ] msg caption
+
+messaageButtonCenter msg caption =
+    messageButton centeredFillStyle msg caption
+
+messageButton attributes msg caption =
+    Input.button (buttonStyle ++ attributes)
+    { onPress = Just msg
+    , label = Element.text (String.toUpper caption)
+    }
+
+warning : String -> Element msg
+warning caption =
+    el warningStyle (Element.text caption)
+
+conditional : Element msg -> Bool -> Element msg
+conditional element shouldShow =
+        if shouldShow then
+            element
+        else
+            Element.none
 
 link : List (Attribute msg) -> String -> String -> Element msg
 link styles url label =
