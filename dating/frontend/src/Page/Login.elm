@@ -49,7 +49,6 @@ init session =
 type Msg
     = TextChanged Model
     | LoginClicked
-    | LogoutClicked
     | HandleUserLogin (Result Http.Error User)
     | SessionChanged Session
 
@@ -62,9 +61,6 @@ update msg model =
 
         LoginClicked ->
             ( model, sendLogin (Credentials model.username model.password) )
-
-        LogoutClicked ->
-            ( model, Session.logout )
 
         HandleUserLogin result ->
             case result of
@@ -144,7 +140,6 @@ viewContent model =
                 , label = text "Not yet a user? Click here to sign up."
                 }
             , el [] (text (responseToString model.response))
-            , el [Events.onClick LogoutClicked] (text "Log out!")
             ]
 
 

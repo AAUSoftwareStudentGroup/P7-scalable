@@ -2,6 +2,7 @@ module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
 import Element exposing (..)
+import Element.Events as Events
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -31,6 +32,7 @@ emptyUser =
 
 type Msg
     = HandleGetUser (Result Http.Error (User))
+    | LogoutClicked
     | SessionChanged Session
 
 
@@ -51,6 +53,9 @@ update msg model =
                     ( {model | user = fetchedUser }, Cmd.none)
                 Err errResponse ->
                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }, Cmd.none )
+
+        LogoutClicked ->
+            ( model, Session.logout )
 
         SessionChanged session ->
             case session of
@@ -102,6 +107,7 @@ view model =
                 createButtonRight (Routing.routeToString <| (Chat model.user.userId)) "chat"
             ,   createButtonRight (Routing.routeToString <| ListUsers) "listUsers"
             ]
+            , el [Events.onClick LogoutClicked] (text "Logout")
             ]
         ]
     ]}
