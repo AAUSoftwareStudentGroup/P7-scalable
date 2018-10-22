@@ -1,8 +1,7 @@
 module Page.Messages exposing (Content(..), Messages, Model, Msg(..), blue, init, toText, update, view, viewContent, subscriptions)
 
 import Html exposing (Html)
-import Skeleton
-import Session exposing (Session)
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 
 import Element exposing (..)
@@ -69,7 +68,7 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Skeleton.Details msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session

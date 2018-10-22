@@ -12,9 +12,8 @@ import Http
 import String
 
 import DatingApi as Api exposing (Gender(..), User)
-import Session exposing (Session)
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
-import Skeleton
 
 
 
@@ -74,7 +73,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Session.onChange SessionChanged (Session.getNavKey model.session)
 
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.user.userUsername ++ "'s profile"
     , session = model.session
