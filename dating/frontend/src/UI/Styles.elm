@@ -1,4 +1,4 @@
-module UI.Styles exposing (colorBlack, colorWhite, contentStyle, fillStyles, fonts, footerElementStyle, footerStyles, headerLogoStyles, headerNavLinkStyles, headerNavStyles, headerStyles, linkStyles, primaryColor, primaryColorD, primaryColorL, secondaryColor, secondaryColorD, secondaryColorL, siteStyles)
+module UI.Styles exposing (..)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -8,27 +8,27 @@ import Element.Font as Font
 import Element.Region as Region
 
 
-siteStyles =
+siteStyle =
     [ spacing 0
     , centerX
     , fonts
     ]
 
 
-headerStyles =
+headerStyle =
     [ padding 5
     , width fill
     , Background.color primaryColor
     ]
 
 
-headerLogoStyles =
+headerLogoStyle =
     [ padding 24
     , Font.size 36
     ]
 
 
-headerNavStyles =
+headerNavStyle =
     [ Region.navigation
     , alignRight
     , spacing 24
@@ -36,12 +36,12 @@ headerNavStyles =
     ]
 
 
-headerNavLinkStyles =
+headerNavLinkStyle =
     [ padding 24
     ]
 
 
-footerStyles =
+footerStyle =
     [ Region.footer
     , width fill
     , padding 5
@@ -56,20 +56,63 @@ footerElementStyle =
     ]
 
 
-contentStyle =
+mainContentStyle =
     [ Region.mainContent
+    , spacingXY 0 64
+    , paddingXY 0 64
+    , width (px 600)
     , centerX
-    , padding 30
     , Background.color colorWhite
+    , height shrink
     ]
 
 
-linkStyles =
+contentHeadingStyle =
+    [ Region.heading 1
+    , centerX
+    , Font.size 36
+    , Border.color colorBlack
+    ]
+
+
+propertyStyle =
+    [ spacing 12
+    ]
+
+
+propertyLabelStyle =
+    []
+
+
+propertyTextStyle =
+    []
+
+centeredFillStyle =
+    [ width fill
+    , height fill
+    , centerY
+    , centerX
+    ]
+
+buttonStyle =
+    [ paddingXY 35 15
+    , Background.color primaryColorL
+    , Border.rounded 4
+    , Border.width 1
+    , Border.solid
+    , fonts
+    , Font.size 14
+    , Font.semiBold
+    , Font.color secondaryColor
+    , mouseOver [ Font.color secondaryColorD ]
+    ]
+
+linkStyle =
     [ Font.color colorWhite
     ]
 
 
-fillStyles =
+fillStyle =
     [ width fill
     , height fill
     ]
@@ -87,6 +130,12 @@ fonts =
         , Font.typeface "Helvetica Neue"
         , Font.sansSerif
         ]
+
+right =
+    alignRight
+
+left =
+    alignLeft
 
 
 colorBlack =

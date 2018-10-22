@@ -1,4 +1,4 @@
-module UI.Elements exposing (content, footer, header, headerLogo, headerNav, headerNavLinks, link, site)
+module UI.Elements exposing (..)
 
 import Element exposing (Attribute, Element, column, el, layout, row)
 import Element.Background as Background
@@ -14,8 +14,8 @@ import UI.Styles as Styles exposing (..)
 
 site : (a -> msg) -> List (Element a) -> Session -> List (Html msg)
 site toMsg children session =
-    [ layout siteStyles <|
-        column fillStyles <|
+    [ layout siteStyle <|
+        column fillStyle <|
             [ header session
             , content toMsg children
             , footer
@@ -25,7 +25,7 @@ site toMsg children session =
 
 header : Session -> Element msg
 header session =
-    row headerStyles
+    row headerStyle
         [ headerLogo
         , headerNav session
         ]
@@ -33,39 +33,71 @@ header session =
 
 headerLogo : Element msg
 headerLogo =
-    link headerLogoStyles (Routing.routeToString Home) "Dating"
+    link headerLogoStyle (Routing.routeToString Home) "Dating"
 
 
 headerNav : Session -> Element msg
 headerNav session =
-    row headerNavStyles (headerNavLinks session)
+    row headerNavStyle (headerNavLinks session)
 
 
 headerNavLinks : Session -> List (Element msg)
 headerNavLinks session =
     case session of
         Session.LoggedIn _ userInfo ->
-            [ link headerNavLinkStyles (Routing.routeToString Messages) "Messages"
-            , link headerNavLinkStyles (Routing.routeToString ListUsers) "All users"
-            , link headerNavLinkStyles (Routing.routeToString (Profile userInfo.userId)) "My profile"
+            [ link headerNavLinkStyle (Routing.routeToString Messages) "Messages"
+            , link headerNavLinkStyle (Routing.routeToString ListUsers) "All users"
+            , link headerNavLinkStyle (Routing.routeToString (Profile userInfo.userId)) "My profile"
             ]
 
         Session.Guest _ ->
-            [ link headerNavLinkStyles (Routing.routeToString CreateUser) "Sign up"
-            , link headerNavLinkStyles (Routing.routeToString Login) "Sign in"
+            [ link headerNavLinkStyle (Routing.routeToString CreateUser) "Sign up"
+            , link headerNavLinkStyle (Routing.routeToString Login) "Sign in"
             ]
 
 
 footer : Element msg
 footer =
-    row footerStyles [ el footerElementStyle (Element.text "A Dating Service that Rocks! © 2018") ]
+    row footerStyle [ el footerElementStyle (Element.text "A Dating Service that Rocks! © 2018") ]
 
 
 content : (a -> msg) -> List (Element a) -> Element msg
 content toMsg children =
-    Element.map toMsg (column contentStyle children)
+    Element.map toMsg (column mainContentStyle children)
+
+
+pageContent : String -> List (Element msg) -> List (Element msg)
+pageContent heading contentElements =
+    el contentHeadingStyle (Element.text heading) :: contentElements
+
+
+textProperty : String -> String -> Element msg
+textProperty labelText propertyText =
+    column propertyStyle
+        [ el propertyLabelStyle (Element.text labelText)
+        , el propertyTextStyle (Element.text propertyText)
+        ]
+
+
+paragraphProperty : String -> String -> Element msg
+paragraphProperty labelText propertyText =
+    column propertyStyle
+        [ el propertyLabelStyle (Element.text labelText)
+        , Element.paragraph propertyTextStyle
+            [ Element.text propertyText ]
+        ]
+
+buttonRight url caption =
+    button [ right ] url caption
+
+buttonLeft url caption =
+    button [ right ] url caption
+
+button attributes url caption =
+    link (buttonStyle ++ attributes) url (String.toUpper caption)
+
 
 
 link : List (Attribute msg) -> String -> String -> Element msg
 link styles url label =
-    Element.link (linkStyles ++ styles) { url = url, label = Element.text label }
+    Element.link (linkStyle ++ styles) { url = url, label = Element.text label }
