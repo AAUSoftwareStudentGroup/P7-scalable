@@ -1,10 +1,12 @@
-module Routing exposing (Route(..), fromUrl, href, replaceUrl, pushUrl, routeToString)
+module Routing exposing (Route(..), fromUrl, href, pushUrl, replaceUrl, routeToString)
 
-import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string, int)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), Parser, int, oneOf, s, string)
+
+
 
 -- ROUTING
 
@@ -17,6 +19,7 @@ type Route
     | Messages
     | Profile Int
     | Chat Int
+    | Survey
 
 
 parser : Parser (Route -> a) a
@@ -25,10 +28,11 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map Login (s "login")
         , Parser.map CreateUser (s "create-user")
-        , Parser.map ListUsers (s "list-users")  
+        , Parser.map ListUsers (s "list-users")
         , Parser.map Messages (s "messages")
         , Parser.map Profile (s "user" </> int)
         , Parser.map Chat (s "chat" </> int)
+        , Parser.map Survey (s "survey")
         ]
 
 
@@ -69,15 +73,16 @@ routeToString page =
             case page of
                 Home ->
                     []
+
                 CreateUser ->
-                    ["create-user"]
+                    [ "create-user" ]
 
                 Login ->
                     [ "login" ]
 
                 ListUsers ->
                     [ "list-users" ]
-                
+
                 Messages ->
                     [ "messages" ]
 
@@ -87,5 +92,7 @@ routeToString page =
                 Chat id ->
                     [ "chat", String.fromInt id ]
 
+                Survey ->
+                    [ "survey" ]
     in
     "?path=/" ++ String.join "/" pieces

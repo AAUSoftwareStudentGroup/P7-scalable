@@ -1,23 +1,24 @@
-module Main exposing (..)
+module Main exposing (Model, Msg(..), Page(..), exit, init, main, route, stepCreateUser, stepListUsers, stepLogin, stepMessages, stepNotFound, stepProfile, stepUrl, subscriptions, update, view)
 
 import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Html exposing (Html)
-import Url
-import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
-import Url.Parser.Query as Query
-import Json.Encode as Encode
 import Json.Decode as Decode
-
+import Json.Encode as Encode
 import Page.CreateUser as CreateUser
 import Page.ListUsers as ListUsers
+import Page.Login as Login exposing (subscriptions)
 import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
-import Page.Login as Login exposing (subscriptions)
-import Skeleton
+import Page.Survey as Survey
 import Session exposing (Session)
+import Skeleton
+import Url
+import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
+import Url.Parser.Query as Query
+
 
 
 -- MAIN
@@ -50,6 +51,7 @@ type Page
     | ListUsers ListUsers.Model
     | Messages Messages.Model
     | Profile Profile.Model
+    | Survey Survey.Model
 
 
 init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -82,10 +84,15 @@ view model =
             Skeleton.view ListUsersMsg (ListUsers.view listUsersModel)
 
         Profile profileModel ->
-          Skeleton.view ProfileMsg (Profile.view profileModel)
+            Skeleton.view ProfileMsg (Profile.view profileModel)
+
+        Survey surveyModel ->
+            Skeleton.view SurveyMsg (Survey.view surveyModel)
+
 
 
 -- SUBSCRIPTIONS
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -108,20 +115,26 @@ subscriptions model =
         Profile profileModel ->
             Sub.map ProfileMsg (Profile.subscriptions profileModel)
 
+        Survey surveyModel ->
+            Sub.map SurveyMsg (Survey.subscriptions surveyModel)
+
+
 
 -- UPDATE
 
 
 type Msg
-  = NoOp
-  | LinkClicked Browser.UrlRequest
-  | UrlChanged Url.Url
-  | NotFoundMsg NotFound.Msg
-  | CreateUserMsg CreateUser.Msg
-  | ListUsersMsg ListUsers.Msg
-  | LoginMsg Login.Msg
-  | MessagesMsg Messages.Msg
-  | ProfileMsg Profile.Msg
+    = NoOp
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
+    | NotFoundMsg NotFound.Msg
+    | CreateUserMsg CreateUser.Msg
+    | ListUsersMsg ListUsers.Msg
+    | LoginMsg Login.Msg
+    | MessagesMsg Messages.Msg
+    | ProfileMsg Profile.Msg
+    | SurveyMsg Survey.Msg
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -169,20 +182,33 @@ update message model =
             case model.page of
                 ListUsers listUsersModel ->
                     stepListUsers model (ListUsers.update msg listUsersModel)
-                _ -> ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         ProfileMsg msg ->
             case model.page of
                 Profile profileModel ->
                     stepProfile model (Profile.update msg profileModel)
-                _ -> ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         MessagesMsg msg ->
             case model.page of
                 Messages messagesModel ->
                     stepMessages model (Messages.update msg messagesModel)
-                _ -> ( model, Cmd.none )
 
+                _ ->
+                    ( model, Cmd.none )
+
+        SurveyMsg msg ->
+            case model.page of
+                Survey surveyModel ->
+                    stepSurvey model (Survey.update msg surveyModel)
+
+                _ ->
+                    ( model, Cmd.none )
 
 
 stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )
@@ -224,8 +250,16 @@ stepMessages model ( messagesModel, cmds ) =
     )
 
 
+stepSurvey : Model -> ( Survey.Model, Cmd Survey.Msg ) -> ( Model, Cmd Msg )
+stepSurvey model ( surveyModel, cmds ) =
+    ( { model | page = Survey surveyModel }
+    , Cmd.map SurveyMsg cmds
+    )
+
+
 
 -- EXIT
+
 
 exit : Model -> Session
 exit model =
@@ -248,6 +282,9 @@ exit model =
         Messages m ->
             m.session
 
+        Survey m ->
+            m.session
+
 
 stepUrl : Url.Url -> Model -> ( Model, Cmd Msg )
 stepUrl url model =
@@ -256,25 +293,26 @@ stepUrl url model =
             exit model
 
         queryToPathUrl =
-            { url | path = Maybe.withDefault "" url.query, query = Nothing}
+            { url | path = Maybe.withDefault "" url.query, query = Nothing }
 
         parser =
-            s "path=" </>
-            oneOf
-                [ route (s "Main.elm")
-                    (stepLogin model (Login.init session))
-                , route (s "create-user")
-                    (stepCreateUser model (CreateUser.init session))
-                , route (s "login")
-                    (stepLogin model (Login.init session))
-                , route (s "list-users")
-                    ( stepListUsers model (ListUsers.init session))
-                , route (s "user" </> Parser.int)
-                    (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
-                , route (s "messages")
-                    (stepMessages model (Messages.init session))
-                ]
-
+            s "path="
+                </> oneOf
+                        [ route (s "Main.elm")
+                            (stepLogin model (Login.init session))
+                        , route (s "create-user")
+                            (stepCreateUser model (CreateUser.init session))
+                        , route (s "login")
+                            (stepLogin model (Login.init session))
+                        , route (s "list-users")
+                            (stepListUsers model (ListUsers.init session))
+                        , route (s "user" </> Parser.int)
+                            (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
+                        , route (s "messages")
+                            (stepMessages model (Messages.init session))
+                        , route (s "survey")
+                            (stepSurvey model (Survey.init session))
+                        ]
     in
     case Parser.parse parser (Debug.log "queryToPathUrl:" queryToPathUrl) of
         Just answer ->
