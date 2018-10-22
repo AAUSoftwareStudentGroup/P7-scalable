@@ -256,7 +256,7 @@ stepUrl url model =
             exit model
 
         queryToPathUrl =
-            { url | path = Maybe.withDefault "" url.query, query = Nothing}
+            { url | path = Maybe.withDefault ("path="++url.path) url.query, query = Nothing}
 
         parser =
             s "path=" </>
@@ -276,14 +276,14 @@ stepUrl url model =
                 ]
 
     in
-    case Parser.parse parser (Debug.log "queryToPathUrl:" queryToPathUrl) of
-        Just answer ->
-            answer
+        case Parser.parse parser (Debug.log "queryToPathUrl:" queryToPathUrl) of
+            Just answer ->
+                answer
 
-        Nothing ->
-            ( { model | page = NotFound (NotFound.createModel session) }
-            , Cmd.none
-            )
+            Nothing ->
+                ( { model | page = NotFound (NotFound.createModel session) }
+                , Cmd.none
+                )
 
 route : Parser a b -> a -> Parser (b -> c) c
 route parser handler =

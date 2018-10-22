@@ -88,4 +88,4 @@ routeToString page =
                     [ "chat", String.fromInt id ]
 
     in
-    "?path=/" ++ String.join "/" pieces
+    "/" ++ String.join "/" pieces
