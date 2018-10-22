@@ -14,6 +14,7 @@
 
 module Schema where
 
+import           Data.Int                      (Int64)
 import           Data.Text                     (Text)
 import           Data.Time.Calendar            (Day)
 import           Data.Time.Clock               (UTCTime)
@@ -41,7 +42,8 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
     deriving Show Read Eq Generic
 
   Conversation json sql=conversations
-    memberIds [UserId]
+    userOneId UserId
+    userTwoId UserId
     deriving Show Read Eq Generic
 
   Message json sql=messages
