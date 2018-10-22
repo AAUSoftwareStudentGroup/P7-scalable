@@ -95,4 +95,4 @@ routeToString page =
                 Survey ->
                     [ "survey" ]
     in
-    "?path=/" ++ String.join "/" pieces
+    "/" ++ String.join "/" pieces

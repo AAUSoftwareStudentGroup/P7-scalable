@@ -4,8 +4,7 @@ import Element exposing (..)
 import Element.Font as Font
 import Html exposing (Html)
 import Routing exposing (..)
-import Session exposing (Session)
-import Skeleton
+import Session exposing (Session, Details)
 
 
 
@@ -78,7 +77,7 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session

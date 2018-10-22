@@ -15,6 +15,7 @@ import Page.Profile as Profile
 import Page.Survey as Survey
 import Session exposing (Session)
 import Skeleton
+import UI.Elements as El
 import Url
 import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
 import Url.Parser.Query as Query
@@ -34,6 +35,8 @@ main =
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
         }
+
+
 
 -- MODEL
 
@@ -65,29 +68,37 @@ init maybeValue url key =
 
 -- VIEW
 
+
 view : Model -> Browser.Document Msg
 view model =
     case model.page of
         NotFound notFoundModel ->
-            Skeleton.view NotFoundMsg (NotFound.view notFoundModel)
+            viewContent NotFoundMsg (NotFound.view notFoundModel)
 
         CreateUser createUserModel ->
-            Skeleton.view CreateUserMsg (CreateUser.view createUserModel)
+            viewContent CreateUserMsg (CreateUser.view createUserModel)
 
         Login loginModel ->
-            Skeleton.view LoginMsg (Login.view loginModel)
+            viewContent LoginMsg (Login.view loginModel)
 
         Messages messagesModel ->
-            Skeleton.view MessagesMsg (Messages.view messagesModel)
+            viewContent MessagesMsg (Messages.view messagesModel)
 
         ListUsers listUsersModel ->
-            Skeleton.view ListUsersMsg (ListUsers.view listUsersModel)
+            viewContent ListUsersMsg (ListUsers.view listUsersModel)
 
         Profile profileModel ->
             Skeleton.view ProfileMsg (Profile.view profileModel)
 
         Survey surveyModel ->
             Skeleton.view SurveyMsg (Survey.view surveyModel)
+
+
+viewContent : (a -> msg) -> Session.Details a -> Browser.Document msg
+viewContent toMsg details =
+    { title = details.title
+    , body = El.site toMsg details.kids details.session
+    }
 
 
 
@@ -161,6 +172,7 @@ update message model =
             case model.page of
                 NotFound notFoundModel ->
                     stepNotFound model (NotFound.update msg notFoundModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -168,6 +180,7 @@ update message model =
             case model.page of
                 CreateUser createUserModel ->
                     stepCreateUser model (CreateUser.update msg createUserModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -175,6 +188,7 @@ update message model =
             case model.page of
                 Login loginModel ->
                     stepLogin model (Login.update msg loginModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -217,6 +231,7 @@ stepNotFound model ( notFoundModel, cmds ) =
     , Cmd.map NotFoundMsg cmds
     )
 
+
 stepCreateUser : Model -> ( CreateUser.Model, Cmd CreateUser.Msg ) -> ( Model, Cmd Msg )
 stepCreateUser model ( createUserModel, cmds ) =
     ( { model | page = CreateUser createUserModel }
@@ -232,16 +247,18 @@ stepLogin model ( loginModel, cmds ) =
 
 
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
-stepListUsers model (listUsersModel, cmds) =
-    ( { model | page = ListUsers listUsersModel}
+stepListUsers model ( listUsersModel, cmds ) =
+    ( { model | page = ListUsers listUsersModel }
     , Cmd.map ListUsersMsg cmds
     )
 
+
 stepProfile : Model -> ( Profile.Model, Cmd Profile.Msg ) -> ( Model, Cmd Msg )
-stepProfile model (profileModel, cmds) =
+stepProfile model ( profileModel, cmds ) =
     ( { model | page = Profile profileModel }
     , Cmd.map ProfileMsg cmds
     )
+
 
 stepMessages : Model -> ( Messages.Model, Cmd Messages.Msg ) -> ( Model, Cmd Msg )
 stepMessages model ( messagesModel, cmds ) =
@@ -293,7 +310,7 @@ stepUrl url model =
             exit model
 
         queryToPathUrl =
-            { url | path = Maybe.withDefault "" url.query, query = Nothing }
+            { url | path = Maybe.withDefault ("path=" ++ url.path) url.query, query = Nothing }
 
         parser =
             s "path="
@@ -322,6 +339,7 @@ stepUrl url model =
             ( { model | page = NotFound (NotFound.createModel session) }
             , Cmd.none
             )
+
 
 route : Parser a b -> a -> Parser (b -> c) c
 route parser handler =

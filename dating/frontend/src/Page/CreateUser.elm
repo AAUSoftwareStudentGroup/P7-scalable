@@ -10,8 +10,7 @@ import Html exposing (Html)
 import Http
 
 import DatingApi as Api exposing (User, Gender(..))
-import Skeleton
-import Session exposing (Session)
+import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 
 
@@ -111,7 +110,7 @@ pure model =
 
 -- VIEW
 
-view : Model -> Skeleton.Details Msg
+view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session

@@ -1,10 +1,10 @@
 #!/bin/bash
-echo "Monitoring files:"
-
+echo "Monitoring directories:"
+rm -rf elm-stuff
 monitored_files=""
 for f in "$@"
 do
-    if [ ! -f "$1" ] ; then
+    if [ ! -d "$1" ] ; then
         break
     fi
     echo $1
@@ -27,11 +27,15 @@ do
 	$cmd
 done
 
-while inotifywait -e close_write -e attrib $monitored_files
+# while inotifywait -e close_write -e attrib $monitored_files
+inotifywait -m -e close_write -e attrib -r $monitored_files | 
+while read -r path action file
 do
-    echo "Changes: "
-    for cmd in "$@"
-    do
-        $cmd
-    done
+    if [[ "$file" =~ .*elm$ ]]; then # Does the file end with .xml?
+        echo "$action: $path$file"
+        for cmd in "$@"
+        do
+            $cmd
+        done
+    fi
 done
