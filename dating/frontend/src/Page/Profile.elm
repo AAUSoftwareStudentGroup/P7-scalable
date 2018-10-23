@@ -103,7 +103,7 @@ view model =
                     ]
                 ]
             , Element.column [Element.alignTop] [
-                createButtonRight (Routing.routeToString <| (Chat model.user.userId)) "chat"
+                chatButton model.user.userId model.session
             ,   createButtonRight (Routing.routeToString <| ListUsers) "listUsers"
             ]
             , el [Events.onClick LogoutClicked] (text "Logout")
@@ -113,6 +113,17 @@ view model =
 
 
 
+chatButton : Int -> Session -> Element msg
+chatButton friendId session =
+    case Session.getUserId session of
+        Just userId ->
+            case userId == friendId of
+                False ->
+                    createButtonRight (Routing.routeToString <| (Chat friendId)) "chat"
+                True ->
+                    Element.none
+        Nothing ->
+            Element.none
 
 
 createButtonRight url caption =
