@@ -85,7 +85,7 @@ view model =
     { title = "All users"
     , session = model.session
     , kids =
-        [ column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ]
+        [ column [ width (px 600), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ]
             (el
                 [ Region.heading 1
                 , centerX

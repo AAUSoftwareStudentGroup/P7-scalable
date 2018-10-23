@@ -1,4 +1,4 @@
-port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), getUserById, getUsers, postUsers, postLogin)
+port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), ChatMessage, Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getRecentMessages, postMessage)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -6,7 +6,7 @@ import Json.Decode.Pipeline as Pipeline
 import Http
 import String
 import Url
-
+import Time as Time
 
 type alias User =
     { userEmail : String
@@ -29,11 +29,35 @@ type Gender
 type alias UserInfo =
     { userId : Int
     , authToken : String
+    , username : String
     }
 
 type alias Credentials =
     { username : String
     , password : String
+    }
+
+type alias ChatMessage =
+    { body : String
+    , authorId : Int
+    , conversationId : Int
+    , timeStamp : String
+    }
+
+type alias Message =
+    { body : String
+    , convoWith : String
+    , imLastAuthor : Bool
+    , timeStamp : String
+    }
+
+--type alias Message
+
+type alias PostMessage =
+    { convId : Int
+    , authorId : Int
+    , time : String
+    , message : String
     }
 
 apiLocation : String
@@ -73,6 +97,15 @@ encodeCredentials x =
         , ( "password", Encode.string x.password )
         ]
 
+encodeMessage : PostMessage -> Encode.Value
+encodeMessage x =
+    Encode.object
+        [ ( "conversationId", Encode.int x.convId )
+        , ( "authorId", Encode.int x.authorId )
+        , ( "timeStamp", Encode.string x.time)
+        , ( "body", Encode.string x.message )
+        ]
+
 userDecoder : Decoder User
 userDecoder =
     Decode.succeed User
@@ -85,6 +118,24 @@ userDecoder =
         |> Pipeline.required "id" Decode.int
         |> Pipeline.required "profileText" Decode.string
         |> Pipeline.required "authToken" Decode.string
+
+chatMessageDecoder : Decoder ChatMessage
+chatMessageDecoder =
+    Decode.succeed ChatMessage
+        |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "authorId" Decode.int
+        |> Pipeline.required "conversationId" Decode.int
+        |> Pipeline.required "timeStamp" Decode.string
+
+
+messageDecoder : Decoder Message
+messageDecoder =
+    Decode.succeed Message
+        |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "convoWith" Decode.string
+        |> Pipeline.required "imLastAuthor" Decode.bool
+        |> Pipeline.required "timeStamp" Decode.string
+
 
 credentialsDecoder : Decoder Credentials
 credentialsDecoder =
@@ -203,6 +254,98 @@ postLogin body =
         , withCredentials =
             False
         }
+
+postMessage : UserInfo -> PostMessage -> Int -> Http.Request (String.String)
+postMessage userInfo message userId =
+    Http.request
+        { method =
+            "POST"
+        , headers =
+            [createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "messages"
+                , userId |> String.fromInt |> Url.percentEncode
+                ]
+        , body =
+            Http.jsonBody (encodeMessage <| message)
+        , expect =
+            Http.expectString
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+getMessagesFromId : UserInfo -> Int -> Http.Request (List (ChatMessage))
+getMessagesFromId userInfo id =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            [createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "messages"
+                , String.fromInt id
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson (Decode.list chatMessageDecoder)
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+getRecentMessages : UserInfo -> Http.Request (List (Message))
+getRecentMessages userInfo =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            [createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "messages"
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson (Decode.list messageDecoder)
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+{-
+getConversation : UserInfo -> Int -> Int -> Http.Request (List Int)
+getConversation userInfo idYou idFriend =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            [createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "messages"
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson (Decode.list messageDecoder)
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+-}
 
 createAuthHeader : UserInfo -> Http.Header
 createAuthHeader userInfo =

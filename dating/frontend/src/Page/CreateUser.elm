@@ -120,7 +120,7 @@ view model =
 
 viewContent : String -> Model -> Element Msg
 viewContent title model =
-            Element.column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
+            Element.column [ width (px 700), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ]
                 -- , explain Debug.todo ]
                 [ el
                     [ Region.heading 1

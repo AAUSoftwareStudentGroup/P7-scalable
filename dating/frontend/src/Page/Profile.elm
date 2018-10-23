@@ -78,7 +78,7 @@ view model =
     { title = model.user.userUsername ++ "'s profile"
     , session = model.session
     , kids = [
-        Element.column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ] [
+        Element.column [ width (px 600), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ] [
         el  [ Region.heading 1
             , centerX
             , Font.size 36
