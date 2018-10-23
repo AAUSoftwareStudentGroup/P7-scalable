@@ -2,7 +2,7 @@ module Page.Chat exposing (Model, Msg(..), init, subscriptions, update, view)
 import Html exposing (Html)
 import Session as Session exposing (Session, Details)
 import Routing exposing (Route(..))
-import DatingApi as Api exposing (User, Gender(..), Message, PostMessage)
+import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
 import Http
 import Element exposing (..)
 import Element.Background as Background
@@ -19,7 +19,7 @@ import Time as Time
 type alias Model =
     { session : Session
     , title : String
-    , content : List Message
+    , content : List ChatMessage
     , idYou : Int
     , idFriend : Int
     , username : String
@@ -59,7 +59,7 @@ type Msg
     | HandleMessageSent (Result Http.Error (String.String))
     | SessionChanged Session
     | FetchMessages Time.Posix
-    | HandleFetchedMessages (Result Http.Error (List Message))
+    | HandleFetchedMessages (Result Http.Error (List ChatMessage))
     | AdjustTimeZone Time.Zone
 
 
@@ -81,7 +81,7 @@ update msg model =
             case (Debug.log "response: "result) of
                 Ok responseString ->
                     ( { model | content = (
-                        [(Message model.newMessageText model.idYou 0 (toUtcString model.time model.zone))] ++
+                        [(ChatMessage model.newMessageText model.idYou 0 (toUtcString model.time model.zone))] ++
                         model.content
                         )
                         , newMessageText = ""
@@ -139,7 +139,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ Element.column [ width (px 600), height fill, spacing 10, padding 10, centerX, alignTop, explain Debug.todo ]
+        [ Element.column [ width (px 600), height fill, spacing 10, padding 10, centerX, alignTop ]--, explain Debug.todo ]
           <| List.reverse ((List.map (viewMessages model) model.content)) ++
               [ Element.row [ width (px 600), alignBottom, centerX]
                 [ Input.button
@@ -184,7 +184,7 @@ createButtonRight msg caption =
         { onPress = Just msg, label = text (String.toUpper caption) }
 
 
-viewMessages : Model -> Message -> Element Msg
+viewMessages : Model -> ChatMessage -> Element Msg
 viewMessages model message =
     el [ padding 10, width (fill |> maximum 255), Border.width 2, Border.rounded 20,
          (getPosition message.authorId model.idYou), Font.center
@@ -209,7 +209,7 @@ sendMessage model =
                     Http.send HandleMessageSent
                         ( Api.postMessage
                           userInfo
-                          (PostMessage 0 model.idYou (toUtcString model.time model.zone) model.newMessageText)
+                          (Debug.log "message: "(PostMessage 0 model.idYou (toUtcString model.time model.zone) model.newMessageText))
                           model.idFriend
                         )
                 Session.Guest _ ->
@@ -237,13 +237,36 @@ toUtcString time zone =
         Time.Dec -> "12"
     )
     ++ "-" ++
-    String.fromInt (Time.toDay zone time)
+    (case (Time.toDay zone time) < 10 of
+        True ->
+            "0" ++ String.fromInt (Time.toDay zone time)
+        False ->
+            String.fromInt (Time.toDay zone time)
+    )
     ++ "T" ++
-    String.fromInt (Time.toHour zone time)
+
+    (case (Time.toHour zone time) < 10 of
+        True ->
+            "0" ++ String.fromInt (Time.toHour zone time)
+        False ->
+            String.fromInt (Time.toHour zone time)
+    )
     ++ ":" ++
-    String.fromInt (Time.toMinute zone time)
+
+    (case (Time.toMinute zone time) < 10 of
+        True ->
+            "0" ++ String.fromInt (Time.toMinute zone time)
+        False ->
+            String.fromInt (Time.toMinute zone time)
+    )
     ++ ":" ++
-    String.fromInt (Time.toSecond zone time)
+
+    (case (Time.toSecond zone time) < 10 of
+        True ->
+            "0" ++ String.fromInt (Time.toSecond zone time)
+        False ->
+            String.fromInt (Time.toSecond zone time)
+    )
     ++ "Z"
 
 

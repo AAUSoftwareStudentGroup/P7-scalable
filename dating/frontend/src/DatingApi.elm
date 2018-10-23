@@ -1,4 +1,4 @@
-port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getMessages, postMessage)
+port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), ChatMessage, Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getRecentMessages, postMessage)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -37,12 +37,21 @@ type alias Credentials =
     , password : String
     }
 
-type alias Message =
+type alias ChatMessage =
     { body : String
     , authorId : Int
     , conversationId : Int
     , timeStamp : String
     }
+
+type alias Message =
+    { body : String
+    , convoWith : String
+    , imLastAuthor : Bool
+    , timeStamp : String
+    }
+
+--type alias Message
 
 type alias PostMessage =
     { convId : Int
@@ -110,13 +119,23 @@ userDecoder =
         |> Pipeline.required "profileText" Decode.string
         |> Pipeline.required "authToken" Decode.string
 
-messageDecoder : Decoder Message
-messageDecoder =
-    Decode.succeed Message
+chatMessageDecoder : Decoder ChatMessage
+chatMessageDecoder =
+    Decode.succeed ChatMessage
         |> Pipeline.required "body" Decode.string
         |> Pipeline.required "authorId" Decode.int
         |> Pipeline.required "conversationId" Decode.int
         |> Pipeline.required "timeStamp" Decode.string
+
+
+messageDecoder : Decoder Message
+messageDecoder =
+    Decode.succeed Message
+        |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "convoWith" Decode.string
+        |> Pipeline.required "imLastAuthor" Decode.bool
+        |> Pipeline.required "timeStamp" Decode.string
+
 
 credentialsDecoder : Decoder Credentials
 credentialsDecoder =
@@ -259,7 +278,7 @@ postMessage userInfo message userId =
             False
         }
 
-getMessagesFromId : UserInfo -> Int -> Http.Request (List (Message))
+getMessagesFromId : UserInfo -> Int -> Http.Request (List (ChatMessage))
 getMessagesFromId userInfo id =
     Http.request
         { method =
@@ -275,15 +294,15 @@ getMessagesFromId userInfo id =
         , body =
             Http.emptyBody
         , expect =
-            Http.expectJson (Decode.list messageDecoder)
+            Http.expectJson (Decode.list chatMessageDecoder)
         , timeout =
             Nothing
         , withCredentials =
             False
         }
 
-getMessages : UserInfo -> Http.Request (List (Message))
-getMessages userInfo =
+getRecentMessages : UserInfo -> Http.Request (List (Message))
+getRecentMessages userInfo =
     Http.request
         { method =
             "GET"

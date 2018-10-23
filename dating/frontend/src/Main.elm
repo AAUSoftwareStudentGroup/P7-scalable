@@ -21,7 +21,7 @@ import Page.Login as Login
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
-import DatingApi as DatingApi exposing (Message, getMessages)
+import DatingApi as DatingApi exposing (Message, getRecentMessages)
 import UI.Elements as El
 
 -- MAIN
@@ -125,7 +125,8 @@ subscriptions model =
         Chat chatModel ->
             Sub.map ChatMsg (Chat.subscriptions chatModel)
 
-    , Time.every 1000 GetNumMessages ]
+    --, Time.every 1000 GetNumMessages
+    ]
 
 
 -- UPDATE
@@ -273,7 +274,7 @@ sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd ms
 sendGetMessages responseMsg session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (getMessages userInfo)
+            Http.send responseMsg (getRecentMessages userInfo)
         Session.Guest _ ->
             Cmd.none
 
