@@ -98,7 +98,7 @@ view model =
     , session = model.session
     , kids =
         El.pageContent "Sign in" <|
-            [ El.formColumn <|
+            [ El.contentColumn 48 <|
                 [  Input.username
                     (formInputStyle Element.none)
                     { text = model.username

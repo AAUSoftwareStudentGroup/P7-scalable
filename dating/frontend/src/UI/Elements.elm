@@ -7,7 +7,9 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Region as Region
+import String.Extra exposing (toSentenceCase)
 import Html exposing (Html)
+
 import Routing exposing (Route(..))
 import Session exposing (Session)
 import UI.Styles as Styles exposing (..)
@@ -71,9 +73,19 @@ pageContent : String -> List (Element msg) -> List (Element msg)
 pageContent heading contentElements =
     el contentHeadingStyle (Element.text heading) :: contentElements
 
-formColumn : List (Element msg) -> Element msg
-formColumn children =
-    column formColumnStyle children
+contentColumn : Int -> List (Element msg) -> Element msg
+contentColumn spacing children =
+    column (contentColumnStyle spacing) children
+
+userCard : String -> Int -> Element msg
+userCard username userId =
+    el (fillStyle ++ cardStyle) <|
+        row (fillStyle ++ [Element.spacing 16])
+            [ Element.text (toSentenceCase username)
+            , linkButtonRight (Routing.routeToString <| (Profile userId)) "Profile"
+            , linkButtonRight (Routing.routeToString <| (Chat userId)) "chat"
+            ]
+
 
 placeholder : String -> Maybe (Placeholder msg)
 placeholder caption =
@@ -110,7 +122,6 @@ linkButtonLeft url caption =
 
 linkButton attributes url caption =
     link (buttonStyle ++ attributes) url (String.toUpper caption)
-
 
 messageButtonRight msg caption =
     messageButton [ right ] msg caption

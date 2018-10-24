@@ -74,9 +74,9 @@ contentHeadingStyle =
     , Border.color colorBlack
     ]
 
-formColumnStyle =
+contentColumnStyle spacingSize =
     [ width fill
-    , spacing 36
+    , spacing spacingSize
     , padding 10
     ]
 
@@ -117,7 +117,7 @@ buttonStyle =
     , fonts
     , Font.size 14
     , Font.semiBold
-    , Font.color colorWhite
+    , Font.color primaryColor
     , mouseOver [ Font.color secondaryColorD ]
     ]
 
@@ -204,3 +204,61 @@ secondaryColorL =
 
 secondaryColorD =
     rgb255 52 81 94
+
+cardStyle =
+    [mouseOver cardShadowHover
+    , padding 16
+    ] ++ cardShadow ++ fillStyle
+
+cardShadow =
+    [ Border.shadow cardShadowA
+    , Border.shadow cardShadowB
+    , Border.shadow cardShadowC
+    ]
+
+
+cardShadowA =
+    { offset = ( 0.0, 2.0 )
+    , size = 0
+    , blur = 2.0
+    , color = rgba 0 0 0 0.14
+    }
+
+
+cardShadowB =
+    { offset = ( 0.0, 3.0 )
+    , size = -2
+    , blur = 1.0
+    , color = rgba 0 0 0 0.12
+    }
+
+
+cardShadowC =
+    { offset = ( 0.0, 1.0 )
+    , size = 0
+    , blur = 5.0
+    , color = rgba 0 0 0 0.2
+    }
+
+
+cardShadowHover =
+    [ Border.shadow cardShadowHoverA
+    , Border.shadow cardShadowHoverB
+    ]
+
+
+cardShadowHoverA =
+    { offset = ( 0.0, 8.0 )
+    , size = 0
+    , blur = 17
+    , color = rgba 0 0 0 0.2
+    }
+
+
+cardShadowHoverB =
+    { offset = ( 0.0, 6.0 )
+    , size = 0
+    , blur = 20
+    , color = rgba 0 0 0 0.19
+    }
+
