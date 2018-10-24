@@ -15,6 +15,8 @@ import String
 import DatingApi as Api exposing (User, Credentials)
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
+import UI.Elements as El
+import UI.Styles exposing (formInputStyle, centeredFillStyle, acceptButtonStyle)
 
 
 -- MODEL
@@ -46,7 +48,7 @@ init session =
 
 
 type Msg
-    = TextChanged Model
+    = EntryChanged Model
     | LoginClicked
     | HandleUserLogin (Result Http.Error User)
     | SessionChanged Session
@@ -55,7 +57,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        TextChanged changedModel ->
+        EntryChanged changedModel ->
             ( changedModel, Cmd.none )
 
         LoginClicked ->
@@ -95,51 +97,29 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ viewContent model ]
+        El.pageContent "Sign in" <|
+            [ El.formColumn <|
+                [  Input.username
+                    (formInputStyle Element.none)
+                    { text = model.username
+                    , placeholder = El.placeholder "Username"
+                    , onChange = \new -> EntryChanged { model | username = new }
+                    , label = El.formLabel "Username"
+                    }
+                , Input.currentPassword
+                    (formInputStyle Element.none)
+                    { text = model.password
+                    , placeholder = El.placeholder "Password"
+                    , onChange = \new -> EntryChanged { model | password = new }
+                    , label = El.formLabel "Password"
+                    , show = False
+                    }
+                , El.messageButton (centeredFillStyle ++ acceptButtonStyle) LoginClicked "Sign in"
+                , Element.text (responseToString model.response)
+                ]
+            ]
     }
 
-
-viewContent : Model -> Element Msg
-viewContent model =
-        column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
-            [ el
-                [ Region.heading 1
-                , centerX
-                , Font.size 36
-                ]
-                (text "Login")
-            , Input.username
-                [ spacing 12
-                ]
-                { text = model.username
-                , placeholder = Just (Input.placeholder [] (text "Username"))
-                , onChange = \new -> TextChanged { model | username = new }
-                , label = Input.labelAbove [ Font.size 14 ] (text "Username")
-                }
-            , Input.currentPassword [ spacing 12, width shrink ]
-                { text = model.password
-                , placeholder = Just (Input.placeholder [] (text "Password"))
-                , onChange = \new -> TextChanged { model | password = new }
-                , label = Input.labelAbove [ Font.size 14 ] (text "Password")
-                , show = False
-                }
-            , Input.button
-                [ Background.color red
-                , Font.color white
-                , Border.color darkBlue
-                , paddingXY 32 16
-                , Border.rounded 3
-                , width fill
-                ]
-                { onPress = Just LoginClicked
-                , label = text "Login!"
-                }
-            , link [ Font.color blue ]
-                { url = "create-user"
-                , label = text "Not yet a user? Click here to sign up."
-                }
-            , el [] (text (responseToString model.response))
-            ]
 
 
 handleErrorResponse : Model -> Http.Error -> Model
