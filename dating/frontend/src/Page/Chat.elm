@@ -28,10 +28,6 @@ type alias Model =
     , time : Time.Posix
     }
 
-emptyUser : User
-emptyUser =
-    User "" "" "" Other "" "" 0 "" ""
-
 init : Session -> Int -> ( Model, Cmd Msg )
 init session idFriend =
   ( Model (Debug.log "messages session:" session)
@@ -44,7 +40,15 @@ init session idFriend =
     Time.utc
     (Time.millisToPosix 0)
   , Cmd.batch [ Task.perform AdjustTimeZone Time.here
-              , Task.perform FetchMessages Time.now
+              , case (idFriend == (Maybe.withDefault -1 <| Session.getUserId session)) of
+                    False ->
+                        Task.perform FetchMessages Time.now
+                    True ->
+                        case session of
+                            Session.LoggedIn key _ ->
+                                Routing.replaceUrl key (Routing.routeToString Home)
+                            Session.Guest key ->
+                                Routing.replaceUrl key (Routing.routeToString Home)
               ]
   )
 
