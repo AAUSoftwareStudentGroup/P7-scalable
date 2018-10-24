@@ -79,7 +79,7 @@ view model =
     , kids =
         El.pageContent (model.user.userUsername ++ "'s profile") <|
             [ Element.row centeredFillStyle <|
-                [ El.formColumn
+                [ El.contentColumn 48
                     [ El.textProperty "Username" model.user.userUsername
                     , El.textProperty "Email" model.user.userEmail
                     , El.textProperty "Gender" (genderToString model.user.userGender)

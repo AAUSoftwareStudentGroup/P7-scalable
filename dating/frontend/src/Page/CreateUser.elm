@@ -127,7 +127,7 @@ view model =
     , session = model.session
     , kids =
         El.pageContent "New user" <|
-            [ El.formColumn <|
+            [ El.contentColumn 48 <|
                 [ Input.email
                     (formInputStyle <| El.conditional (El.warning "Email invalid") (showEmailWarning model))
                     { text = model.email
