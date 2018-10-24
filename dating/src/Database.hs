@@ -11,32 +11,40 @@ import           Control.Monad.IO.Class      (MonadIO, liftIO)
 import           Control.Monad.Logger        (LogLevel (..), LoggingT,
                                               MonadLogger, filterLogger,
                                               runStdoutLoggingT)
-import           Control.Monad.Reader        (runReaderT)
+import           Control.Monad.Reader        (runReaderT, ReaderT)
 import           Data.Aeson.Types            (FromJSON, ToJSON)
 import           Data.ByteString             (ByteString)
 import           Data.ByteString.Char8       (pack, unpack)
 import           Data.Int                    (Int64)
+import           Data.List                   (intersperse, sort, sortBy)
 import           Data.Maybe                  (listToMaybe)
-import qualified Data.Text                   as T (Text, unpack, pack)
+import           Data.Ord                    (comparing)
+import           Data.Text                   (Text)
+import qualified Data.Text                   as T (pack, unpack)
 import qualified Data.Text.Encoding          (decodeUtf8)
+import           Data.Time.Calendar          (fromGregorian)
+import           Data.Time.Clock             (UTCTime (..), secondsToDiffTime)
 import           Database.Esqueleto
 import           Database.Persist.Postgresql (ConnectionString, SqlPersistT,
                                               runMigration, withPostgresqlConn)
+import qualified Database.Persist.Sql as P
 import           Database.Redis              (ConnectInfo, Redis, connect,
                                               connectHost, defaultConnectInfo,
                                               del, runRedis, setex)
 import qualified Database.Redis              as Redis
 import           Elm                         (ElmType)
 import           GHC.Generics                (Generic)
-import qualified System.Random               as Random
-
 import           Schema
+import qualified System.Random               as Random
 
 type PGInfo = ConnectionString
 type RedisInfo = ConnectInfo
 
-data Credentials = Credentials { username :: T.Text, password :: T.Text}
+data Credentials = Credentials { username :: Text, password :: Text}
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ElmType)
+
+data RecentMessage = RecentMessage {convoWith :: Text, imLastAuthor :: Bool, body :: Text, timeStamp :: UTCTime}
+  deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON, ElmType)
 
 localConnString :: PGInfo
 localConnString = "host=postgres port=5432 user=postgres dbname=postgres"
@@ -76,7 +84,7 @@ deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
         return ()
 
 
--- | DATABASE
+-- -- DATABASE
 
 -- User
 
@@ -105,6 +113,7 @@ fetchAllUsersPG pgInfo = runAction pgInfo selectAction
     selectAction = do
       users <- select $ from $ \user -> return user
       return users
+
 
 deleteUserPG :: PGInfo -> Int64 -> IO ()
 deleteUserPG pgInfo uid = runAction pgInfo $ do
@@ -137,7 +146,107 @@ fetchUserByCredentialsPG pgInfo (Credentials {username = usr, password = psw}) =
                        return user
       return $ listToMaybe userFound
 
--- | REDIS
+
+-- Conversations
+
+createConversationPG :: PGInfo -> Int64 -> Int64 -> IO ConversationId
+createConversationPG pgInfo ownUserId otherUserId = runAction pgInfo $ insert conversation
+  where
+    members = toMembersTuple ownUserId otherUserId
+    conversation = uncurry Conversation $ members
+
+fetchConversationByUserIdsPG :: PGInfo -> Int64 -> Int64 -> IO (Maybe (Entity Conversation))
+fetchConversationByUserIdsPG pgInfo user1 user2 = runAction pgInfo selectAction
+  where
+    membersTuple = toMembersTuple user1 user2
+    selectAction = listToMaybe <$> (select . from $ (\conv -> do
+                                       where_ (conv ^. ConversationUserOneId ==. val (fst membersTuple) &&.
+                                               conv ^. ConversationUserTwoId ==. val (snd membersTuple))
+                                       return conv))
+
+
+fetchRecentMessagesListPG :: PGInfo -> UserId -> IO [RecentMessage]
+fetchRecentMessagesListPG pgInfo ownUserId = fmap toRecentMessage <$> runAction pgInfo selectAction
+  where
+    ownUserIdInt64 = fromSqlKey ownUserId
+    toRecentMessage :: (Single Text, Single Bool, Single Text, Single UTCTime) -> RecentMessage
+    toRecentMessage (convoWith, imLastAuthor, body, timeStamp) = RecentMessage (unSingle convoWith) (unSingle imLastAuthor) (unSingle body) (unSingle timeStamp)
+
+    selectAction :: MonadIO m => ReaderT SqlBackend m [(Single Text, Single Bool, Single Text, Single UTCTime)]
+    selectAction = P.rawSql (T.pack stmt) (replicate 4 (PersistInt64 ownUserIdInt64))
+    stmt = "SELECT users.username convoWith, messages.author_id = ? im_last_author, messages.body, messages.time_stamp " ++
+           "FROM conversations JOIN " ++
+           "messages " ++
+           "ON conversations.id = messages.conversation_id " ++
+           "AND (? = conversations.user_one_id OR ? = conversations.user_two_id) " ++
+           "INNER JOIN ( " ++
+           "  SELECT conversation_id, MAX(time_stamp) maxtstamp " ++
+           "  FROM messages" ++
+           "  GROUP BY conversation_id " ++
+           ") temp " ++
+           "ON messages.conversation_id = temp.conversation_id AND messages.time_stamp = temp.maxtstamp " ++
+           "JOIN users " ++
+           "ON users.id != ? AND (users.id = conversations.user_one_id OR users.id = conversations.user_two_id);"
+
+
+fetchMessagesBetweenPG :: PGInfo -> UserId -> Int64 -> IO [Message]
+fetchMessagesBetweenPG pgInfo ownUserId otherUserIdInt64 = fmap entityVal <$> runAction pgInfo selectAction
+  where
+    ownUserIdInt64 = fromSqlKey ownUserId
+    selectAction :: MonadIO m => ReaderT SqlBackend m [(Entity Message)]
+    selectAction = P.rawSql (T.pack stmt) (PersistInt64 <$> sort [ownUserIdInt64, otherUserIdInt64])
+    stmt = "SELECT ?? " ++
+           "FROM conversations JOIN messages ON conversations.id = messages.conversation_id " ++
+           "WHERE ? = conversations.user_one_id AND ? = conversations.user_two_id " ++
+           "ORDER BY messages.time_stamp DESC; "
+
+getOther :: Text -> [Text] -> Text
+getOther self [] = self
+getOther self (u:[]) = self
+getOther self (u1:u2:rest) = if self == u1 then u2 else u1
+
+userId :: Entity User -> Int64
+userId (Entity id _) = fromSqlKey id
+
+
+toMembersTuple :: Int64 -> Int64 -> (UserId, UserId)
+toMembersTuple userOneId userTwoId = if userOneId <= userTwoId then (userOneId', userTwoId') else (userTwoId', userOneId')
+  where
+    userOneId' = toSqlKey userOneId
+    userTwoId' = toSqlKey userTwoId
+
+-- Messages
+
+createMessagePG :: PGInfo -> Int64 -> Message -> IO ()
+createMessagePG pgInfo otherUserId message = void $ runAction pgInfo insertAndMaybeCreateConvo
+  where
+    ownUserId = (fromSqlKey . messageAuthorId) message
+    getAndMaybeCreateConvoId = do
+      maybeConvo <- fetchConversationByUserIdsPG pgInfo ownUserId otherUserId
+      case maybeConvo of
+        Nothing ->
+          createConversationPG pgInfo ownUserId otherUserId
+        Just (Entity cid _) ->
+          return cid
+
+    insertAndMaybeCreateConvo = do
+      convoId <- liftIO $ getAndMaybeCreateConvoId
+      let message' = message {messageConversationId = convoId}
+      insert message'
+
+
+
+fetchUserIdByUser :: PGInfo -> User -> IO (Maybe Int64)
+fetchUserIdByUser pgInfo user = runAction pgInfo selectAction
+  where
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe Int64)
+    selectAction = ((fmap (fromSqlKey . unValue)) . listToMaybe) <$>
+        (select . from $ \(dbUser :: SqlExpr (Entity User)) -> do
+            where_ (dbUser ^. UserUsername ==. val (userUsername user))
+            return (dbUser ^. UserId))
+
+
+-- -- REDIS
 
 runRedisAction :: RedisInfo -> Redis a -> IO a
 runRedisAction redisInfo action = do

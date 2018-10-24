@@ -85,29 +85,41 @@ view model =
     { title = "All users"
     , session = model.session
     , kids =
-        [ column [ width (px 600), height shrink, centerY, centerX, spacing 36, padding 10 ]
+        [ column [ width (px 600), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ]
             (el
                 [ Region.heading 1
                 , centerX
                 , Font.size 36
                 ]
                 (text "Users")
-                :: List.map showUser model.users
+                :: List.map (showUser model.session) model.users
             )
         ]
     }
 
 
-showUser : User -> Element Msg
-showUser user =
+showUser : Session -> User -> Element Msg
+showUser session user =
     el (concat [ [ width fill, mouseOver profileShadowHover ], profileShadow ]) <|
         row [ spacing 10, padding 20, width fill]
             [ createLink (Routing.routeToString <| (Profile user.userId))
                 [width fill, height fill]
                 (el [ Font.size 24, alignLeft ] <| text <| toSentenceCase <| user.userUsername)
-            , createButtonRight (Routing.routeToString <| (Chat user.userId)) "chat"
+            , chatButton user.userId session
             ]
 
+
+chatButton : Int -> Session -> Element msg
+chatButton friendId session =
+    case Session.getUserId session of
+        Just userId ->
+            case userId == friendId of
+                False ->
+                    createButtonRight (Routing.routeToString <| (Chat friendId)) "chat"
+                True ->
+                    Element.none
+        Nothing ->
+            Element.none
 
 createButtonRight url caption =
     createButton [ alignRight ] url caption

@@ -84,8 +84,8 @@ routeToString page =
                 Profile id ->
                     [ "user", String.fromInt id ]
 
-                Chat id ->
-                    [ "chat", String.fromInt id ]
+                Chat idFriend ->
+                    [ "chat", String.fromInt idFriend ]
 
     in
     "/" ++ String.join "/" pieces

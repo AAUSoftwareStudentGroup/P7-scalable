@@ -101,7 +101,7 @@ view model =
 
 viewContent : Model -> Element Msg
 viewContent model =
-        column [ width (px 800), height shrink, centerY, centerX, spacing 36, padding 10 ]
+        column [ width (px 800), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ]
             [ el
                 [ Region.heading 1
                 , centerX

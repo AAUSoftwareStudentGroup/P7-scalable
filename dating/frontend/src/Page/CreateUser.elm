@@ -11,7 +11,6 @@ import Html exposing (Html)
 import String
 import Http
 
-import DatingApi as Api exposing (User, Gender(..))
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import Session exposing (Session)

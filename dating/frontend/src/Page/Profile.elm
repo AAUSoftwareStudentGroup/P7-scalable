@@ -87,10 +87,24 @@ view model =
                     , El.textProperty "Town" model.user.userTown
                     , El.paragraphProperty "Description" model.user.userProfileText
                     ]
-                , El.linkButtonRight (Routing.routeToString <| Chat model.user.userId) "chat"
+                , chatButton model.user.userId model.session
                 ]
+
             ]
     }
+
+
+chatButton : Int -> Session -> Element msg
+chatButton friendId session =
+    case Session.getUserId session of
+        Just userId ->
+            case userId == friendId of
+                False ->
+                    El.linkButtonRight (Routing.routeToString <| (Chat friendId)) "chat"
+                True ->
+                    Element.none
+        Nothing ->
+            Element.none
 
 
 sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg

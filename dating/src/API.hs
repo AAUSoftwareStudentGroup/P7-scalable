@@ -27,9 +27,14 @@ import           Data.Map                         (Map, fromList)
 import qualified Data.Map                         as Map
 import           Data.Text                        (Text)
 import           Database                         (Credentials, PGInfo,
-                                                   RedisInfo, createUserPG,
+                                                   RecentMessage, RedisInfo,
+                                                   createMessagePG,
+                                                   userId,
+                                                   createUserPG,
                                                    createUserRedis,
                                                    fetchAllUsersPG,
+                                                   fetchMessagesBetweenPG,
+                                                   fetchRecentMessagesListPG,
                                                    fetchPostgresConnection,
                                                    fetchRedisConnection,
                                                    fetchUserByCredentialsPG,
@@ -42,11 +47,14 @@ import           Web.Cookie                       (parseCookies)
 
 
 -- | The API.
-type DatingAPI =
-       "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] (Entity User)
-  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [Entity User]
+type DatingAPI = "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] (Entity User)
+  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] (Entity User)
+  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [(Entity User)]
   :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
-  :<|> "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] (Entity User)
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> ReqBody '[JSON] Message :> Post '[JSON] ()
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [RecentMessage]
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] [Message]
+
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -74,7 +82,20 @@ fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 createUserHandler :: PGInfo -> User -> Handler Int64
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 
--- | Handles a login request. Returns user with id on success.
+-- | Creates a new message between two users
+createMessageHandler :: PGInfo -> UserId -> Int64 -> Message -> Handler ()
+createMessageHandler pgInfo _ otherUserId msg = liftIO $ createMessagePG pgInfo otherUserId msg
+
+-- | Fetches all messages between two users.
+fetchMessagesBetweenHandler :: PGInfo -> UserId -> Int64 -> Handler [Message]
+fetchMessagesBetweenHandler pgInfo ownUserId otherUserId = liftIO $
+  fetchMessagesBetweenPG pgInfo ownUserId otherUserId
+
+fetchRecentMessagesHandler :: PGInfo -> UserId -> Handler [RecentMessage]
+fetchRecentMessagesHandler pgInfo ownUserId = liftIO $ fetchRecentMessagesListPG pgInfo ownUserId
+
+
+-- | Returns an authToken when given correct credentials
 loginHandler :: PGInfo -> Credentials -> Handler (Entity User)
 loginHandler pgInfo credentials = do
   maybeUser <- liftIO $ fetchUserByCredentialsPG pgInfo credentials
@@ -108,12 +129,13 @@ type instance AuthServerData (AuthProtect "cookie-auth") = UserId
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: PGInfo -> RedisInfo -> Server DatingAPI
-datingServer pgInfo redisInfo =
-  fetchUserHandler pgInfo redisInfo :<|>
-  fetchAllUsersHandler pgInfo :<|>
-  createUserHandler pgInfo :<|>
-  loginHandler pgInfo
-
+datingServer pgInfo redisInfo = loginHandler pgInfo
+                                 :<|> fetchUserHandler pgInfo redisInfo
+                                 :<|> fetchAllUsersHandler pgInfo
+                                 :<|> createUserHandler pgInfo
+                                 :<|> createMessageHandler pgInfo
+                                 :<|> fetchRecentMessagesHandler pgInfo
+                                 :<|> fetchMessagesBetweenHandler pgInfo
 
 -- | The context is sort of the state, being authenticated or not. Starts empty.
 datingServerContext :: PGInfo -> Context (AuthHandler Request UserId ': '[])
