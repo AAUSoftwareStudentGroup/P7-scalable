@@ -42,7 +42,6 @@ createModel session =
 
 type Msg
     = NoOp
-    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -51,17 +50,6 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        SessionChanged session ->
-            case session of
-                Session.Guest key ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString Home)
-                    )
-
-                Session.LoggedIn key _ ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                    )
 
 
 
@@ -70,7 +58,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Session.onChange SessionChanged (Session.getNavKey model.session)
+    Sub.none
 
 
 

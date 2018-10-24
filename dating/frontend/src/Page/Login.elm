@@ -49,7 +49,6 @@ type Msg
     = TextChanged Model
     | LoginClicked
     | HandleUserLogin (Result Http.Error User)
-    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,22 +68,12 @@ update msg model =
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
 
-        SessionChanged session ->
-            case session of
-                Session.Guest key ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString Home)
-                    )
-                Session.LoggedIn key _ ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                    )
 
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Session.onChange SessionChanged (Session.getNavKey model.session)
+    Sub.none
 
 
 -- VIEW

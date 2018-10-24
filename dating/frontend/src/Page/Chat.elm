@@ -61,7 +61,6 @@ type Msg
     | SubmitMessage
     | DoNothing
     | HandleMessageSent (Result Http.Error (String.String))
-    | SessionChanged Session
     | FetchMessages Time.Posix
     | HandleFetchedMessages (Result Http.Error (List ChatMessage))
     | AdjustTimeZone Time.Zone
@@ -94,17 +93,6 @@ update msg model =
                 Err _ ->
                     (model , Cmd.none)
 
-        SessionChanged session ->
-            case session of
-                Session.Guest key ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString Home)
-                    )
-                Session.LoggedIn key _ ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                    )
-
         FetchMessages newTime ->
             case (model.session) of
                 Session.Guest _ ->
@@ -129,10 +117,7 @@ update msg model =
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ Session.onChange SessionChanged (Session.getNavKey model.session)
-        , Time.every 3000 FetchMessages
-        ]
+    Time.every 3000 FetchMessages
 
 
 
