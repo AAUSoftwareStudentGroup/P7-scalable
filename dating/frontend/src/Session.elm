@@ -18,7 +18,7 @@ type Session
 type alias Details msg =
     { title : String
     , session : Session
-    , kids : Html msg
+    , kids : List (Html msg)
     }
 
 

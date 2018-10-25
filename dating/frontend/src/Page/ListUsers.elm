@@ -1,13 +1,8 @@
 module Page.ListUsers exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
-import Element.Font as Font
-import Element.Region as Region
 import Html exposing (Html)
+import Html.Keyed exposing (ul)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, int, list, string)
 import String exposing (toUpper)
@@ -87,16 +82,17 @@ view model =
     { title = "All users"
     , session = model.session
     , kids =
-        El.pageContent "All users" <|
-            [ El.contentColumn 16 (map (showUser model.session) model.users) ]
+        El.pageContent "All users"
+            [ ul []
+                (List.map (showUser model.session) model.users)
+            ]
     }
 
 
 
-
-showUser : Session -> User -> Element Msg
+showUser : Session -> User -> (String, Html Msg)
 showUser session user =
-    El.userCard user.userUsername user.userId (Maybe.withDefault -1 (Session.getUserId session))
+    (user.userUsername, El.userCard user.userUsername user.userId (Maybe.withDefault -1 (Session.getUserId session)))
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg

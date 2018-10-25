@@ -1,13 +1,10 @@
 module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import DatingApi as Api exposing (Gender(..), User)
-import Element as Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
-import Element.Region as Region
-import Html exposing (Html)
+import Html exposing (Html, div)
+import Html.Attributes as Attributes
+import Html.Events as Events exposing (onClick)
+import Validate exposing (Validator, Valid)
 import String
 import Http
 
@@ -15,7 +12,6 @@ import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import Session exposing (Session)
 import UI.Elements as El
-import UI.Styles exposing (formInputStyle, formLabelStyle, acceptButtonStyle, centeredFillStyle)
 
 
 
@@ -26,31 +22,44 @@ type alias Model =
     { session : Session
     , title : String
     , response : Maybe String
+    , errors : List (Error)
     , email : String
     , username : String
-    , password : String
-    , passwordAgain : String
+    , password1 : String
+    , password2 : String
     , gender : Gender
     , birthday : String
-    , town : String
-    , profileText : String
+    , city : String
+    , bio : String
     }
 
 
+type alias Error =
+    ( FormField, String )
+
+type FormField
+    = Email
+    | Username
+    | Password1
+    | Password2
+    | Birthday
+    | City
+    | Bio
+
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "" Nothing "" "" "" "" Other "" "" ""
+    ( Model session "" Nothing [] "" "" "" "" Male "" "" ""
     , Cmd.none
     )
-
 
 
 -- UPDATE
 
 
 type Msg
-    = EntryChanged Model
-    | CreateUserClicked
+    = FormFieldChanged FormField String
+    | GenderChanged Gender
+    | Submitted
     | HandleUserCreated (Result Http.Error Int)
     | SessionChanged Session
 
@@ -58,11 +67,22 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EntryChanged updatedModel ->
-            ( updatedModel, Cmd.none )
+        FormFieldChanged field value ->
+            ( setField model field value, Cmd.none )
 
-        CreateUserClicked ->
-            ( model, createUserCmd <| mkUserFromEntries model )
+        GenderChanged newGender ->
+            ( { model | gender = newGender }, Cmd.none )
+
+        Submitted ->
+            case Validate.validate modelValidator model of
+                Ok validForm ->
+                    ( { model | errors = [] }
+                    , sendCreateUser HandleUserCreated (userFromValidForm validForm)
+                    )
+                Err errors ->
+                    ( { model | errors = errors }
+                    , Cmd.none
+                    )
 
         HandleUserCreated result ->
             case result of
@@ -98,6 +118,25 @@ update msg model =
                     , Routing.replaceUrl key (Routing.routeToString ListUsers)
                     )
 
+setField : Model -> FormField -> String -> Model
+setField model field value =
+    case field of
+        Email ->
+            { model | email = value }
+        Username ->
+            { model | username = value }
+        Password1 ->
+            { model | password1 = value }
+        Password2 ->
+            { model | password2 = value }
+        Birthday ->
+            { model | birthday = value }
+        City ->
+            { model | city = value }
+        Bio ->
+            { model | bio = value }
+
+
 
 
 -- SUBSCRIPTIONS
@@ -108,9 +147,13 @@ subscriptions model =
     Session.onChange SessionChanged (Session.getNavKey model.session)
 
 
-mkUserFromEntries : Model -> User
-mkUserFromEntries { email, password, username, gender, birthday, town, profileText } =
-    User email password username gender birthday town 0 profileText "token"
+userFromValidForm : Valid Model -> User
+userFromValidForm validForm =
+    userFromModel (Validate.fromValid validForm)
+
+userFromModel : Model -> User
+userFromModel { email, password1, username, gender, birthday, city, bio } =
+    User email password1 username gender birthday city 0 bio "token"
 
 
 createUserCmd : User -> Cmd Msg
@@ -126,76 +169,51 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.pageContent "New user" <|
-            [ El.contentColumn 48 <|
-                [ Input.email
-                    (formInputStyle <| El.conditional (El.warning "Email invalid") (showEmailWarning model))
-                    { text = model.email
-                    , placeholder = El.placeholder "Email"
-                    , onChange = \new -> EntryChanged { model | email = new }
-                    , label = El.formLabel "Email"
-                    }
-                , Input.username
-                    (formInputStyle <| El.conditional (El.warning "Username taken") (showUsernameWarning model))
-                    { text = model.username
-                    , placeholder = El.placeholder "Username"
-                    , onChange = \new -> EntryChanged { model | username = new }
-                    , label = El.formLabel "Username"
-                    }
-                , Input.newPassword
-                    (formInputStyle Element.none)
-                    { text = model.password
-                    , placeholder = El.placeholder "Password"
-                    , onChange = \new -> EntryChanged { model | password = new }
-                    , label = El.formLabel "Password"
-                    , show = False
-                    }
-                , Input.newPassword
-                    (formInputStyle <| El.conditional (El.warning "Passwords do not match") (showPasswordWarning model))
-                    { text = model.passwordAgain
-                    , placeholder = El.placeholder "Repeat password"
-                    , onChange = \new -> EntryChanged { model | passwordAgain = new }
-                    , label = El.formLabel "Repeat password"
-                    , show = False
-                    }
-                , Input.radio
-                    (formInputStyle Element.none)
-                    { selected = Just model.gender
-                    , onChange = \new -> EntryChanged { model | gender = new }
-                    , label = El.formLabel "Gender"
-                    , options =
-                        [ Input.option Male (text "Man")
-                        , Input.option Female (text "Woman")
-                        , Input.option Other (text "Other")
-                        ]
-                    }
-                , Input.text
-                    (formInputStyle <| El.conditional (El.warning "Invalid format. Should be YYYY-MM-DD") (showDateWarning model))
-                    { text = model.birthday
-                    , onChange = \new -> EntryChanged { model | birthday = new }
-                    , placeholder = El.placeholder "YYYY-MM-DD"
-                    , label = El.formLabel "Birthday"
-                    }
-                , Input.text
-                    (formInputStyle Element.none)
-                    { text = model.town
-                    , onChange = \new -> EntryChanged { model | town = new }
-                    , placeholder = El.placeholder "City"
-                    , label = El.formLabel "City"
-                    }
-                , Input.multiline
-                    (formInputStyle Element.none)
-                    { text = model.profileText
-                    , placeholder = El.placeholder "A short description of yourself"
-                    , onChange = \new -> EntryChanged { model | profileText = new }
-                    , label = El.formLabel "Description"
-                    , spellcheck = True
-                    }
-                , El.messageButton (centeredFillStyle ++ acceptButtonStyle) CreateUserClicked "Sign up"
-                , Element.text (responseToString model.response)
+        El.pageContent "New user"
+            [ Html.form [ Events.onSubmit Submitted ]
+                [ El.validatedInput Email "email" "Email" "Email" model.email FormFieldChanged model.errors
+                , El.validatedInput Username "text" "Username" "Username" model.username FormFieldChanged model.errors
+                , El.validatedInput Password1 "password" "Password" "Password" model.password1 FormFieldChanged model.errors
+                , El.validatedInput Password2 "password" "Repeat password" "Password" model.password2 FormFieldChanged model.errors
+                , El.labelledRadio "Gender" GenderChanged model.gender
+                    [ ( "Male", Male )
+                    , ( "Female", Female )
+                    , ( "Other", Other )
+                    ]
+                , El.validatedInput Birthday "text" "Birthday" "YYYY-MM-DD" model.birthday FormFieldChanged model.errors
+                , El.validatedInput City "text" "City" "City" model.city FormFieldChanged model.errors
+                , El.validatedInput Bio "multiline" "Description" "Short description of yourself" model.bio FormFieldChanged model.errors
+                , El.submitButton "Sign up"
                 ]
+            , Html.text (responseToString model.response)
             ]
     }
+
+-- VALIDATION
+
+modelValidator : Validator ( FormField, String ) Model
+modelValidator =
+    Validate.all
+        [ Validate.ifBlank .email ( Email, "Email can't be blank." )
+        , Validate.ifInvalidEmail .email (\_ -> ( Email, "Email is invalid." ))
+
+        , Validate.ifBlank .username ( Username, "Username can't be blank." )
+        , Validate.ifFalse (\model -> isUsernameValid model) ( Username, "Username already in use")
+
+        , Validate.ifBlank .password1 ( Password1, "Password can't be blank." )
+        , Validate.ifBlank .password2 ( Password2, "Repeated password can't be blank." )
+        , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password1, "Passwords don't match")
+        , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password2, "Passwords don't match")
+
+        , Validate.ifBlank .birthday ( Birthday, "Birthday can't be blank." )
+        , Validate.ifFalse (\model -> isDateValid model) ( Birthday, "Invalid format")
+
+        , Validate.ifBlank .city ( City, "City can't be blank." )
+
+        , Validate.ifBlank .bio ( Bio, "Description can't be blank." )
+        ]
+
+
 
 
 responseToString : Maybe String -> String
@@ -207,17 +225,6 @@ responseToString r =
         Nothing ->
             "No messages"
 
-showEmailWarning : Model -> Bool
-showEmailWarning model =
-    model.email /= "" && (not (isEmailValid model))
-
-isEmailValid : Model -> Bool
-isEmailValid model =
-    String.contains "@" model.email
-
-showUsernameWarning : Model -> Bool
-showUsernameWarning model =
-    model.username /= "" && (not (isUsernameValid model))
 
 isUsernameValid : Model -> Bool
 isUsernameValid model =
@@ -226,18 +233,10 @@ isUsernameValid model =
     else
         True
 
-showPasswordWarning : Model -> Bool
-showPasswordWarning model =
-    not (doPasswordsMatch model)
-
 
 doPasswordsMatch : Model -> Bool
 doPasswordsMatch model =
-     model.password == model.passwordAgain
-
-showDateWarning : Model -> Bool
-showDateWarning model =
-    model.birthday /= "" && (not (isDateValid model))
+     model.password1 == model.password2
 
 
 isDateValid : Model -> Bool

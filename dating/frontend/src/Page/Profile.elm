@@ -2,10 +2,8 @@ module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
 import DatingApi as Api exposing (Gender(..), User, emptyUser, genderToString)
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
+import Html exposing (Html, div)
+
 import Http
 import String
 
@@ -46,7 +44,8 @@ update msg model =
                     ( { model | user = fetchedUser }, Cmd.none )
 
                 Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }, Cmd.none )
+                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }
+                    , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home ) )
 
         LogoutClicked ->
             ( model, Session.logout )
@@ -77,34 +76,24 @@ view model =
     { title = model.user.userUsername ++ "'s profile"
     , session = model.session
     , kids =
-        El.pageContent (model.user.userUsername ++ "'s profile") <|
-            [ Element.row centeredFillStyle <|
-                [ El.contentColumn 48
-                    [ El.textProperty "Username" model.user.userUsername
-                    , El.textProperty "Email" model.user.userEmail
-                    , El.textProperty "Gender" (genderToString model.user.userGender)
-                    , El.textProperty "Birthday" model.user.userBirthday
-                    , El.textProperty "Town" model.user.userTown
-                    , El.paragraphProperty "Description" model.user.userProfileText
-                    ]
+        El.pageContent (model.user.userUsername ++ "'s profile")
+            [ div []
+                [ El.textProperty "Username" model.user.userUsername
+                , El.textProperty "Email" model.user.userEmail
+                , El.textProperty "Gender" (genderToString model.user.userGender)
+                , El.textProperty "Birthday" model.user.userBirthday
+                , El.textProperty "Town" model.user.userTown
+                , El.paragraphProperty "Description" model.user.userProfileText
                 , chatButton model.user.userId model.session
                 ]
-
             ]
     }
 
 
-chatButton : Int -> Session -> Element msg
+chatButton : Int -> Session -> Html msg
 chatButton friendId session =
-    case Session.getUserId session of
-        Just userId ->
-            case userId == friendId of
-                False ->
-                    El.linkButtonRight (Routing.routeToString <| (Chat friendId)) "chat"
-                True ->
-                    Element.none
-        Nothing ->
-            Element.none
+    El.linkButtonRight (Routing.routeToString <| (Chat friendId)) "chat"
+
 
 
 sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg

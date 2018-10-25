@@ -1,8 +1,8 @@
 module UI.Elements exposing (..)
 
 
-import Html exposing (Html, div)
-import Html.Attributes exposing (..)
+import Html exposing (Html, Attribute, div)
+import Html.Attributes as Attributes exposing (..)
 import Html.Events as Events
 import String.Extra exposing (toSentenceCase)
 
@@ -13,16 +13,16 @@ import UI.Styles as Styles exposing (..)
 
 site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
 site toMsg children session =
-    div []
-        [ header session
-        , content toMsg children
-        , footer
-        ]
+    [ header session
+    , content toMsg children
+    , footer
+    ]
+
 
 
 header : Session -> Html msg
 header session =
-    div []
+    Html.header []
         [ headerLogo
         , headerNav session
         ]
@@ -30,123 +30,173 @@ header session =
 
 headerLogo : Html msg
 headerLogo =
-    link headerLogoStyle (Routing.routeToString Home) "Dating"
+    link []
+        (Routing.routeToString Home) "Dating"
 
 
 headerNav : Session -> Html msg
 headerNav session =
-    row headerNavStyle (headerNavLinks session)
+    div []
+        (headerNavLinks session)
 
 
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
-    case session of
-        Session.LoggedIn _ userInfo ->
-            [ link headerNavLinkStyle (Routing.routeToString Messages) "Messages"
-            , link headerNavLinkStyle (Routing.routeToString ListUsers) "All users"
-            , link headerNavLinkStyle (Routing.routeToString (Profile userInfo.userId)) "My profile"
-            ]
+    let
+        headerNavLinksClasses = []
+    in
+        case session of
+            Session.LoggedIn _ userInfo ->
+                [ link headerNavLinksClasses (Routing.routeToString Messages) "Messages"
+                , link headerNavLinksClasses (Routing.routeToString ListUsers) "All users"
+                , link headerNavLinksClasses (Routing.routeToString (Profile userInfo.userId)) "My profile"
+                ]
 
-        Session.Guest _ ->
-            [ link headerNavLinkStyle (Routing.routeToString CreateUser) "Sign up"
-            , link headerNavLinkStyle (Routing.routeToString Login) "Sign in"
-            ]
+            Session.Guest _ ->
+                [ link headerNavLinksClasses (Routing.routeToString CreateUser) "Sign up"
+                , link headerNavLinksClasses (Routing.routeToString Login) "Sign in"
+                ]
 
 
 footer : Html msg
 footer =
-    row footerStyle [ el footerHtmlStyle (Html.text "A Dating Service that Rocks! © 2018") ]
+    Html.footer []
+        [Html.text "A Dating Service that Rocks! © 2018"]
 
 
 content : (a -> msg) -> List (Html a) -> Html msg
 content toMsg children =
-    Html.map toMsg (column mainContentStyle children)
+    Html.map toMsg (div [] children)
 
 
 pageContent : String -> List (Html msg) -> List (Html msg)
-pageContent heading contentHtmls =
-    el contentHeadingStyle (Html.text heading) :: contentHtmls
+pageContent heading contents =
+    [ div []
+        ([ Html.text heading ] ++ contents)
+    ]
 
 contentColumn : Int -> List (Html msg) -> Html msg
 contentColumn spacing children =
-    column (contentColumnStyle spacing) children
+    div []
+        children
 
 userCard : String -> Int -> Int -> Html msg
 userCard username userId friendId =
-    el (fillStyle ++ cardStyle) <|
-        row (fillStyle ++ [Html.spacing 16])
-            [ Html.text (toSentenceCase username)
-            , linkButtonRight (Routing.routeToString <| (Profile userId)) "Profile"
-            , case userId == friendId of
-                False ->
-                    linkButtonRight (Routing.routeToString <| (Chat userId)) "chat"
-                True ->
-                    Html.none
-            ]
+    Html.li []
+        [ Html.text (toSentenceCase username)
+        , linkButtonRight (Routing.routeToString (Profile userId)) "profile"
+        , linkButtonRight (Routing.routeToString (Chat userId)) "chat"
+        ]
 
-
-placeholder : String -> Maybe (Placeholder msg)
-placeholder caption =
-    if caption == "" then
-        Nothing
-    else
-        Just (Input.placeholder [] (Html.text caption))
-
-formLabel : String -> Label msg
-formLabel caption =
-    Input.labelAbove formLabelStyle (Html.text caption)
 
 textProperty : String -> String -> Html msg
 textProperty labelText propertyText =
-    column propertyStyle
-        [ el propertyLabelStyle (Html.text labelText)
-        , el propertyTextStyle (Html.text propertyText)
+    div []
+        [ Html.text labelText
+        , Html.text propertyText
         ]
 
 
 paragraphProperty : String -> String -> Html msg
 paragraphProperty labelText propertyText =
-    column propertyStyle
-        [ el propertyLabelStyle (Html.text labelText)
-        , Html.paragraph propertyTextStyle
+    div []
+        [ Html.text labelText
+        , Html.p []
             [ Html.text propertyText ]
         ]
 
+linkButtonRight : String -> String -> Html msg
 linkButtonRight url caption =
-    linkButton [ right ] url caption
+    linkButton [ class "right" ] url caption
 
+linkButtonLeft : String -> String -> Html msg
 linkButtonLeft url caption =
-    linkButton [ right ] url caption
+    linkButton [ class "left" ] url caption
 
+linkButton : List (Attribute msg) -> String -> String -> Html msg
 linkButton attributes url caption =
-    link (buttonStyle ++ attributes) url (String.toUpper caption)
+    link ([] ++ attributes) url caption
 
+messageButtonRight : msg -> String -> Html msg
 messageButtonRight msg caption =
-    messageButton [ right ] msg caption
+    messageButton [ class "right" ] msg caption
 
+messageButtonLeft : msg -> String -> Html msg
 messageButtonLeft msg caption =
-    messageButton [ right ] msg caption
+    messageButton [ class "left" ] msg caption
 
-messaageButtonCenter msg caption =
-    messageButton centeredFillStyle msg caption
-
+messageButton : List (Attribute msg) -> msg -> String -> Html msg
 messageButton attributes msg caption =
-    Input.button (buttonStyle ++ attributes)
-    { onPress = Just msg
-    , label = Html.text (String.toUpper caption)
-    }
+    Html.input ([Events.onClick msg] ++ attributes)
+        [Html.text caption]
 
 warning : String -> Html msg
 warning caption =
-    el warningStyle (Html.text caption)
+    Html.span []
+        [Html.text caption]
 
 conditional : Html msg -> Bool -> Html msg
 conditional element shouldShow =
-        if shouldShow then
-            element
-        else
-            Html.none
+    element
 
 link : List (Attribute msg) -> String -> String -> Html msg
-link styles url label =
-    Html.link (linkStyle ++ styles) { url = url, label = Html.text label }
+link attributes url label =
+    Html.a ([href url] ++ attributes) [Html.text label]
+
+validatedInput : fieldType -> String -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) ->  Html msg
+validatedInput field typ caption placeholder value toMsg errors =
+    div []
+        [ Html.label []
+            [ Html.text caption
+            , simpleInput typ placeholder value (toMsg field)
+            ]
+        , fieldErrors field errors
+        ]
+
+fieldErrors : a -> List ((a, String)) -> Html msg
+fieldErrors filterField errors =
+    Html.ul []
+        (List.map fieldError (List.filter (\( field, _ ) -> field == filterField) errors))
+
+
+fieldError : (a, String) -> Html msg
+fieldError ( _, errorDesc) =
+    Html.li []
+        [ Html.text errorDesc ]
+
+labeledInput : String -> String -> String -> String -> (String -> msg) -> Html msg
+labeledInput typ caption placeholder value toMsg =
+    div []
+        [ Html.label []
+            [ Html.text caption
+            , simpleInput typ placeholder value toMsg
+            ]
+        ]
+
+labelledRadio : String -> (a -> msg) -> a -> List (String, a) -> Html msg
+labelledRadio caption toMsg model options =
+    div []
+        [ Html.label []
+            ([ Html.text caption ] ++ List.map (\(name, value) -> radio name toMsg model value) options)
+        ]
+
+
+radio : String -> (a -> msg) -> a -> a -> Html msg
+radio caption toMsg model value =
+    Html.label []
+      [ Html.input [ Attributes.type_ "radio", Attributes.checked (model == value), Events.onClick (toMsg value) ] []
+      , Html.text caption
+      ]
+
+simpleInput : String -> String -> String -> (String -> msg) -> Html msg
+simpleInput typ placeholder value toMsg  =
+    if typ == "multiline" then
+        Html.textarea [ Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
+    else
+        Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
+
+
+submitButton : String -> Html msg
+submitButton caption =
+    Html.button [Attributes.type_ "submit" ]
+        [ Html.text caption ]

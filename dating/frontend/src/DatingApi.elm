@@ -1,4 +1,4 @@
-port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), emptyUser, genderToString, ChatMessage, Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getRecentMessages, postMessage)
+port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), emptyUser, genderToString, stringToGender, ChatMessage, Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getRecentMessages, postMessage)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -51,6 +51,16 @@ genderToString gender =
         Other ->
             "Other"
 
+stringToGender : String -> Gender
+stringToGender str =
+    case str of
+        "Male" ->
+            Male
+        "Female" ->
+            Female
+        _ ->
+            Other
+
 type alias ChatMessage =
     { body : String
     , authorId : Int
@@ -64,8 +74,6 @@ type alias Message =
     , imLastAuthor : Bool
     , timeStamp : String
     }
-
---type alias Message
 
 type alias PostMessage =
     { convId : Int
