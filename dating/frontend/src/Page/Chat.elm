@@ -175,9 +175,12 @@ createButtonRight msg caption =
 
 viewMessages : Model -> ChatMessage -> Element Msg
 viewMessages model message =
-    el [ padding 10, width (fill |> maximum 255), Border.width 2, Border.rounded 20,
-         (getPosition message.authorId model.idYou), Font.center
+    column [width (fill |> maximum 255), (getPosition message.authorId model.idYou), Border.width 2, Border.rounded 20] [
+    el [centerX] (text ( "name: " ++ message.authorName)),
+    el [ padding 10, width fill,
+         Font.center
        ] (text message.body)
+       ]
 
 
 
