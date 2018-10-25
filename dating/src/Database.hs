@@ -43,7 +43,7 @@ type RedisInfo = ConnectInfo
 data Credentials = Credentials { username :: Text, password :: Text}
   deriving (Eq, Show, Generic, ToJSON, FromJSON, ElmType)
 
-data RecentMessage = RecentMessage {convoWith :: Text, imLastAuthor :: Bool, body :: Text, timeStamp :: UTCTime}
+data RecentMessage = RecentMessage {convoWithUsername :: Text, convoWithId :: Int64, imLastAuthor :: Bool, body :: Text, timeStamp :: UTCTime}
   deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON, ElmType)
 
 localConnString :: PGInfo
@@ -169,12 +169,12 @@ fetchRecentMessagesListPG :: PGInfo -> UserId -> IO [RecentMessage]
 fetchRecentMessagesListPG pgInfo ownUserId = fmap toRecentMessage <$> runAction pgInfo selectAction
   where
     ownUserIdInt64 = fromSqlKey ownUserId
-    toRecentMessage :: (Single Text, Single Bool, Single Text, Single UTCTime) -> RecentMessage
-    toRecentMessage (convoWith, imLastAuthor, body, timeStamp) = RecentMessage (unSingle convoWith) (unSingle imLastAuthor) (unSingle body) (unSingle timeStamp)
+    toRecentMessage :: (Single Text, Single Int64, Single Bool, Single Text, Single UTCTime) -> RecentMessage
+    toRecentMessage (convoWithUsername, convoWithId, imLastAuthor, body, timeStamp) = RecentMessage (unSingle convoWithUsername) (unSingle convoWithId) (unSingle imLastAuthor) (unSingle body) (unSingle timeStamp)
 
-    selectAction :: MonadIO m => ReaderT SqlBackend m [(Single Text, Single Bool, Single Text, Single UTCTime)]
+    selectAction :: MonadIO m => ReaderT SqlBackend m [(Single Text, Single Int64, Single Bool, Single Text, Single UTCTime)]
     selectAction = P.rawSql (T.pack stmt) (replicate 4 (PersistInt64 ownUserIdInt64))
-    stmt = "SELECT users.username convoWith, messages.author_id = ? im_last_author, messages.body, messages.time_stamp " ++
+    stmt = "SELECT users.username convoWithUsername, users.id convoWithId, messages.author_id = ? im_last_author, messages.body, messages.time_stamp " ++
            "FROM conversations JOIN " ++
            "messages " ++
            "ON conversations.id = messages.conversation_id " ++

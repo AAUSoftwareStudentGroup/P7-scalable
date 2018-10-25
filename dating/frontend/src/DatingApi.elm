@@ -46,7 +46,8 @@ type alias ChatMessage =
 
 type alias Message =
     { body : String
-    , convoWith : String
+    , convoWithUsername : String
+    , convoWithId : Int
     , imLastAuthor : Bool
     , timeStamp : String
     }
@@ -132,7 +133,8 @@ messageDecoder : Decoder Message
 messageDecoder =
     Decode.succeed Message
         |> Pipeline.required "body" Decode.string
-        |> Pipeline.required "convoWith" Decode.string
+        |> Pipeline.required "convoWithUsername" Decode.string
+        |> Pipeline.required "convoWithId" Decode.int
         |> Pipeline.required "imLastAuthor" Decode.bool
         |> Pipeline.required "timeStamp" Decode.string
 

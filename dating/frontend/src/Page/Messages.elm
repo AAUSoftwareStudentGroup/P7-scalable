@@ -92,10 +92,13 @@ viewMessage : Message -> Element msg
 viewMessage message =
     case (Debug.log "authorIsMe:" message.imLastAuthor) of
         False ->
-            row [padding 20, spacing 20, Border.width 2, Background.color blue, width fill ]
-            [ el [ Font.size 20, width fill ] <| text message.convoWith
-            , el [ Font.size 20, width fill, Background.color yellow ] <| text message.body
-            ]
+            link [width fill]
+            { url = Routing.routeToString <| (Chat message.convoWithId)
+            , label = row [padding 20, spacing 20, Border.width 2, Background.color blue, width fill ]
+                        [ el [ Font.size 20, width fill ] <| text message.convoWithUsername
+                        , el [ Font.size 20, width fill, Background.color yellow ] <| text message.body
+                        ]
+            }
         True ->
             Element.none
 
