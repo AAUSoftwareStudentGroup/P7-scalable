@@ -93,58 +93,11 @@ view model =
 
 
 
+
 showUser : Session -> User -> Element Msg
 showUser session user =
     El.userCard user.userUsername user.userId (Maybe.withDefault -1 (Session.getUserId session))
 
-
-fonts =
-    Font.family
-        [ Font.typeface "-apple-system"
-        , Font.typeface "BlinkMacSystemFont"
-        , Font.typeface "Segoe UI"
-        , Font.typeface "Roboto"
-        , Font.typeface "Oxygen-Sans"
-        , Font.typeface "Ubuntu"
-        , Font.typeface "Cantarell"
-        , Font.typeface "Helvetica Neue"
-        , Font.sansSerif
-        ]
-
-
-primaryColor =
-    rgb255 207 216 220
-
-
-primaryColorL =
-    rgb255 255 255 255
-
-
-primaryColorD =
-    rgb255 158 167 170
-
-
-secondaryColor =
-    rgb255 96 125 139
-
-
-secondaryColorL =
-    rgb255 142 172 187
-
-
-secondaryColorD =
-    rgb255 52 81 94
-
-
-textColor =
-    rgb255 0 0 0
-
-edges =
-    { top = 0
-    , right = 0
-    , bottom = 0
-    , left = 0
-    }
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
 sendGetUsers responseMsg session =

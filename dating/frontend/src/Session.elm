@@ -1,10 +1,10 @@
 port module Session exposing (Session(..), Details, getNavKey, getUserId, getUsername, onChange, login, logout, createSessionFromLocalStorageValue)
 
 import Browser.Navigation as Nav
+import Html exposing (Html)
 import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
-import Element as Element exposing (Element)
 
 import DatingApi as Api exposing (User, UserInfo)
 
@@ -18,7 +18,7 @@ type Session
 type alias Details msg =
     { title : String
     , session : Session
-    , kids : List (Element msg)
+    , kids : Html msg
     }
 
 

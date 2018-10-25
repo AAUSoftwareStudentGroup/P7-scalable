@@ -1,50 +1,44 @@
 module UI.Elements exposing (..)
 
-import Element exposing (Attribute, Element, el, column, row)
-import Element.Input as Input exposing (Placeholder, Label)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
-import Element.Font as Font
-import Element.Region as Region
+
+import Html exposing (Html, div)
+import Html.Attributes exposing (..)
+import Html.Events as Events
 import String.Extra exposing (toSentenceCase)
-import Html exposing (Html)
 
 import Routing exposing (Route(..))
 import Session exposing (Session)
 import UI.Styles as Styles exposing (..)
 
 
-site : (a -> msg) -> List (Element a) -> Session -> List (Html msg)
+site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
 site toMsg children session =
-    [ Element.layout siteStyle <|
-        column fillStyle <|
-            [ header session
-            , content toMsg children
-            , footer
-            ]
-    ]
+    div []
+        [ header session
+        , content toMsg children
+        , footer
+        ]
 
 
-header : Session -> Element msg
+header : Session -> Html msg
 header session =
-    row headerStyle
+    div []
         [ headerLogo
         , headerNav session
         ]
 
 
-headerLogo : Element msg
+headerLogo : Html msg
 headerLogo =
     link headerLogoStyle (Routing.routeToString Home) "Dating"
 
 
-headerNav : Session -> Element msg
+headerNav : Session -> Html msg
 headerNav session =
     row headerNavStyle (headerNavLinks session)
 
 
-headerNavLinks : Session -> List (Element msg)
+headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
         Session.LoggedIn _ userInfo ->
@@ -59,35 +53,35 @@ headerNavLinks session =
             ]
 
 
-footer : Element msg
+footer : Html msg
 footer =
-    row footerStyle [ el footerElementStyle (Element.text "A Dating Service that Rocks! © 2018") ]
+    row footerStyle [ el footerHtmlStyle (Html.text "A Dating Service that Rocks! © 2018") ]
 
 
-content : (a -> msg) -> List (Element a) -> Element msg
+content : (a -> msg) -> List (Html a) -> Html msg
 content toMsg children =
-    Element.map toMsg (column mainContentStyle children)
+    Html.map toMsg (column mainContentStyle children)
 
 
-pageContent : String -> List (Element msg) -> List (Element msg)
-pageContent heading contentElements =
-    el contentHeadingStyle (Element.text heading) :: contentElements
+pageContent : String -> List (Html msg) -> List (Html msg)
+pageContent heading contentHtmls =
+    el contentHeadingStyle (Html.text heading) :: contentHtmls
 
-contentColumn : Int -> List (Element msg) -> Element msg
+contentColumn : Int -> List (Html msg) -> Html msg
 contentColumn spacing children =
     column (contentColumnStyle spacing) children
 
-userCard : String -> Int -> Int -> Element msg
+userCard : String -> Int -> Int -> Html msg
 userCard username userId friendId =
     el (fillStyle ++ cardStyle) <|
-        row (fillStyle ++ [Element.spacing 16])
-            [ Element.text (toSentenceCase username)
+        row (fillStyle ++ [Html.spacing 16])
+            [ Html.text (toSentenceCase username)
             , linkButtonRight (Routing.routeToString <| (Profile userId)) "Profile"
             , case userId == friendId of
                 False ->
                     linkButtonRight (Routing.routeToString <| (Chat userId)) "chat"
                 True ->
-                    Element.none
+                    Html.none
             ]
 
 
@@ -96,26 +90,26 @@ placeholder caption =
     if caption == "" then
         Nothing
     else
-        Just (Input.placeholder [] (Element.text caption))
+        Just (Input.placeholder [] (Html.text caption))
 
 formLabel : String -> Label msg
 formLabel caption =
-    Input.labelAbove formLabelStyle (Element.text caption)
+    Input.labelAbove formLabelStyle (Html.text caption)
 
-textProperty : String -> String -> Element msg
+textProperty : String -> String -> Html msg
 textProperty labelText propertyText =
     column propertyStyle
-        [ el propertyLabelStyle (Element.text labelText)
-        , el propertyTextStyle (Element.text propertyText)
+        [ el propertyLabelStyle (Html.text labelText)
+        , el propertyTextStyle (Html.text propertyText)
         ]
 
 
-paragraphProperty : String -> String -> Element msg
+paragraphProperty : String -> String -> Html msg
 paragraphProperty labelText propertyText =
     column propertyStyle
-        [ el propertyLabelStyle (Element.text labelText)
-        , Element.paragraph propertyTextStyle
-            [ Element.text propertyText ]
+        [ el propertyLabelStyle (Html.text labelText)
+        , Html.paragraph propertyTextStyle
+            [ Html.text propertyText ]
         ]
 
 linkButtonRight url caption =
@@ -139,20 +133,20 @@ messaageButtonCenter msg caption =
 messageButton attributes msg caption =
     Input.button (buttonStyle ++ attributes)
     { onPress = Just msg
-    , label = Element.text (String.toUpper caption)
+    , label = Html.text (String.toUpper caption)
     }
 
-warning : String -> Element msg
+warning : String -> Html msg
 warning caption =
-    el warningStyle (Element.text caption)
+    el warningStyle (Html.text caption)
 
-conditional : Element msg -> Bool -> Element msg
+conditional : Html msg -> Bool -> Html msg
 conditional element shouldShow =
         if shouldShow then
             element
         else
-            Element.none
+            Html.none
 
-link : List (Attribute msg) -> String -> String -> Element msg
+link : List (Attribute msg) -> String -> String -> Html msg
 link styles url label =
-    Element.link (linkStyle ++ styles) { url = url, label = Element.text label }
+    Html.link (linkStyle ++ styles) { url = url, label = Html.text label }
