@@ -41,6 +41,7 @@ type alias ChatMessage =
     { body : String
     , authorId : Int
     , conversationId : Int
+    , authorName : String
     , timeStamp : String
     }
 
@@ -57,6 +58,7 @@ type alias Message =
 type alias PostMessage =
     { convId : Int
     , authorId : Int
+    , authorName : String
     , time : String
     , message : String
     }
@@ -103,7 +105,8 @@ encodeMessage x =
     Encode.object
         [ ( "conversationId", Encode.int x.convId )
         , ( "authorId", Encode.int x.authorId )
-        , ( "timeStamp", Encode.string x.time)
+        , ( "authorName", Encode.string x.authorName )
+        , ( "timeStamp", Encode.string x.time )
         , ( "body", Encode.string x.message )
         ]
 
@@ -126,6 +129,7 @@ chatMessageDecoder =
         |> Pipeline.required "body" Decode.string
         |> Pipeline.required "authorId" Decode.int
         |> Pipeline.required "conversationId" Decode.int
+        |> Pipeline.required "authorName" Decode.string
         |> Pipeline.required "timeStamp" Decode.string
 
 

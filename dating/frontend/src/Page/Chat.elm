@@ -84,7 +84,7 @@ update msg model =
             case (Debug.log "response: "result) of
                 Ok responseString ->
                     ( { model | content = (
-                        [(ChatMessage model.newMessageText model.idYou 0 (toUtcString model.time model.zone))] ++
+                        [(ChatMessage model.newMessageText model.idYou 0 model.username (toUtcString model.time model.zone))] ++
                         model.content
                         )
                         , newMessageText = ""
@@ -198,7 +198,7 @@ sendMessage model =
                     Http.send HandleMessageSent
                         ( Api.postMessage
                           userInfo
-                          (Debug.log "message: "(PostMessage 0 model.idYou (toUtcString model.time model.zone) model.newMessageText))
+                          (Debug.log "message: "(PostMessage 0 model.idYou model.username (toUtcString model.time model.zone) model.newMessageText))
                           model.idFriend
                         )
                 Session.Guest _ ->

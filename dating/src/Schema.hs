@@ -49,6 +49,7 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
   Message json sql=messages
     conversationId ConversationId
     authorId       UserId
+    authorName     Text
     timeStamp      UTCTime
     body           Text
     deriving Show Read Eq Generic

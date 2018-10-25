@@ -197,6 +197,7 @@ fetchMessagesBetweenPG pgInfo ownUserId otherUserIdInt64 = fmap entityVal <$> ru
     selectAction = P.rawSql (T.pack stmt) (PersistInt64 <$> sort [ownUserIdInt64, otherUserIdInt64])
     stmt = "SELECT ?? " ++
            "FROM conversations JOIN messages ON conversations.id = messages.conversation_id " ++
+           "JOIN users ON users.id = messages.author_id " ++
            "WHERE ? = conversations.user_one_id AND ? = conversations.user_two_id " ++
            "ORDER BY messages.time_stamp DESC; "
 
