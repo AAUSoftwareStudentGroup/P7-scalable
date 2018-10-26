@@ -9,7 +9,7 @@ import DatingApi exposing (getRecentMessages, Message)
 import Http
 import Task as Task
 import Time as Time
-
+import UI.Elements as El
 
 -- MODEL
 type alias Model = 
@@ -79,9 +79,8 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ div []
+        El.contentWithHeader "Messages"
             (List.map viewMessage model.content)
-        ]
     }
 
 

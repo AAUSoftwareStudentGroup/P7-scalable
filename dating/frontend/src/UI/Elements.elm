@@ -66,7 +66,12 @@ footer =
 
 content : (a -> msg) -> List (Html a) -> Html msg
 content toMsg children =
-    Html.map toMsg (div [ class "content" ] children)
+    Html.map toMsg (
+        div [ class "content-container" ]
+            [ div [ class "content" ]
+                children
+            ]
+    )
 
 
 contentWithHeader : String -> List (Html msg) -> List (Html msg)
