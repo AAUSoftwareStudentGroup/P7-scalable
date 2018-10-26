@@ -116,7 +116,7 @@ linkButtonLeft url caption =
 
 linkButton : List (Attribute msg) -> String -> String -> Html msg
 linkButton attributes url caption =
-    link ([] ++ attributes) url caption
+    link ([ class "button" ] ++ attributes) url caption
 
 messageButtonRight : msg -> String -> Html msg
 messageButtonRight msg caption =
@@ -128,7 +128,7 @@ messageButtonLeft msg caption =
 
 messageButton : List (Attribute msg) -> msg -> String -> Html msg
 messageButton attributes msg caption =
-    Html.input ([Events.onClick msg] ++ attributes)
+    Html.input ([ class "button", Events.onClick msg] ++ attributes)
         [Html.text caption]
 
 warning : String -> Html msg
