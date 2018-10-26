@@ -60,7 +60,7 @@ view model =
     { title = model.user.userUsername ++ "'s profile"
     , session = model.session
     , kids =
-        El.pageContent (model.user.userUsername ++ "'s profile")
+        El.contentWithHeader (model.user.userUsername ++ "'s profile")
             [ div []
                 [ El.textProperty "Username" model.user.userUsername
                 , El.textProperty "Email" model.user.userEmail

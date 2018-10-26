@@ -106,7 +106,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.pageContent "Sign in"
+        El.contentWithHeader "Sign in"
             [ Html.form [ Events.onSubmit Submitted ]
                 [ El.validatedInput Username "text" "Username" "Username" model.username FormFieldChanged model.errors
                 , El.validatedInput Password "password" "Password" "Password" model.password FormFieldChanged model.errors

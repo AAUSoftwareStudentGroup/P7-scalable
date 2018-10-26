@@ -69,16 +69,12 @@ content toMsg children =
     Html.map toMsg (div [ class "content" ] children)
 
 
-pageContent : String -> List (Html msg) -> List (Html msg)
-pageContent heading contents =
-    [ div []
-        ([ Html.text heading ] ++ contents)
-    ]
+contentWithHeader : String -> List (Html msg) -> List (Html msg)
+contentWithHeader heading contents =
+    [ Html.h1 []
+        [ Html.text heading ]
+    ] ++ contents
 
-contentColumn : Int -> List (Html msg) -> Html msg
-contentColumn spacing children =
-    div []
-        children
 
 userCard : String -> Int -> Int -> Html msg
 userCard username userId friendId =

@@ -154,7 +154,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.pageContent "New user"
+        El.contentWithHeader "New user"
             [ Html.form [ Events.onSubmit Submitted ]
                 [ El.validatedInput Email "email" "Email" "Email" model.email FormFieldChanged model.errors
                 , El.validatedInput Username "text" "Username" "Username" model.username FormFieldChanged model.errors

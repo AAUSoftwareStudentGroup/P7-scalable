@@ -71,7 +71,7 @@ view model =
     { title = "All users"
     , session = model.session
     , kids =
-        El.pageContent "All users"
+        El.contentWithHeader "All users"
             [ ul []
                 (List.map (showUser model.session) model.users)
             ]
