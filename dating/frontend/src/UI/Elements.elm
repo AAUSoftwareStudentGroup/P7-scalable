@@ -2,13 +2,12 @@ module UI.Elements exposing (..)
 
 
 import Html exposing (Html, Attribute, div)
-import Html.Attributes as Attributes exposing (..)
+import Html.Attributes as Attributes exposing (class)
 import Html.Events as Events
 import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
 import Session exposing (Session)
-import UI.Styles as Styles exposing (..)
 
 
 site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
@@ -17,7 +16,6 @@ site toMsg children session =
     , content toMsg children
     , footer
     ]
-
 
 
 header : Session -> Html msg
@@ -30,13 +28,15 @@ header session =
 
 headerLogo : Html msg
 headerLogo =
-    link []
-        (Routing.routeToString Home) "Dating"
+    div [ class "header-logo" ]
+        [ link []
+            (Routing.routeToString Home) "Dating"
+        ]
 
 
 headerNav : Session -> Html msg
 headerNav session =
-    div []
+    Html.nav []
         (headerNavLinks session)
 
 
@@ -66,7 +66,7 @@ footer =
 
 content : (a -> msg) -> List (Html a) -> Html msg
 content toMsg children =
-    Html.map toMsg (div [] children)
+    Html.map toMsg (div [ class "content" ] children)
 
 
 pageContent : String -> List (Html msg) -> List (Html msg)
@@ -141,7 +141,7 @@ conditional element shouldShow =
 
 link : List (Attribute msg) -> String -> String -> Html msg
 link attributes url label =
-    Html.a ([href url] ++ attributes) [Html.text label]
+    Html.a ([Attributes.href url] ++ attributes) [Html.text label]
 
 validatedInput : fieldType -> String -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) ->  Html msg
 validatedInput field typ caption placeholder value toMsg errors =

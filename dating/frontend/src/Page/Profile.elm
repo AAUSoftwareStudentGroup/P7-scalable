@@ -11,7 +11,6 @@ import DatingApi as Api exposing (Gender(..), User)
 import Routing exposing (Route(..))
 import Session exposing (Session, Details)
 import UI.Elements as El
-import UI.Styles exposing (centeredFillStyle)
 
 
 type alias Model =

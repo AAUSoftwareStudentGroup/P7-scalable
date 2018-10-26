@@ -12,7 +12,6 @@ import DatingApi as Api exposing (User, Credentials)
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
-import UI.Styles exposing (formInputStyle, centeredFillStyle, acceptButtonStyle)
 
 
 -- MODEL
