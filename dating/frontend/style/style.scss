@@ -1,4 +1,97 @@
-body {
-	background: tomato;
-	test: hest;
+$header_color: #ca7676;
+$header_color_darker: #b56b6b;
+
+html, body  {
+	padding: 0;
+	margin: 0;
+	font-size: 12pt;
+}
+
+header {
+	height: 4em;
+	background: $header_color;
+	position: relative;
+
+	& > * {
+		line-height: 4em;
+	}
+	
+	.header-logo {
+		float: left;
+		margin-left: 1em;
+	}
+
+	nav {
+		float: right;
+
+		a {
+			text-decoration: none;
+		    border-radius: 0.2em;
+		    color: black;
+			background-color: $header_color_darker;
+		    margin-right: 1em;
+		    padding: 0.25em 0.75em;
+
+		    transition: box-shadow .25s;
+			box-shadow: black 1px 1px 0;
+
+		    &:hover {
+    			box-shadow: black 3px 3px 0;
+		    }
+
+		}
+	}
+}
+
+.content-container {
+	min-height: 4em;
+	padding: 0 1em;
+	background: white;
+	margin-bottom: 4em;
+	padding-bottom: 1em;
+	.content {
+		max-width: 1170px;
+	    background: #f5f2ec;
+	    border-radius: 0.5em;
+	    padding: 1em;
+	    margin: 1em auto;
+    	box-shadow: black 6px 6px 15px -12px;
+	}
+}
+
+footer {
+	position: fixed;
+	z-index: -1;
+	bottom: 0;
+	width: 100%;
+	background-color: $header_color;
+	padding: 1em;
+	background: potato;
+}
+
+// hides the debug box
+footer + div {
+	display: none;
+}
+
+.button {
+	// text-decoration: none !important;
+	// color: black !important;
+	// cursor: pointer;
+	// background-color: $header_color_darker
+
+
+	text-decoration: none;
+    border-radius: 0.2em;
+    color: white;
+	background-color: #db2c2c;
+    margin-right: 1em;
+    padding: 0.25em 0.75em;
+
+    transition: box-shadow .25s;
+	box-shadow: rgba(0,0,0,0.2) 1px 1px 0;
+
+    &:hover {
+		box-shadow: rgba(0,0,0,0.2) 3px 3px 0;
+    }
 }
