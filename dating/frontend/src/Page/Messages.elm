@@ -1,7 +1,8 @@
 module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html, div)
-import Html.Attributes as Attributes
+import Html.Attributes as Attributes exposing (class)
+import Html.Keyed as Keyed
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import DatingApi exposing (getRecentMessages, Message)
@@ -80,17 +81,21 @@ view model =
     , session = model.session
     , kids =
         El.contentWithHeader "Messages"
-            (List.map viewMessage model.content)
+            [ Keyed.ul [ class "messages" ]
+                (List.map viewMessage model.content)
+            ]
     }
 
 
-viewMessage : Message -> Html msg
+
+viewMessage : Message -> (String, Html msg)
 viewMessage message =
-    --{ url = Routing.routeToString <| (Chat message.convoWithId)
-    div [ Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
+    ( String.fromInt message.convoWithId
+    , Html.li [ Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
         [ Html.text message.convoWithUsername
         , Html.text message.body
         ]
+    )
 
 
 sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd msg
