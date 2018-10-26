@@ -1,6 +1,7 @@
 module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html, div)
+import Html.Attributes as Attributes
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import DatingApi exposing (getRecentMessages, Message)
@@ -30,17 +31,11 @@ init session =
               ]
   )
 
-  {-  Time.utc
-    (Time.millisToPosix 0)
-  , Cmd.batch [ Task.perform AdjustTimeZone Time.here
-              , Task.perform FetchMessages Time.now
-              ]
--}
+
 -- UPDATE
 type Msg
     = NoOp
     | HandleGetMessages (Result Http.Error (List Message))
-    | SessionChanged Session
     | FetchMessages Time.Posix
     | AdjustTimeZone Time.Zone
 
@@ -57,16 +52,7 @@ update msg model =
 
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( model, Cmd.none )
-        SessionChanged session ->
-            case session of
-                Session.Guest key ->
-                     ( { model | session = session }
-                     , Routing.replaceUrl key (Routing.routeToString Home)
-                     )
-                Session.LoggedIn key _ ->
-                     ( { model | session = session }
-                     , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                     )
+
         FetchMessages newTime ->
             case (model.session) of
                 Session.Guest _ ->
@@ -83,9 +69,7 @@ update msg model =
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [ Session.onChange SessionChanged (Session.getNavKey model.session)
-              , Time.every 3000 FetchMessages
-              ]
+    Time.every 3000 FetchMessages
 
 
 
@@ -103,8 +87,9 @@ view model =
 
 viewMessage : Message -> Html msg
 viewMessage message =
-    div []
-        [ Html.text message.convoWith
+    --{ url = Routing.routeToString <| (Chat message.convoWithId)
+    div [ Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
+        [ Html.text message.convoWithUsername
         , Html.text message.body
         ]
 

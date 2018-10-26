@@ -59,7 +59,6 @@ type Msg
     | UnsentMessageChanged String
     | SubmitMessage
     | HandleMessageSent (Result Http.Error (String.String))
-    | SessionChanged Session
     | FetchMessages Time.Posix
     | HandleFetchedMessages (Result Http.Error (List ChatMessage))
     | AdjustTimeZone Time.Zone
@@ -81,7 +80,7 @@ update msg model =
             case (Debug.log "response: "result) of
                 Ok responseString ->
                     ( { model | content = (
-                        [(ChatMessage model.unsentMessage model.idYou 0 (toUtcString model.time model.zone))] ++
+                        [(ChatMessage model.unsentMessage model.idYou 0 model.username (toUtcString model.time model.zone))] ++
                         model.content
                         )
                         , unsentMessage = ""
@@ -89,17 +88,6 @@ update msg model =
                     , Cmd.none)
                 Err _ ->
                     ( model , Cmd.none  )
-
-        SessionChanged session ->
-            case session of
-                Session.Guest key ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString Home)
-                    )
-                Session.LoggedIn key _ ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                    )
 
         FetchMessages newTime ->
             case (model.session) of
@@ -125,10 +113,7 @@ update msg model =
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ Session.onChange SessionChanged (Session.getNavKey model.session)
-        , Time.every 3000 FetchMessages
-        ]
+    Time.every 3000 FetchMessages
 
 
 
@@ -150,8 +135,6 @@ view model =
         ]
     }
 
-
-
 viewMessage : Model -> ChatMessage -> (String, Html Msg)
 viewMessage model message =
     (message.timeStamp, Html.li [] [Html.text message.body])
@@ -169,8 +152,8 @@ sendMessage model =
                 Cmd.none
 
 createMessage : Model -> PostMessage
-createMessage { idYou, time, zone, unsentMessage} =
-    PostMessage 0 idYou (toUtcString time zone) unsentMessage
+createMessage { idYou, username, time, zone, unsentMessage} =
+    PostMessage 0 idYou username (toUtcString time zone) unsentMessage
 
 toUtcString : Time.Posix -> Time.Zone -> String
 toUtcString time zone =

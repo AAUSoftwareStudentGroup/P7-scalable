@@ -61,7 +61,6 @@ type Msg
     | GenderChanged Gender
     | Submitted
     | HandleUserCreated (Result Http.Error Int)
-    | SessionChanged Session
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -106,18 +105,6 @@ update msg model =
                         Http.BadStatus statusResponse ->
                             ( { model | response = Just <| "badstatus" ++ .body statusResponse }, Cmd.none )
 
-        SessionChanged session ->
-            case session of
-                Session.Guest key ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString Home)
-                    )
-
-                Session.LoggedIn key _ ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                    )
-
 setField : Model -> FormField -> String -> Model
 setField model field value =
     case field of
@@ -137,14 +124,12 @@ setField model field value =
             { model | bio = value }
 
 
-
-
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Session.onChange SessionChanged (Session.getNavKey model.session)
+    Sub.none
 
 
 userFromValidForm : Valid Model -> User

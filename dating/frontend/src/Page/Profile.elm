@@ -25,7 +25,6 @@ type alias Model =
 type Msg
     = HandleGetUser (Result Http.Error User)
     | LogoutClicked
-    | SessionChanged Session
 
 
 init : Session -> Int -> ( Model, Cmd Msg )
@@ -50,26 +49,12 @@ update msg model =
         LogoutClicked ->
             ( model, Session.logout )
 
-        SessionChanged session ->
-            case session of
-                Session.Guest key ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString Home)
-                    )
-
-                Session.LoggedIn key _ ->
-                    ( { model | session = session }
-                    , Routing.replaceUrl key (Routing.routeToString ListUsers)
-                    )
-
-
-
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Session.onChange SessionChanged (Session.getNavKey model.session)
+    Sub.none
 
 view : Model -> Session.Details Msg
 view model =

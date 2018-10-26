@@ -22,6 +22,7 @@ import Page.Chat as Chat
 import Url
 import Session exposing (Session)
 import DatingApi as DatingApi exposing (Message, getRecentMessages)
+import Routing as Routing
 import UI.Elements as El
 
 -- MAIN
@@ -103,29 +104,32 @@ viewContent toMsg details =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [case model.page of
-        NotFound notFoundModel ->
-            Sub.map NotFoundMsg (NotFound.subscriptions notFoundModel)
+    Sub.batch [
+        case model.page of
+            NotFound notFoundModel ->
+                Sub.map NotFoundMsg (NotFound.subscriptions notFoundModel)
 
-        CreateUser createUserModel ->
-            Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
+            CreateUser createUserModel ->
+                Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
 
-        Login loginModel ->
-            Sub.map LoginMsg (Login.subscriptions loginModel)
+            Login loginModel ->
+                Sub.map LoginMsg (Login.subscriptions loginModel)
 
-        Messages messagesModel ->
-            Sub.map MessagesMsg (Messages.subscriptions messagesModel)
+            Messages messagesModel ->
+                Sub.map MessagesMsg (Messages.subscriptions messagesModel)
 
-        ListUsers listUsersModel ->
-            Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
+            ListUsers listUsersModel ->
+                Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
 
-        Profile profileModel ->
-            Sub.map ProfileMsg (Profile.subscriptions profileModel)
+            Profile profileModel ->
+                Sub.map ProfileMsg (Profile.subscriptions profileModel)
 
-        Chat chatModel ->
-            Sub.map ChatMsg (Chat.subscriptions chatModel)
+            Chat chatModel ->
+                Sub.map ChatMsg (Chat.subscriptions chatModel)
 
-    --, Time.every 1000 GetNumMessages
+        , Session.onChange SessionChanged (Session.getNavKey (getSession model))
+
+      --, Time.every 1000 GetNumMessages
     ]
 
 
@@ -143,6 +147,7 @@ type Msg
   | MessagesMsg Messages.Msg
   | ProfileMsg Profile.Msg
   | ChatMsg Chat.Msg
+  | SessionChanged Session
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List Message))
 
@@ -212,6 +217,17 @@ update message model =
                     stepChat model (Chat.update msg chat)
                 _ -> ( model, Cmd.none )
 
+        SessionChanged session ->
+            case session of
+                Session.Guest key ->
+                    ( { model | page = (replacePage model.page session) }
+                    , Routing.replaceUrl key (Routing.routeToString Routing.Home)
+                    )
+                Session.LoggedIn key _ ->
+                    ( { model | page = (replacePage model.page session) }
+                    , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
+                    )
+
         GetNumMessages newTime ->
             --(model, sendGetMessages HandleGetMessages (Debug.log "session: "(getSession model)))
             (model, Cmd.none)
@@ -224,6 +240,31 @@ update message model =
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( model, Cmd.none )
 
+
+
+replacePage : Page -> Session -> Page
+replacePage page session =
+    case page of
+        NotFound m ->
+            NotFound { m | session = session }
+
+        CreateUser m ->
+            CreateUser { m | session = session }
+
+        Login m ->
+            Login { m | session = session }
+
+        ListUsers m ->
+             ListUsers { m | session = session }
+
+        Profile m ->
+             Profile { m | session = session }
+
+        Messages m ->
+             Messages { m | session = session }
+
+        Chat m ->
+             Chat { m | session = session }
 
 
 stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )

@@ -65,12 +65,14 @@ type alias ChatMessage =
     { body : String
     , authorId : Int
     , conversationId : Int
+    , authorName : String
     , timeStamp : String
     }
 
 type alias Message =
     { body : String
-    , convoWith : String
+    , convoWithUsername : String
+    , convoWithId : Int
     , imLastAuthor : Bool
     , timeStamp : String
     }
@@ -78,6 +80,7 @@ type alias Message =
 type alias PostMessage =
     { convId : Int
     , authorId : Int
+    , authorName : String
     , time : String
     , message : String
     }
@@ -125,7 +128,8 @@ encodeMessage x =
     Encode.object
         [ ( "conversationId", Encode.int x.convId )
         , ( "authorId", Encode.int x.authorId )
-        , ( "timeStamp", Encode.string x.time)
+        , ( "authorName", Encode.string x.authorName )
+        , ( "timeStamp", Encode.string x.time )
         , ( "body", Encode.string x.message )
         ]
 
@@ -148,6 +152,7 @@ chatMessageDecoder =
         |> Pipeline.required "body" Decode.string
         |> Pipeline.required "authorId" Decode.int
         |> Pipeline.required "conversationId" Decode.int
+        |> Pipeline.required "authorName" Decode.string
         |> Pipeline.required "timeStamp" Decode.string
 
 
@@ -155,7 +160,8 @@ messageDecoder : Decoder Message
 messageDecoder =
     Decode.succeed Message
         |> Pipeline.required "body" Decode.string
-        |> Pipeline.required "convoWith" Decode.string
+        |> Pipeline.required "convoWithUsername" Decode.string
+        |> Pipeline.required "convoWithId" Decode.int
         |> Pipeline.required "imLastAuthor" Decode.bool
         |> Pipeline.required "timeStamp" Decode.string
 

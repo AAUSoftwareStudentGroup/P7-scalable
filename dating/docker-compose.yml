@@ -1,6 +1,7 @@
 version: '3'
 services:
     postgres:
+        restart: always
         image: postgres:9.6
         ports:
           - "5432:5432"
@@ -8,6 +9,9 @@ services:
           - POSTGRES_USER=datingdbuser
           - POSTGRES_PASSWORD=datingdbpassword
           - POSTGRES_DB=datingdb
+        volumes:
+          - ./docker/postgres/data:/var/lib/postgresql
+
     redis:
       image: redis:4.0
       ports:
