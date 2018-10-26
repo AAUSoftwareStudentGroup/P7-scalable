@@ -50,4 +50,8 @@ services:
             - "8001:8000"
         #command: "bash -c \"ls -lah ./**/*.elm\""
         command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.js --debug\\\"\""
+    sass:
+      image: larryprice/sass
+      volumes:
+        - ./frontend/style:/src
 
