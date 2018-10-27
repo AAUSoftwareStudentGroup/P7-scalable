@@ -1,8 +1,9 @@
-{-# LANGUAGE DeriveAnyClass      #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE DerivingStrategies  #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE DerivingStrategies    #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 module Database where
 
@@ -11,7 +12,7 @@ import           Control.Monad.IO.Class      (MonadIO, liftIO)
 import           Control.Monad.Logger        (LogLevel (..), LoggingT,
                                               MonadLogger, filterLogger,
                                               runStdoutLoggingT)
-import           Control.Monad.Reader        (runReaderT, ReaderT)
+import           Control.Monad.Reader        (ReaderT, runReaderT)
 import           Data.Aeson.Types            (FromJSON, ToJSON)
 import           Data.ByteString             (ByteString)
 import           Data.ByteString.Char8       (pack, unpack)
@@ -27,12 +28,13 @@ import           Data.Time.Clock             (UTCTime (..), secondsToDiffTime)
 import           Database.Esqueleto
 import           Database.Persist.Postgresql (ConnectionString, SqlPersistT,
                                               runMigration, withPostgresqlConn)
-import qualified Database.Persist.Sql as P
+import qualified Database.Persist.Sql        as P
 import           Database.Redis              (ConnectInfo, Redis, connect,
                                               connectHost, defaultConnectInfo,
                                               del, runRedis, setex)
 import qualified Database.Redis              as Redis
 import           Elm                         (ElmType)
+import           FrontendTypes
 import           GHC.Generics                (Generic)
 import           Schema
 import qualified System.Random               as Random
@@ -40,14 +42,9 @@ import qualified System.Random               as Random
 type PGInfo = ConnectionString
 type RedisInfo = ConnectInfo
 
-data Credentials = Credentials { username :: Text, password :: Text}
-  deriving (Eq, Show, Generic, ToJSON, FromJSON, ElmType)
-
-data RecentMessage = RecentMessage {convoWithUsername :: Text, convoWithId :: Int64, imLastAuthor :: Bool, body :: Text, timeStamp :: UTCTime}
-  deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON, ElmType)
 
 localConnString :: PGInfo
-localConnString = "host=postgres port=5432 user=postgres dbname=postgres"
+localConnString = "host=postgres port=5432 dbname=datingdb user=datingdbuser password=datingdbpassword"
 
 logFilter :: a -> LogLevel -> Bool
 logFilter _ LevelError     = True
@@ -95,16 +92,21 @@ createUserPG pgInfo user = do
   let user' = user { userAuthToken = authToken }
   fromSqlKey <$> runAction pgInfo (insert user')
 
-fetchUserPG :: PGInfo -> Int64 -> IO (Maybe (Entity User))
-fetchUserPG pgInfo uid = runAction pgInfo selectAction
+fetchUserDataPG :: PGInfo -> Int64 -> IO (Maybe UserData)
+fetchUserDataPG pgInfo uid = runAction pgInfo selectAction
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe (Entity User))
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe UserData)
     selectAction = do
-      usersFound <- select $
+      userPartsFound <- select $
                     from $ \user -> do
                     where_ (user ^. UserId ==. valkey uid)
-                    return user
-      return $ listToMaybe $ usersFound
+                    return (user ^. UserUsername, user ^. UserId, user ^. UserGender, user ^. UserBirthday, user ^. UserTown, user ^. UserProfileText)
+      return $ (fmap toUserData . listToMaybe) userPartsFound
+
+    toUserData (username, id, gender, birthday, town, pText)
+      = UserData (unValue username) (unValKey id) (unValue gender) (unValue town) (unValue pText)
+
+unValKey = fromSqlKey . unValue
 
 fetchAllUsersPG :: PGInfo -> IO [Entity User]
 fetchAllUsersPG pgInfo = runAction pgInfo selectAction
@@ -135,16 +137,16 @@ fetchUserIdByAuthTokenPG pgInfo authToken = runAction pgInfo selectAction
         return (user ^. UserId)
       return $ listToMaybe $ fmap unValue userIdsFound
 
-fetchUserByCredentialsPG :: PGInfo -> Credentials -> IO (Maybe (Entity User))
-fetchUserByCredentialsPG pgInfo (Credentials {username = usr, password = psw}) = runAction pgInfo selectAction
+fetchLoggedInDataByCredentialDataPG :: PGInfo -> CredentialData -> IO (Maybe LoggedInData)
+fetchLoggedInDataByCredentialDataPG pgInfo (CredentialData {username = usr, password = psw})
+  = runAction pgInfo selectAction
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe (Entity User))
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe LoggedInData)
     selectAction = do
-      userFound <- select $
-                     from $ \user -> do
+      userPartsFound <- select . from $ \user -> do
                        where_ (user ^. UserUsername ==. val usr &&. user ^. UserPassword ==. val psw)
-                       return user
-      return $ listToMaybe userFound
+                       return (user ^. UserUsername, user ^. UserId, user ^. UserAuthToken)
+      return $ (\(uName, uId, uToken) -> LoggedInData (unValue uName) (fromSqlKey . unValue $ uId) (unValue uToken)) <$> listToMaybe userParsFound
 
 
 -- Conversations
@@ -202,8 +204,8 @@ fetchMessagesBetweenPG pgInfo ownUserId otherUserIdInt64 = fmap entityVal <$> ru
            "ORDER BY messages.time_stamp DESC; "
 
 getOther :: Text -> [Text] -> Text
-getOther self [] = self
-getOther self (u:[]) = self
+getOther self []           = self
+getOther self (u:[])       = self
 getOther self (u1:u2:rest) = if self == u1 then u2 else u1
 
 userId :: Entity User -> Int64
@@ -257,19 +259,19 @@ runRedisAction redisInfo action = do
 
 -- User
 
-createUserRedis :: RedisInfo -> Int64 -> Entity User -> IO ()
-createUserRedis redisInfo uid user = runRedisAction redisInfo
+createUserDataRedis :: RedisInfo -> Int64 -> UserData -> IO ()
+createUserDataRedis redisInfo uid user = runRedisAction redisInfo
   $ void $ setex (pack . show $ uid) 3600 (pack . show $ user)
 
-fetchUserRedis :: RedisInfo -> Int64 -> IO (Maybe (Entity User))
-fetchUserRedis redisInfo uid = runRedisAction redisInfo $ do
+fetchUserDataRedis :: RedisInfo -> Int64 -> IO (Maybe UserData)
+fetchUserDataRedis redisInfo uid = runRedisAction redisInfo $ do
   result <- Redis.get (pack . show $ uid)
   case result of
     Right (Just userString) -> return $ Just (read . unpack $ userString)
     _                       -> return Nothing
 
-deleteUserRedis :: RedisInfo -> Int64 -> IO ()
-deleteUserRedis redisInfo uid = do
+deleteUserDataRedis :: RedisInfo -> Int64 -> IO ()
+deleteUserDataRedis redisInfo uid = do
   connection <- connect redisInfo
   runRedis connection $ do
     _ <- del [pack . show $ uid]

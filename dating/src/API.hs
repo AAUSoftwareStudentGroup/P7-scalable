@@ -12,48 +12,36 @@ module API where
 
 import           Control.Monad.IO.Class           (liftIO)
 import           Control.Monad.Trans.Except       (throwE)
+import           Data.ByteString                  (ByteString)
 import           Data.Int                         (Int64)
+import           Data.Map                         (Map, fromList)
+import qualified Data.Map                         as Map
 import           Data.Proxy                       (Proxy (..))
+import           Data.Text                        (Text)
 import           Database.Persist                 (Entity, Key)
 import           Network.Wai                      (Request, requestHeaders)
 import           Network.Wai.Handler.Warp         (run)
 import           Servant                          (throwError)
 import           Servant.API
+import           Servant.API.Experimental.Auth    (AuthProtect)
 import           Servant.Client
 import           Servant.Server
-
-import           Data.ByteString                  (ByteString)
-import           Data.Map                         (Map, fromList)
-import qualified Data.Map                         as Map
-import           Data.Text                        (Text)
-import           Database                         (Credentials, PGInfo,
-                                                   RecentMessage, RedisInfo,
-                                                   createMessagePG,
-                                                   userId,
-                                                   createUserPG,
-                                                   createUserRedis,
-                                                   fetchAllUsersPG,
-                                                   fetchMessagesBetweenPG,
-                                                   fetchRecentMessagesListPG,
-                                                   fetchPostgresConnection,
-                                                   fetchRedisConnection,
-                                                   fetchUserByCredentialsPG,
-                                                   fetchUserIdByAuthTokenPG,
-                                                   fetchUserPG, fetchUserRedis)
-import           Schema
-import           Servant.API.Experimental.Auth    (AuthProtect)
 import           Servant.Server.Experimental.Auth
 import           Web.Cookie                       (parseCookies)
 
+import           Database
+import           FrontendTypes
+import           Schema
+
 
 -- | The API.
-type DatingAPI = "login" :> ReqBody '[JSON] Credentials :> Post '[JSON] (Entity User)
-  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] (Entity User)
-  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [(Entity User)]
-  :<|> "users" :> ReqBody '[JSON] User :> Post '[JSON] Int64
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> ReqBody '[JSON] Message :> Post '[JSON] ()
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [RecentMessage]
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] [Message]
+type DatingAPI = "login" :> ReqBody '[JSON] CredentialData :> Post '[JSON] LoggedInData
+  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] UserData
+  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [UserData]
+  :<|> "users" :> ReqBody '[JSON] CreateUserData :> Post '[JSON] LoggedInData
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> ReqBody '[JSON] MessageData :> Post '[JSON] ()
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewData]
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] [MessageData]
 
 
 -- | A proxy for the API. Technical detail.
@@ -62,7 +50,7 @@ datingAPI = Proxy :: Proxy DatingAPI
 
 
 -- | Fetches a user by id. First it tries redis, then postgres. It saves to cache if it goes to the db.
-fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler (Entity User)
+fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler UserData
 fetchUserHandler pgInfo redisInfo _ uid = do
   maybeCachedUser <- liftIO $ fetchUserRedis redisInfo uid
   case maybeCachedUser of
@@ -74,12 +62,12 @@ fetchUserHandler pgInfo redisInfo _ uid = do
         Nothing -> Handler $ throwE $ err401 { errBody = "Could not find user with that ID"}
 
 -- | Fetches all users from db if you are authenticated.
-fetchAllUsersHandler :: PGInfo -> UserId -> Handler [Entity User]
+fetchAllUsersHandler :: PGInfo -> UserId -> Handler [UserData]
 fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 
 
 -- | Creates a user in the db.
-createUserHandler :: PGInfo -> User -> Handler Int64
+createUserHandler :: PGInfo -> User -> Handler LoggedInData
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 
 -- | Creates a new message between two users
@@ -87,16 +75,16 @@ createMessageHandler :: PGInfo -> UserId -> Int64 -> Message -> Handler ()
 createMessageHandler pgInfo _ otherUserId msg = liftIO $ createMessagePG pgInfo otherUserId msg
 
 -- | Fetches all messages between two users.
-fetchMessagesBetweenHandler :: PGInfo -> UserId -> Int64 -> Handler [Message]
+fetchMessagesBetweenHandler :: PGInfo -> UserId -> Int64 -> Handler [MessageData]
 fetchMessagesBetweenHandler pgInfo ownUserId otherUserId = liftIO $
   fetchMessagesBetweenPG pgInfo ownUserId otherUserId
 
-fetchRecentMessagesHandler :: PGInfo -> UserId -> Handler [RecentMessage]
+fetchRecentMessagesHandler :: PGInfo -> UserId -> Handler [ConversationPreviewData]
 fetchRecentMessagesHandler pgInfo ownUserId = liftIO $ fetchRecentMessagesListPG pgInfo ownUserId
 
 
--- | Returns an authToken when given correct credentials
-loginHandler :: PGInfo -> Credentials -> Handler (Entity User)
+-- | Returns an LoggedInData when given correct credentials
+loginHandler :: PGInfo -> CredentialData -> Handler LoggedInData
 loginHandler pgInfo credentials = do
   maybeUser <- liftIO $ fetchUserByCredentialsPG pgInfo credentials
   case maybeUser of
