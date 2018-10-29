@@ -1,23 +1,22 @@
 module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
-import DatingApi as Api exposing (Gender(..), User, emptyUser, genderToString)
 import Html exposing (Html, div)
 
 import Http
 import String
 
-import DatingApi as Api exposing (Gender(..), User)
+import Api.Users exposing (User)
+import Api.Types exposing (Gender(..))
 import Routing exposing (Route(..))
 import Session exposing (Session, Details)
 import UI.Elements as El
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , id : Int
-    , user : User
+    { session   : Session
+    , title     : String
+    , user      : User
     }
 
 
@@ -28,7 +27,7 @@ type Msg
 
 init : Session -> Int -> ( Model, Cmd Msg )
 init session id =
-    ( Model session "Profile" id emptyUser
+    ( Model session "Profile" Api.Users.emptyUser
     , sendGetUser HandleGetUser id session
     )
 
@@ -42,7 +41,7 @@ update msg model =
                     ( { model | user = fetchedUser }, Cmd.none )
 
                 Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }
+                    Debug.log (Debug.toString errResponse) ( { model | user = Api.Users.emptyUser }
                     , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home ) )
 
         LogoutClicked ->
@@ -57,17 +56,16 @@ subscriptions model =
 
 view : Model -> Session.Details Msg
 view model =
-    { title = model.user.userUsername ++ "'s profile"
+    { title = model.user.username ++ "'s profile"
     , session = model.session
     , kids =
-        El.contentWithHeader (model.user.userUsername ++ "'s profile")
+        El.contentWithHeader (model.user.username ++ "'s profile")
             [ div []
-                [ El.textProperty "Username" model.user.userUsername
-                , El.textProperty "Email" model.user.userEmail
-                , El.textProperty "Gender" (genderToString model.user.userGender)
-                , El.textProperty "Birthday" model.user.userBirthday
-                , El.textProperty "Town" model.user.userTown
-                , El.paragraphProperty "Description" model.user.userProfileText
+                [ El.textProperty "Username" model.user.username
+                , El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
+                , El.textProperty "Birthday" model.user.birthday
+                , El.textProperty "Town" model.user.town
+                , El.paragraphProperty "Description" model.user.profileText
                 , chatButton model.user.userId model.session
                 ]
             ]
@@ -84,7 +82,7 @@ sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
 sendGetUser responseMsg userId session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (Api.getUserById userId userInfo)
+            Http.send responseMsg (Api.Users.getUserById userId userInfo)
 
         Session.Guest _ ->
             Cmd.none

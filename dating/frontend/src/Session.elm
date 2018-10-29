@@ -6,8 +6,9 @@ import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
 
-import DatingApi as Api exposing (User, UserInfo)
-
+--import DatingApi as Api exposing (User, UserInfo)
+import Api.Types exposing (UserInfo)
+import Api.Users
 
 -- TYPES
 type Session
@@ -64,9 +65,9 @@ getUsername session =
 
 port storeLocally : Maybe Encode.Value -> Cmd msg
 
-login : User -> Cmd msg
-login user =
-    storeLocally (Just (encodeUserInfo (userInfoFromUser user)))
+login : UserInfo -> Cmd msg
+login userInfo =
+    storeLocally (Just (Api.Users.encodeUserInfo userInfo))
 
 
 logout : Cmd msg
@@ -100,24 +101,6 @@ createSessionFromLocalStorageValue maybeValue key =
 decodeLocalStorageSession : Encode.Value -> Result Decode.Error UserInfo
 decodeLocalStorageSession val =
     Decode.decodeValue Decode.string val
-      |> Result.andThen(\str -> Decode.decodeString userInfoDecoder str)
+      |> Result.andThen(\str -> Decode.decodeString Api.Users.decodeUserInfo str)
 
 
-userInfoFromUser : User -> UserInfo
-userInfoFromUser user =
-    UserInfo user.userId user.userAuthToken user.userUsername
-
-userInfoDecoder : Decoder UserInfo
-userInfoDecoder =
-    succeed UserInfo
-        |> required "userId" Decode.int
-        |> required "authToken" Decode.string
-        |> required "userUsername" Decode.string
-
-encodeUserInfo : UserInfo -> Encode.Value
-encodeUserInfo userInfo =
-    Encode.object
-        [ ( "userId", Encode.int userInfo.userId )
-        , ( "authToken", Encode.string userInfo.authToken )
-        , ( "userUsername", Encode.string userInfo.username )
-        ]

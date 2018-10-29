@@ -10,9 +10,9 @@ import Session exposing (Session, Details)
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , content : Content
+    { session   : Session
+    , title     : String
+    , content   : Content
     }
 
 

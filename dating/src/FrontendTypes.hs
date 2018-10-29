@@ -47,7 +47,7 @@ data CredentialData = CredentialData
 
 data LoggedInData = LoggedInData
   { username  :: Text
-  , userId    :: Text
+  , userId    :: Int64
   , authToken :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 

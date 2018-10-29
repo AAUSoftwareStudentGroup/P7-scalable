@@ -9,22 +9,23 @@ import String as String
 import Task as Task
 import Time as Time
 
-import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
+--import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
+import Api.Messages exposing (Message)
+import Api.Users
+
 import Routing exposing (Route(..))
 import Session as Session exposing (Session, Details)
 import UI.Elements as El
 
 -- MODEL
 type alias Model =
-    { session : Session
-    , title : String
-    , content : List ChatMessage
-    , idYou : Int
-    , idFriend : Int
-    , username : String
-    , unsentMessage: String
-    , zone : Time.Zone
-    , time : Time.Posix
+    { session           : Session
+    , title             : String
+    , content           : List Message
+    , idFriend          : Int
+    , unsentMessage     : String
+    , zone              : Time.Zone
+    , time              : Time.Posix
     }
 
 init : Session -> Int -> ( Model, Cmd Msg )
@@ -32,9 +33,7 @@ init session idFriend =
   ( Model (Debug.log "messages session:" session)
     "Messages"
     []
-    (Maybe.withDefault -1 (Session.getUserId session))
     idFriend
-    (Maybe.withDefault "" (Session.getUsername session))
     ""
     Time.utc
     (Time.millisToPosix 0)
@@ -60,7 +59,7 @@ type Msg
     | SubmitMessage
     | HandleMessageSent (Result Http.Error (String.String))
     | FetchMessages Time.Posix
-    | HandleFetchedMessages (Result Http.Error (List ChatMessage))
+    | HandleFetchedMessages (Result Http.Error (List Message))
     | AdjustTimeZone Time.Zone
 
 
@@ -79,12 +78,7 @@ update msg model =
         HandleMessageSent result ->
             case (Debug.log "response: "result) of
                 Ok responseString ->
-                    ( { model | content = (
-                        [(ChatMessage model.unsentMessage model.idYou 0 model.username (toUtcString model.time model.zone))] ++
-                        model.content
-                        )
-                        , unsentMessage = ""
-                      }
+                    ( { model | unsentMessage = "" }
                     , Cmd.none)
                 Err _ ->
                     ( model , Cmd.none  )
@@ -95,7 +89,7 @@ update msg model =
                     ( { model | time = newTime }, Cmd.none)
                 Session.LoggedIn _ userInfo ->
                     ( { model | time = (Debug.log "current time: " newTime) }
-                    , Http.send HandleFetchedMessages (Api.getMessagesFromId userInfo model.idFriend)
+                    , Http.send HandleFetchedMessages (Api.Messages.getMessagesFromId userInfo model.idFriend)
                     )
 
         HandleFetchedMessages result ->
@@ -135,7 +129,7 @@ view model =
         ]
     }
 
-viewMessage : Model -> ChatMessage -> (String, Html Msg)
+viewMessage : Model -> Message -> (String, Html Msg)
 viewMessage model message =
     (message.timeStamp, Html.li [] [Html.text message.body])
 
@@ -147,13 +141,10 @@ sendMessage model =
     else
         case model.session of
             Session.LoggedIn _ userInfo ->
-                Http.send HandleMessageSent (Api.postMessage userInfo (Debug.log "message " (createMessage model)) model.idFriend )
+                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.idFriend )
             Session.Guest _ ->
                 Cmd.none
 
-createMessage : Model -> PostMessage
-createMessage { idYou, username, time, zone, unsentMessage} =
-    PostMessage 0 idYou username (toUtcString time zone) unsentMessage
 
 toUtcString : Time.Posix -> Time.Zone -> String
 toUtcString time zone =

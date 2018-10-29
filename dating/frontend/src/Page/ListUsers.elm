@@ -10,7 +10,7 @@ import String.Extra exposing (toSentenceCase)
 import List exposing (map)
 import Url
 
-import DatingApi as Api exposing (User)
+import Api.Users exposing (User)
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
@@ -21,9 +21,9 @@ import UI.Elements as El
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , users : List User
+    { session   : Session
+    , title     : String
+    , users     : List User
     }
 
 
@@ -81,13 +81,13 @@ view model =
 
 showUser : Session -> User -> (String, Html Msg)
 showUser session user =
-    (user.userUsername, El.userCard user.userUsername user.userId (Maybe.withDefault -1 (Session.getUserId session)))
+    (user.username, El.userCard user.username user.userId (Maybe.withDefault -1 (Session.getUserId session)))
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
 sendGetUsers responseMsg session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (Api.getUsers userInfo)
+            Http.send responseMsg (Api.Users.getUsers userInfo)
         Session.Guest _ ->
             Cmd.none

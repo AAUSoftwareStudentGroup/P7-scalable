@@ -3,22 +3,23 @@ module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view
 import Html exposing (Html, div)
 import Html.Attributes as Attributes exposing (class)
 import Html.Keyed as Keyed
-import Session exposing (Session, Details)
-import Routing exposing (Route(..))
-import DatingApi exposing (getRecentMessages, Message)
-
 import Http
 import Task as Task
 import Time as Time
 import UI.Elements as El
 
+
+import Session exposing (Session, Details)
+import Routing exposing (Route(..))
+import Api.Messages exposing (ConversationPreview)
+
 -- MODEL
 type alias Model = 
-    { session : Session
-    , title : String
-    , content : List Message
-    , zone : Time.Zone
-    , time : Time.Posix
+    { session   : Session
+    , title     : String
+    , content   : List ConversationPreview
+    , zone      : Time.Zone
+    , time      : Time.Posix
     }
 
 
@@ -36,7 +37,7 @@ init session =
 -- UPDATE
 type Msg
     = NoOp
-    | HandleGetMessages (Result Http.Error (List Message))
+    | HandleGetMessages (Result Http.Error (List ConversationPreview))
     | FetchMessages Time.Posix
     | AdjustTimeZone Time.Zone
 
@@ -88,7 +89,7 @@ view model =
 
 
 
-viewMessage : Message -> (String, Html msg)
+viewMessage : ConversationPreview -> (String, Html msg)
 viewMessage message =
     ( String.fromInt message.convoWithId
     , Html.li [ Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
@@ -98,10 +99,10 @@ viewMessage message =
     )
 
 
-sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd msg
+sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (getRecentMessages userInfo)
+            Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
         Session.Guest _ ->
             Cmd.none
