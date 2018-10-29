@@ -2,7 +2,7 @@ module UI.Elements exposing (..)
 
 
 import Html exposing (Html, Attribute, div)
-import Html.Attributes as Attributes exposing (class)
+import Html.Attributes as Attributes exposing (class, classList)
 import Html.Events as Events
 import String.Extra exposing (toSentenceCase)
 
@@ -12,9 +12,11 @@ import Session exposing (Session)
 
 site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
 site toMsg children session =
-    [ header session
-    , content toMsg children
-    , footer
+    [ div [class "main-wrapper" ]
+        [ header session
+        , content toMsg children
+        , footer
+        ]
     ]
 
 
@@ -67,16 +69,14 @@ footer =
 content : (a -> msg) -> List (Html a) -> Html msg
 content toMsg children =
     Html.map toMsg (
-        div [ class "content-container" ]
-            [ div [ class "content" ]
-                children
-            ]
+        div [ class "content-container", class "grid" ]
+            children
     )
 
 
 contentWithHeader : String -> List (Html msg) -> List (Html msg)
 contentWithHeader heading contents =
-    [ Html.h1 []
+    [ Html.h1 [ class "l-12"]
         [ Html.text heading ]
     ] ++ contents
 
@@ -131,52 +131,39 @@ messageButton attributes msg caption =
     Html.input ([ class "button", Events.onClick msg] ++ attributes)
         [Html.text caption]
 
-warning : String -> Html msg
-warning caption =
-    Html.span []
-        [Html.text caption]
-
-conditional : Html msg -> Bool -> Html msg
-conditional element shouldShow =
-    element
 
 link : List (Attribute msg) -> String -> String -> Html msg
 link attributes url label =
     Html.a ([Attributes.href url] ++ attributes) [Html.text label]
 
-validatedInput : fieldType -> String -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) ->  Html msg
-validatedInput field typ caption placeholder value toMsg errors =
-    div []
-        [ Html.label []
-            [ Html.text caption
-            , simpleInput typ placeholder value (toMsg field)
+
+validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
+validatedInput field typ caption value toMsg errors showErrors =
+    let
+        relevantErrors = List.filter (\( f, _ ) -> f == field) errors
+    in
+        div [ classList [("input-group", True), ("l-6", True), ( "valid", relevantErrors == [] )] ]
+            [ Html.label []
+                [ simpleInput typ caption value (toMsg field)
+                , Html.span [ class "label" ]
+                    [ Html.text caption ]
+                , Html.span [ class "border" ] []
+                ]
+            , Html.ul [ classList [("hidden", not showErrors)] ]
+                (List.map fieldError relevantErrors)
             ]
-        , fieldErrors field errors
-        ]
-
-fieldErrors : a -> List ((a, String)) -> Html msg
-fieldErrors filterField errors =
-    Html.ul []
-        (List.map fieldError (List.filter (\( field, _ ) -> field == filterField) errors))
 
 
-fieldError : (a, String) -> Html msg
+
+fieldError : (fieldtype, String) -> Html msg
 fieldError ( _, errorDesc) =
     Html.li []
         [ Html.text errorDesc ]
 
-labeledInput : String -> String -> String -> String -> (String -> msg) -> Html msg
-labeledInput typ caption placeholder value toMsg =
-    div []
-        [ Html.label []
-            [ Html.text caption
-            , simpleInput typ placeholder value toMsg
-            ]
-        ]
 
 labelledRadio : String -> (a -> msg) -> a -> List (String, a) -> Html msg
 labelledRadio caption toMsg model options =
-    div []
+    div [ class "radio-group" ]
         [ Html.label []
             ([ Html.text caption ] ++ List.map (\(name, value) -> radio name toMsg model value) options)
         ]
@@ -184,13 +171,17 @@ labelledRadio caption toMsg model options =
 
 radio : String -> (a -> msg) -> a -> a -> Html msg
 radio caption toMsg model value =
-    Html.label []
-      [ Html.input [ Attributes.type_ "radio", Attributes.checked (model == value), Events.onClick (toMsg value) ] []
-      , Html.text caption
-      ]
+    let
+        id = caption ++ "-radio-input-id"
+    in
+        div [ class "radio-label-group" ]
+            [ Html.label [Attributes.for id]
+                [ Html.text caption ]
+            , Html.input [ Attributes.type_ "radio", Attributes.id id, Attributes.checked (model == value), Events.onClick (toMsg value) ] []
+            ]
 
 simpleInput : String -> String -> String -> (String -> msg) -> Html msg
-simpleInput typ placeholder value toMsg  =
+simpleInput typ placeholder value toMsg =
     if typ == "multiline" then
         Html.textarea [ Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
     else

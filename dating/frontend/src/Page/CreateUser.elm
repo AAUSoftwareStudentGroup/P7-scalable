@@ -2,7 +2,7 @@ module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, vi
 
 import DatingApi as Api exposing (Gender(..), User)
 import Html exposing (Html, div)
-import Html.Attributes as Attributes
+import Html.Attributes as Attributes exposing (class)
 import Html.Events as Events exposing (onClick)
 import Validate exposing (Validator, Valid)
 import String
@@ -23,6 +23,7 @@ type alias Model =
     , title : String
     , response : Maybe String
     , errors : List (Error)
+    , attemptedSubmission: Bool
     , email : String
     , username : String
     , password1 : String
@@ -46,9 +47,10 @@ type FormField
     | City
     | Bio
 
+
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "" Nothing [] "" "" "" "" Male "" "" ""
+    ( updateErrors (Model session "New user" Nothing [] False "" "" "" "" Male "" "" "")
     , Cmd.none
     )
 
@@ -67,7 +69,9 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FormFieldChanged field value ->
-            ( setField model field value, Cmd.none )
+            ( updateErrors <| setField model field value
+            , Cmd.none
+            )
 
         GenderChanged newGender ->
             ( { model | gender = newGender }, Cmd.none )
@@ -79,7 +83,7 @@ update msg model =
                     , sendCreateUser HandleUserCreated (userFromValidForm validForm)
                     )
                 Err errors ->
-                    ( { model | errors = errors }
+                    ( { model | errors = errors, attemptedSubmission = True }
                     , Cmd.none
                     )
 
@@ -100,10 +104,11 @@ update msg model =
                             ( { model | response = Just "timeout" }, Cmd.none )
 
                         Http.NetworkError ->
-                            ( { model | response = Just "networkerror" }, Cmd.none )
+                            ( { model | response = Just "networkerror (server probably crashed)" }, Cmd.none )
 
                         Http.BadStatus statusResponse ->
                             ( { model | response = Just <| "badstatus" ++ .body statusResponse }, Cmd.none )
+
 
 setField : Model -> FormField -> String -> Model
 setField model field value =
@@ -124,6 +129,14 @@ setField model field value =
             { model | bio = value }
 
 
+updateErrors : Model -> Model
+updateErrors model =
+    case Validate.validate modelValidator model of
+        Ok validForm ->
+            { model | errors = [] }
+        Err errors ->
+            { model | errors = errors }
+
 -- SUBSCRIPTIONS
 
 
@@ -140,65 +153,9 @@ userFromModel : Model -> User
 userFromModel { email, password1, username, gender, birthday, city, bio } =
     User email password1 username gender birthday city 0 bio "token"
 
-
-createUserCmd : User -> Cmd Msg
-createUserCmd user =
-    Http.send HandleUserCreated (Api.postUsers user)
-
-
-
--- VIEW
-
-view : Model -> Session.Details Msg
-view model =
-    { title = model.title
-    , session = model.session
-    , kids =
-        El.contentWithHeader "New user"
-            [ Html.form [ Events.onSubmit Submitted ]
-                [ El.validatedInput Email "email" "Email" "Email" model.email FormFieldChanged model.errors
-                , El.validatedInput Username "text" "Username" "Username" model.username FormFieldChanged model.errors
-                , El.validatedInput Password1 "password" "Password" "Password" model.password1 FormFieldChanged model.errors
-                , El.validatedInput Password2 "password" "Repeat password" "Password" model.password2 FormFieldChanged model.errors
-                , El.labelledRadio "Gender" GenderChanged model.gender
-                    [ ( "Male", Male )
-                    , ( "Female", Female )
-                    , ( "Other", Other )
-                    ]
-                , El.validatedInput Birthday "text" "Birthday" "YYYY-MM-DD" model.birthday FormFieldChanged model.errors
-                , El.validatedInput City "text" "City" "City" model.city FormFieldChanged model.errors
-                , El.validatedInput Bio "multiline" "Description" "Short description of yourself" model.bio FormFieldChanged model.errors
-                , El.submitButton "Sign up"
-                ]
-            , Html.text (responseToString model.response)
-            ]
-    }
-
--- VALIDATION
-
-modelValidator : Validator ( FormField, String ) Model
-modelValidator =
-    Validate.all
-        [ Validate.ifBlank .email ( Email, "Email can't be blank." )
-        , Validate.ifInvalidEmail .email (\_ -> ( Email, "Email is invalid." ))
-
-        , Validate.ifBlank .username ( Username, "Username can't be blank." )
-        , Validate.ifFalse (\model -> isUsernameValid model) ( Username, "Username already in use")
-
-        , Validate.ifBlank .password1 ( Password1, "Password can't be blank." )
-        , Validate.ifBlank .password2 ( Password2, "Repeated password can't be blank." )
-        , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password1, "Passwords don't match")
-        , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password2, "Passwords don't match")
-
-        , Validate.ifBlank .birthday ( Birthday, "Birthday can't be blank." )
-        , Validate.ifFalse (\model -> isDateValid model) ( Birthday, "Invalid format")
-
-        , Validate.ifBlank .city ( City, "City can't be blank." )
-
-        , Validate.ifBlank .bio ( Bio, "Description can't be blank." )
-        ]
-
-
+sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
+sendCreateUser responseMsg user =
+    Http.send responseMsg (Api.postUsers user)
 
 
 responseToString : Maybe String -> String
@@ -211,9 +168,62 @@ responseToString r =
             "No messages"
 
 
+-- VIEW
+
+view : Model -> Session.Details Msg
+view model =
+    { title = model.title
+    , session = model.session
+    , kids =
+        El.contentWithHeader model.title
+            [ Html.form [ class "l-12", class "grid", Events.onSubmit Submitted ]
+                [ El.validatedInput Email "email" "Email" model.email FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Username "text" "Username"  model.username FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Password1 "password" "Password" model.password1 FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged model.errors model.attemptedSubmission
+                , El.labelledRadio "Gender" GenderChanged model.gender
+                    [ ( "Male", Male )
+                    , ( "Female", Female )
+                    , ( "Other", Other )
+                    ]
+                , El.validatedInput Birthday "text" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Bio "multiline" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
+                , El.submitButton "Sign up"
+                ]
+            , Html.text (responseToString model.response)
+            ]
+    }
+
+
+
+-- VALIDATION
+
+modelValidator : Validator ( FormField, String ) Model
+modelValidator =
+    Validate.all
+        [ Validate.ifBlank .email ( Email, "Please enter an email" )
+        , Validate.ifInvalidEmail .email (\_ -> ( Email, "Please enter a valid email" ))
+
+        , Validate.ifBlank .username ( Username, "Please enter a username" )
+        , Validate.ifFalse (\model -> isUsernameValid model) ( Username, "Username already in use" )
+
+        , Validate.ifBlank .password1 ( Password1, "Please enter a password" )
+        , Validate.ifBlank .password2 ( Password2, "Please repeat your password" )
+        , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password2, "Passwords don't match" )
+
+        , Validate.ifBlank .birthday ( Birthday, "Please enter your birthday" )
+        , Validate.ifFalse (\model -> isDateValid model) ( Birthday, "Please enter birthday in a valid format")
+
+        , Validate.ifBlank .city ( City, "Please enter your city" )
+
+        , Validate.ifBlank .bio ( Bio, "Please write a short description" )
+        ]
+
+
 isUsernameValid : Model -> Bool
 isUsernameValid model =
-    if model.username == "Bargsteen" then
+    if model.username == "Bargsteen2" then
         False
     else
         True
@@ -241,8 +251,3 @@ isDateValid model =
         isSeparatorsNice = separators == "--"
     in
         dateLength == 10 && isYearNice && isSeparatorsNice && isMonthNice && isDayNice
-
-
-sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
-sendCreateUser responseMsg user =
-    Http.send responseMsg (Api.postUsers user)

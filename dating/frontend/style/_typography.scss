@@ -1,0 +1,96 @@
+@import url("https://fonts.googleapis.com/css?family=Roboto:300,400,600,800");
+
+$txt-size-1: 2.125rem;
+$txt-size-2: 1.5rem;
+$txt-size-3: 1.25rem;
+$txt-size-4: 1.125rem;
+$txt-size-5: 1.0rem;
+$txt-size-6: 0.875rem;
+$txt-size-7: 0.75rem;
+
+$txt-lh-1: 4rem;
+$txt-lh-2: 3rem;
+$txt-lh-3: 2.5rem;
+$txt-lh-4: 1.75rem;
+$txt-lh-5: 1.5rem;
+$txt-lh-6: 1.4rem;
+$txt-lh-7: 1.0rem;
+
+$txt-weight-light: 300;
+$txt-weight-regular: 400;
+$txt-weight-medium: 600;
+$txt-weight-bold: 800;
+
+%txt-title {
+    font-size: $txt-size-1;
+    line-height: $txt-lh-1;
+    font-weight: $txt-weight-light;
+    color: $txt-col-dark;
+}
+
+%txt-heading {
+    font-size: $txt-size-2;
+    line-height: $txt-lh-2;
+    font-weight: $txt-weight-light;
+    color: $txt-col-dark;
+}
+
+%txt-subheading {
+    font-size: $txt-size-3;
+    line-height: $txt-lh-3;
+    font-weight: $txt-weight-medium;
+    color: $txt-col-dark;
+}
+
+%txt-paragraph {
+    font-size: $txt-size-5;
+    line-height: $txt-lh-5;
+    font-weight: $txt-weight-regular;
+    color: $txt-col-dark;
+}
+
+%txt-button {
+    font-size: $txt-size-7;
+    line-height: $txt-lh-7;
+    font-weight: $txt-weight-regular;
+    color: $txt-col-dark;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+%txt-label {
+    font-size: $txt-size-6;
+    line-height: $txt-lh-6;
+    font-weight: $txt-weight-medium;
+    color: $txt-col-light;
+}
+
+html {
+    font-family: 'Roboto', sans-serif;
+    line-height: $txt-lh-5;
+
+    *, *:before, *:after {
+        font: inherit;
+    }
+
+    h1 {
+        @extend %txt-title;
+    }
+
+    h2 {
+        @extend %txt-heading;
+    }
+
+    h3 {
+        @extend %txt-subheading;
+    }
+
+    p, input {
+        @extend %txt-paragraph;
+        padding: 10px 0;
+    }
+
+    label {
+        @extend %txt-label;
+    }
+}
