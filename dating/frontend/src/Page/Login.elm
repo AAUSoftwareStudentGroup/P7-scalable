@@ -1,20 +1,17 @@
 module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser
-import Element exposing (..)
-import Element.Events as Events
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
-import Element.Region as Region
-import Html exposing (Html)
+import Html exposing (Html, div)
+import Html.Attributes as Attributes
+import Html.Events as Events
+import Validate exposing (Validator, Valid)
 import Http
 import String
 
 import DatingApi as Api exposing (User, Credentials)
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
+import UI.Elements as El
 
 
 -- MODEL
@@ -23,16 +20,25 @@ import Routing exposing (Route(..))
 type alias Model =
     { session : Session
     , title : String
+    , errors : List (Error)
     , username : String
     , password : String
     , response : Maybe String
     }
+
+type alias Error =
+    ( FormField, String )
+
+type FormField
+    = Username
+    | Password
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { session = session
       , title = "Login"
+      , errors = []
       , username = "Bargsteen"
       , password = "repsak"
       , response = Nothing
@@ -46,19 +52,27 @@ init session =
 
 
 type Msg
-    = TextChanged Model
-    | LoginClicked
+    = FormFieldChanged FormField String
+    | Submitted
     | HandleUserLogin (Result Http.Error User)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        TextChanged changedModel ->
-            ( changedModel, Cmd.none )
+        FormFieldChanged field value ->
+            ( setField model field value, Cmd.none )
 
-        LoginClicked ->
-            ( model, sendLogin (Credentials model.username model.password) )
+        Submitted ->
+            case Validate.validate modelValidator model of
+                Ok validForm ->
+                    ( { model | errors = [] }
+                    , sendLogin HandleUserLogin (credsFromValidForm validForm)
+                    )
+                Err errors ->
+                    ( { model | errors = errors }
+                    , Cmd.none
+                    )
 
         HandleUserLogin result ->
             case result of
@@ -68,6 +82,14 @@ update msg model =
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
 
+
+setField : Model -> FormField -> String -> Model
+setField model field value =
+    case field of
+        Username ->
+            { model | username = value }
+        Password ->
+            { model | password = value }
 
 
 -- SUBSCRIPTIONS
@@ -84,52 +106,25 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ viewContent model ]
+        El.contentWithHeader "Sign in"
+            [ Html.form [ Events.onSubmit Submitted ]
+                [ El.validatedInput Username "text" "Username" "Username" model.username FormFieldChanged model.errors
+                , El.validatedInput Password "password" "Password" "Password" model.password FormFieldChanged model.errors
+                , El.submitButton "Sign in"
+                ]
+            , Html.text (responseToString model.response)
+            ]
     }
 
 
-viewContent : Model -> Element Msg
-viewContent model =
-        column [ width (px 800), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ]
-            [ el
-                [ Region.heading 1
-                , centerX
-                , Font.size 36
-                ]
-                (text "Login")
-            , Input.username
-                [ spacing 12
-                ]
-                { text = model.username
-                , placeholder = Just (Input.placeholder [] (text "Username"))
-                , onChange = \new -> TextChanged { model | username = new }
-                , label = Input.labelAbove [ Font.size 14 ] (text "Username")
-                }
-            , Input.currentPassword [ spacing 12, width shrink ]
-                { text = model.password
-                , placeholder = Just (Input.placeholder [] (text "Password"))
-                , onChange = \new -> TextChanged { model | password = new }
-                , label = Input.labelAbove [ Font.size 14 ] (text "Password")
-                , show = False
-                }
-            , Input.button
-                [ Background.color red
-                , Font.color white
-                , Border.color darkBlue
-                , paddingXY 32 16
-                , Border.rounded 3
-                , width fill
-                ]
-                { onPress = Just LoginClicked
-                , label = text "Login!"
-                }
-            , link [ Font.color blue ]
-                { url = "create-user"
-                , label = text "Not yet a user? Click here to sign up."
-                }
-            , el [] (text (responseToString model.response))
-            ]
+-- VALIDATION
 
+modelValidator : Validator ( FormField, String ) Model
+modelValidator =
+    Validate.all
+        [ Validate.ifBlank .username ( Username, "Username can't be blank." )
+        , Validate.ifBlank .password ( Password, "Password can't be blank." )
+        ]
 
 handleErrorResponse : Model -> Http.Error -> Model
 handleErrorResponse model errResponse =
@@ -151,9 +146,17 @@ handleErrorResponse model errResponse =
 
 
 
-sendLogin : Credentials -> Cmd Msg
-sendLogin creds =
-    Http.send HandleUserLogin (Api.postLogin creds)
+credsFromValidForm : Valid Model -> Credentials
+credsFromValidForm validForm =
+    let
+        model = Validate.fromValid validForm
+    in
+        Credentials model.username model.password
+
+
+sendLogin : (Result Http.Error User -> msg) -> Credentials -> Cmd msg
+sendLogin responseMsg creds =
+    Http.send responseMsg (Api.postLogin creds)
 
 
 responseToString : Maybe String -> String
@@ -164,37 +167,3 @@ responseToString r =
 
         Nothing ->
             ""
-
-
-mkWarning warning =
-    el
-        [ Font.color red
-        , Font.size 14
-        , alignRight
-        , moveDown 6
-        ]
-        (text warning)
-
-
-noLabel =
-    Input.labelAbove [] none
-
-
-white =
-    Element.rgb 1 1 1
-
-
-grey =
-    Element.rgb 0.9 0.9 0.9
-
-
-blue =
-    Element.rgb 0 0 0.8
-
-
-red =
-    Element.rgb 0.8 0 0
-
-
-darkBlue =
-    Element.rgb 0 0 0.9

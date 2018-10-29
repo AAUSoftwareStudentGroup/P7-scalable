@@ -1,19 +1,18 @@
 module Page.Chat exposing (Model, Msg(..), init, subscriptions, update, view)
-import Html exposing (Html)
-import Session as Session exposing (Session, Details)
-import Routing exposing (Route(..))
-import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
+
+import Html exposing (Html, div)
+import Html.Attributes as Attributes
+import Html.Events as Events
+import Html.Keyed exposing (ul)
 import Http
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
-import Element.Events as Events
 import String as String
 import Task as Task
 import Time as Time
 
+import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
+import Routing exposing (Route(..))
+import Session as Session exposing (Session, Details)
+import UI.Elements as El
 
 -- MODEL
 type alias Model =
@@ -23,7 +22,7 @@ type alias Model =
     , idYou : Int
     , idFriend : Int
     , username : String
-    , newMessageText: String
+    , unsentMessage: String
     , zone : Time.Zone
     , time : Time.Posix
     }
@@ -57,9 +56,8 @@ init session idFriend =
 -- UPDATE
 type Msg
     = NoOp
-    | EntryChanged Model
+    | UnsentMessageChanged String
     | SubmitMessage
-    | DoNothing
     | HandleMessageSent (Result Http.Error (String.String))
     | FetchMessages Time.Posix
     | HandleFetchedMessages (Result Http.Error (List ChatMessage))
@@ -71,27 +69,25 @@ update msg model =
     case msg of
         NoOp ->
             ( model, Cmd.none )
-        EntryChanged updatedModel ->
-            (updatedModel, Cmd.none)
 
-        DoNothing ->
-            (model, Cmd.none)
+        UnsentMessageChanged new ->
+            ( { model | unsentMessage = new }, Cmd.none )
 
         SubmitMessage ->
-            (model, sendMessage <| model)
+            ( model, sendMessage model )
 
         HandleMessageSent result ->
             case (Debug.log "response: "result) of
                 Ok responseString ->
                     ( { model | content = (
-                        [(ChatMessage model.newMessageText model.idYou 0 model.username (toUtcString model.time model.zone))] ++
+                        [(ChatMessage model.unsentMessage model.idYou 0 model.username (toUtcString model.time model.zone))] ++
                         model.content
                         )
-                        , newMessageText = ""
+                        , unsentMessage = ""
                       }
                     , Cmd.none)
                 Err _ ->
-                    (model , Cmd.none)
+                    ( model , Cmd.none  )
 
         FetchMessages newTime ->
             case (model.session) of
@@ -128,87 +124,36 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ Element.column [ width (px 600), height fill, spacing 10, padding 10, centerX, alignTop ]--, explain Debug.todo ]
-          <| List.reverse ((List.map (viewMessages model) model.content)) ++
-              [ Element.row [ width (px 600), alignBottom, centerX]
-                [ Input.button
-                   [ paddingXY 10 15
-                   , Border.rounded 4
-                   , width fill
-                   , Events.onClick DoNothing
-                   ]
-                   { onPress = Just SubmitMessage
-                   , label = Input.multiline [width fill]
-                             { text = model.newMessageText
-                             , onChange = (\new -> EntryChanged { model | newMessageText = new })
-                             , placeholder = Nothing
-                             , label = Input.labelLeft [ Font.size 14, centerY ] (text "")
-                             , spellcheck = True
-                             }
-                   }
-                   , createButtonRight SubmitMessage "Create!"
-
+        [ div []
+            [ ul []
+                (List.reverse (List.map (viewMessage model) model.content))
+            , Html.form [ Events.onSubmit SubmitMessage ]
+                [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged
+                , El.submitButton "Send"
                 ]
-              ]
+            ]
         ]
     }
 
+viewMessage : Model -> ChatMessage -> (String, Html Msg)
+viewMessage model message =
+    (message.timeStamp, Html.li [] [Html.text message.body])
 
-createButtonRight : Msg -> String -> Element Msg
-createButtonRight msg caption =
-    Input.button
-        [ paddingXY 35 15
-         , Background.color primaryColorL
-         , Border.rounded 4
-         , Border.width 1
-         , Border.solid
-         , fonts
-         , Font.size 14
-         , Font.semiBold
-         , Font.color secondaryColor
-         , mouseOver [ Font.color secondaryColorD ]
-         , alignRight
-         , centerY
-         ]
-        { onPress = Just msg, label = text (String.toUpper caption) }
-
-
-viewMessages : Model -> ChatMessage -> Element Msg
-viewMessages model message =
-    column [width (fill |> maximum 255), (getPosition message.authorId model.idYou), Border.width 2, Border.rounded 20] [
-    el [centerX] (text ( "name: " ++ message.authorName)),
-    el [ padding 10, width fill,
-         Font.center
-       ] (text message.body)
-       ]
-
-
-
-getPosition : Int -> Int -> Attribute msg
-getPosition idMessage idYou =
-    case (idYou == idMessage) of
-        True ->
-            Element.alignRight
-        False ->
-            Element.alignLeft
 
 sendMessage : Model -> Cmd Msg
 sendMessage model =
-    case (String.isEmpty model.newMessageText) of
-        False ->
-            case model.session of
-                Session.LoggedIn _ userInfo ->
-                    Http.send HandleMessageSent
-                        ( Api.postMessage
-                          userInfo
-                          (Debug.log "message: "(PostMessage 0 model.idYou model.username (toUtcString model.time model.zone) model.newMessageText))
-                          model.idFriend
-                        )
-                Session.Guest _ ->
-                    Cmd.none
-        True ->
-            Cmd.none
+    if (String.isEmpty model.unsentMessage) then
+        Cmd.none
+    else
+        case model.session of
+            Session.LoggedIn _ userInfo ->
+                Http.send HandleMessageSent (Api.postMessage userInfo (Debug.log "message " (createMessage model)) model.idFriend )
+            Session.Guest _ ->
+                Cmd.none
 
+createMessage : Model -> PostMessage
+createMessage { idYou, username, time, zone, unsentMessage} =
+    PostMessage 0 idYou username (toUtcString time zone) unsentMessage
 
 toUtcString : Time.Posix -> Time.Zone -> String
 toUtcString time zone =
@@ -260,30 +205,3 @@ toUtcString time zone =
             String.fromInt (Time.toSecond zone time)
     )
     ++ "Z"
-
-
-blue =
-    Element.rgb 0.4 0.4 0.8
-
-fonts =
-    Font.family
-        [ Font.typeface "-apple-system"
-        , Font.typeface "BlinkMacSystemFont"
-        , Font.typeface "Segoe UI"
-        , Font.typeface "Roboto"
-        , Font.typeface "Oxygen-Sans"
-        , Font.typeface "Ubuntu"
-        , Font.typeface "Cantarell"
-        , Font.typeface "Helvetica Neue"
-        , Font.sansSerif
-        ]
-
-primaryColorL =
-    rgb255 255 255 255
-
-secondaryColor =
-    rgb255 96 125 139
-
-
-secondaryColorD =
-    rgb255 52 81 94

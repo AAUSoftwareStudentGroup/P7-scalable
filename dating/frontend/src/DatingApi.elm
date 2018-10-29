@@ -1,4 +1,4 @@
-port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), ChatMessage, Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getRecentMessages, postMessage)
+port module DatingApi exposing (User, UserInfo, Credentials, Gender(..), emptyUser, genderToString, stringToGender, ChatMessage, Message, PostMessage, getUserById, getUsers, getMessagesFromId, postUsers, postLogin, getRecentMessages, postMessage)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -37,6 +37,30 @@ type alias Credentials =
     , password : String
     }
 
+emptyUser : User
+emptyUser =
+    User "" "" "" Other "" "" 0 "" ""
+
+genderToString : Gender -> String
+genderToString gender =
+    case gender of
+        Male ->
+            "Male"
+        Female ->
+            "Female"
+        Other ->
+            "Other"
+
+stringToGender : String -> Gender
+stringToGender str =
+    case str of
+        "Male" ->
+            Male
+        "Female" ->
+            Female
+        _ ->
+            Other
+
 type alias ChatMessage =
     { body : String
     , authorId : Int
@@ -53,8 +77,6 @@ type alias Message =
     , timeStamp : String
     }
 
---type alias Message
-
 type alias PostMessage =
     { convId : Int
     , authorId : Int
@@ -62,6 +84,7 @@ type alias PostMessage =
     , time : String
     , message : String
     }
+
 
 apiLocation : String
 apiLocation =
@@ -328,30 +351,6 @@ getRecentMessages userInfo =
         , withCredentials =
             False
         }
-
-{-
-getConversation : UserInfo -> Int -> Int -> Http.Request (List Int)
-getConversation userInfo idYou idFriend =
-    Http.request
-        { method =
-            "GET"
-        , headers =
-            [createAuthHeader userInfo]
-        , url =
-            String.join "/"
-                [ apiLocation
-                , "messages"
-                ]
-        , body =
-            Http.emptyBody
-        , expect =
-            Http.expectJson (Decode.list messageDecoder)
-        , timeout =
-            Nothing
-        , withCredentials =
-            False
-        }
--}
 
 createAuthHeader : UserInfo -> Http.Header
 createAuthHeader userInfo =

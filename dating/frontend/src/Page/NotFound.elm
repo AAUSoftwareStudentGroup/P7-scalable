@@ -1,8 +1,6 @@
-module Page.NotFound exposing (Content(..), Messages, Model, createModel, Msg(..), init, subscriptions, toText, update, view, viewContent)
+module Page.NotFound exposing (Content(..), Messages, Model, createModel, Msg(..), init, subscriptions, update, view)
 
-import Element exposing (..)
-import Element.Font as Font
-import Html exposing (Html)
+import Html exposing (Html, div)
 import Routing exposing (..)
 import Session exposing (Session, Details)
 
@@ -69,15 +67,6 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = [ viewContent "Not Found" (Content "This page was not found.") ]
+    , kids =
+        [ Html.text "This page was not found" ]
     }
-
-
-viewContent : String -> Content -> Element msg
-viewContent title (Content message) =
-    toText message
-
-
-toText : String -> Element msg
-toText str =
-    el [ Font.size 20 ] <| text str

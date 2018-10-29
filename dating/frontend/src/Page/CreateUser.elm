@@ -1,99 +1,150 @@
 module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
-import Element.Region as Region
-import Html exposing (Html)
+import DatingApi as Api exposing (Gender(..), User)
+import Html exposing (Html, div)
+import Html.Attributes as Attributes
+import Html.Events as Events exposing (onClick)
+import Validate exposing (Validator, Valid)
+import String
 import Http
 
-import DatingApi as Api exposing (User, Gender(..))
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
+import Session exposing (Session)
+import UI.Elements as El
+
 
 
 -- MODEL
-type alias Model = 
+
+
+type alias Model =
     { session : Session
     , title : String
     , response : Maybe String
+    , errors : List (Error)
     , email : String
     , username : String
-    , password : String 
+    , password1 : String
+    , password2 : String
     , gender : Gender
     , birthday : String
-    , town : String
-    , profileText : String
+    , city : String
+    , bio : String
     }
 
+
+type alias Error =
+    ( FormField, String )
+
+type FormField
+    = Email
+    | Username
+    | Password1
+    | Password2
+    | Birthday
+    | City
+    | Bio
+
 init : Session -> ( Model, Cmd Msg )
-init session = 
-  ( Model session "" Nothing "" "" "" Other "" "" ""
-  , Cmd.none
-  )
+init session =
+    ( Model session "" Nothing [] "" "" "" "" Male "" "" ""
+    , Cmd.none
+    )
 
 
 -- UPDATE
 
+
 type Msg
-    = EntryChanged Model
-    | CreateUserClicked
+    = FormFieldChanged FormField String
+    | GenderChanged Gender
+    | Submitted
     | HandleUserCreated (Result Http.Error Int)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        EntryChanged updatedModel ->
-            (updatedModel, Cmd.none)
+        FormFieldChanged field value ->
+            ( setField model field value, Cmd.none )
 
-        CreateUserClicked ->
-            ( model, createUserCmd <| mkUserFromEntries model )
+        GenderChanged newGender ->
+            ( { model | gender = newGender }, Cmd.none )
+
+        Submitted ->
+            case Validate.validate modelValidator model of
+                Ok validForm ->
+                    ( { model | errors = [] }
+                    , sendCreateUser HandleUserCreated (userFromValidForm validForm)
+                    )
+                Err errors ->
+                    ( { model | errors = errors }
+                    , Cmd.none
+                    )
 
         HandleUserCreated result ->
             case result of
                 Ok uid ->
-                    (model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login))
+                    ( model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login) )
 
                 Err errResponse ->
                     case errResponse of
                         Http.BadUrl url ->
-                            ({model | response = Just <| "Bad url: " ++ url}, Cmd.none)
+                            ( { model | response = Just <| "Bad url: " ++ url }, Cmd.none )
 
                         Http.BadPayload _ _ ->
-                            ({model | response = Just "bad payload"}, Cmd.none)
+                            ( { model | response = Just "bad payload" }, Cmd.none )
 
                         Http.Timeout ->
-                            ({model | response = Just "timeout"}, Cmd.none)
+                            ( { model | response = Just "timeout" }, Cmd.none )
 
                         Http.NetworkError ->
-                            ({model | response = Just "networkerror"}, Cmd.none)
+                            ( { model | response = Just "networkerror" }, Cmd.none )
 
                         Http.BadStatus statusResponse ->
-                            ({model | response = Just <| "badstatus" ++ .body statusResponse}, Cmd.none)
+                            ( { model | response = Just <| "badstatus" ++ .body statusResponse }, Cmd.none )
+
+setField : Model -> FormField -> String -> Model
+setField model field value =
+    case field of
+        Email ->
+            { model | email = value }
+        Username ->
+            { model | username = value }
+        Password1 ->
+            { model | password1 = value }
+        Password2 ->
+            { model | password2 = value }
+        Birthday ->
+            { model | birthday = value }
+        City ->
+            { model | city = value }
+        Bio ->
+            { model | bio = value }
 
 
 -- SUBSCRIPTIONS
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
 
 
+userFromValidForm : Valid Model -> User
+userFromValidForm validForm =
+    userFromModel (Validate.fromValid validForm)
 
-mkUserFromEntries : Model -> User
-mkUserFromEntries {email, password, username, gender, birthday, town, profileText}
-    = User email password username gender birthday town 0 profileText "token"
+userFromModel : Model -> User
+userFromModel { email, password1, username, gender, birthday, city, bio } =
+    User email password1 username gender birthday city 0 bio "token"
+
 
 createUserCmd : User -> Cmd Msg
 createUserCmd user =
     Http.send HandleUserCreated (Api.postUsers user)
 
-
-pure : Model -> ( Model, Cmd Msg )
-pure model =
-    ( model, Cmd.none )
 
 
 -- VIEW
@@ -102,99 +153,52 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = [ viewContent model.title model ]
+    , kids =
+        El.contentWithHeader "New user"
+            [ Html.form [ Events.onSubmit Submitted ]
+                [ El.validatedInput Email "email" "Email" "Email" model.email FormFieldChanged model.errors
+                , El.validatedInput Username "text" "Username" "Username" model.username FormFieldChanged model.errors
+                , El.validatedInput Password1 "password" "Password" "Password" model.password1 FormFieldChanged model.errors
+                , El.validatedInput Password2 "password" "Repeat password" "Password" model.password2 FormFieldChanged model.errors
+                , El.labelledRadio "Gender" GenderChanged model.gender
+                    [ ( "Male", Male )
+                    , ( "Female", Female )
+                    , ( "Other", Other )
+                    ]
+                , El.validatedInput Birthday "text" "Birthday" "YYYY-MM-DD" model.birthday FormFieldChanged model.errors
+                , El.validatedInput City "text" "City" "City" model.city FormFieldChanged model.errors
+                , El.validatedInput Bio "multiline" "Description" "Short description of yourself" model.bio FormFieldChanged model.errors
+                , El.submitButton "Sign up"
+                ]
+            , Html.text (responseToString model.response)
+            ]
     }
 
+-- VALIDATION
 
-viewContent : String -> Model -> Element Msg
-viewContent title model =
-            Element.column [ width (px 700), height shrink, centerY, centerX, alignTop, spacing 36, padding 10 ]
-                -- , explain Debug.todo ]
-                [ el
-                    [ Region.heading 1
-                    , centerX
-                    , Font.size 36
-                    ]
-                    (text "User creation")
-                , Input.email
-                    [ spacing 12 ]
-                    { text = model.email
-                    , placeholder = Nothing
-                    , onChange = \new -> EntryChanged { model | email = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Email")
-                    }
-                , Input.username
-                    [ spacing 12
-                    , below (showWarningIfUsernameIsTaken model.username)
-                    ]
-                    { text = model.username
-                    , placeholder = Just (Input.placeholder [] (text "username"))
-                    , onChange = \new -> EntryChanged { model | username = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Username")
-                    }
-                , Input.newPassword [ spacing 12, width shrink ]
-                    { text = model.password
-                    , placeholder = Nothing
-                    , onChange = \new -> EntryChanged { model | password = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Password")
-                    , show = False
-                    }
-                -- , Input.newPassword [ spacing 12, width shrink, below (maybeShowPasswordsNotEqualWarning model) ]
-                --     { text = model.userPasswordAgain
-                --     , placeholder = Nothing
-                --     , onChange = \new -> EntryChanged { model | passwordAgain = new }
-                --     , label = Input.labelAbove [ Font.size 14 ] (text "Repeat password")
-                --     , show = False
-                --     }
-                , Input.radio
-                    [ spacing 12
-                    ]
-                    { selected = Just model.gender
-                    , onChange = \new -> EntryChanged { model | gender = new }
-                    , label = Input.labelAbove [ Font.size 14, paddingXY 0 12 ] (text "Gender")
-                    , options =
-                        [ Input.option Male (text "Man")
-                        , Input.option Female (text "Woman")
-                        , Input.option Other (text "Other")
-                        ]
-                    }
-                , Input.text [ spacing 12 ]
-                    { text = model.birthday
-                    , onChange = \new -> EntryChanged { model | birthday = new }
-                    , placeholder = Nothing
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Birthday")
-                    }
-                , Input.text [ spacing 12 ]
-                    { text = model.town
-                    , onChange = \new -> EntryChanged { model | town = new }
-                    , placeholder = Nothing
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Town")
-                    }
-                , Input.multiline
-                    [ height shrink
-                    , spacing 12
+modelValidator : Validator ( FormField, String ) Model
+modelValidator =
+    Validate.all
+        [ Validate.ifBlank .email ( Email, "Email can't be blank." )
+        , Validate.ifInvalidEmail .email (\_ -> ( Email, "Email is invalid." ))
 
-                    -- , padding 6
-                    ]
-                    { text = model.profileText
-                    , placeholder = Just (Input.placeholder [] (text "I like big butts and I cannot lie."))
-                    , onChange = \new -> EntryChanged { model | profileText = new }
-                    , label = Input.labelAbove [ Font.size 14 ] (text "Describe yourself")
-                    , spellcheck = False
-                    }
-                , Input.button
-                    [ Background.color red
-                    , Font.color white
-                    , Border.color darkBlue
-                    , paddingXY 32 16
-                    , Border.rounded 3
-                    , width fill
-                    ]
-                    { onPress = Just CreateUserClicked
-                    , label = Element.text "Create!"
-                    }
-                , Element.text <| responseToString model.response
-                ]
+        , Validate.ifBlank .username ( Username, "Username can't be blank." )
+        , Validate.ifFalse (\model -> isUsernameValid model) ( Username, "Username already in use")
+
+        , Validate.ifBlank .password1 ( Password1, "Password can't be blank." )
+        , Validate.ifBlank .password2 ( Password2, "Repeated password can't be blank." )
+        , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password1, "Passwords don't match")
+        , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password2, "Passwords don't match")
+
+        , Validate.ifBlank .birthday ( Birthday, "Birthday can't be blank." )
+        , Validate.ifFalse (\model -> isDateValid model) ( Birthday, "Invalid format")
+
+        , Validate.ifBlank .city ( City, "City can't be blank." )
+
+        , Validate.ifBlank .bio ( Bio, "Description can't be blank." )
+        ]
+
+
 
 
 responseToString : Maybe String -> String
@@ -207,55 +211,37 @@ responseToString r =
             "No messages"
 
 
-
-showWarningIfUsernameIsTaken username =
-    if username == "Bargsteen" then
-        mkWarning "Username is taken"
-
+isUsernameValid : Model -> Bool
+isUsernameValid model =
+    if model.username == "Bargsteen" then
+        False
     else
-        none
+        True
 
 
-mkWarning warning =
-    el
-        [ Font.color red
-        , Font.size 14
-        , alignRight
-        , moveDown 6
-        ]
-        (text warning)
+doPasswordsMatch : Model -> Bool
+doPasswordsMatch model =
+     model.password1 == model.password2
 
 
-maybeShowPasswordsNotEqualWarning model =
-    if model.userPasswordAgain /= "" && model.userPassword /= model.userPasswordAgain then
-        mkWarning "Passwords do not match"
+isDateValid : Model -> Bool
+isDateValid model =
+    let
+        date = model.birthday
+        dateLength = String.length date
+        year = Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
+        month = Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
+        day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
 
-    else
-        none
+        separators = String.slice 4 5 date ++ String.slice 7 8 date
 
+        isYearNice = year >= 0 && year <= 2018
+        isMonthNice = month >= 0 && month <= 12
+        isDayNice = day >= 0 && day <= 31
+        isSeparatorsNice = separators == "--"
+    in
+        dateLength == 10 && isYearNice && isSeparatorsNice && isMonthNice && isDayNice
 
-noLabel =
-    Input.labelAbove [] none
-
-
-white =
-    Element.rgb 1 1 1
-
-
-grey =
-    Element.rgb 0.9 0.9 0.9
-
-
-blue =
-    Element.rgb 0 0 0.8
-
-
-red =
-    Element.rgb 0.8 0 0
-
-
-darkBlue =
-    Element.rgb 0 0 0.9
 
 sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
 sendCreateUser responseMsg user =

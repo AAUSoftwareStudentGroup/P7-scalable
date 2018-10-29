@@ -1,19 +1,16 @@
 module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Html exposing (Html)
+import Html exposing (Html, div)
+import Html.Attributes as Attributes exposing (class)
+import Html.Keyed as Keyed
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import DatingApi exposing (getRecentMessages, Message)
 
-import Element exposing (..)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
 import Http
 import Task as Task
 import Time as Time
-
+import UI.Elements as El
 
 -- MODEL
 type alias Model = 
@@ -82,25 +79,23 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = [ column [width (px 600), padding 20, spacing 20, Border.width 2, centerX, alignTop]
-        <| (List.map viewMessage model.content)
-    ]
+    , kids =
+        El.contentWithHeader "Messages"
+            [ Keyed.ul [ class "messages" ]
+                (List.map viewMessage model.content)
+            ]
     }
 
 
-viewMessage : Message -> Element msg
+
+viewMessage : Message -> (String, Html msg)
 viewMessage message =
-    case (Debug.log "authorIsMe:" message.imLastAuthor) of
-        False ->
-            link [width fill]
-            { url = Routing.routeToString <| (Chat message.convoWithId)
-            , label = row [padding 20, spacing 20, Border.width 2, Background.color blue, width fill ]
-                        [ el [ Font.size 20, width fill ] <| text message.convoWithUsername
-                        , el [ Font.size 20, width fill, Background.color yellow ] <| text message.body
-                        ]
-            }
-        True ->
-            Element.none
+    ( String.fromInt message.convoWithId
+    , Html.li [ Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
+        [ Html.text message.convoWithUsername
+        , Html.text message.body
+        ]
+    )
 
 
 sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd msg
@@ -110,10 +105,3 @@ sendGetMessages responseMsg session =
             Http.send responseMsg (getRecentMessages userInfo)
         Session.Guest _ ->
             Cmd.none
-
-
-blue =
-    Element.rgb 0.4 0.4 0.8
-
-yellow =
-    Element.rgb 0.8 0.8 0.2
