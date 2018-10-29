@@ -1,0 +1,87 @@
+----USERS----
+
+---Create
+--For CreateUserData
+user = { email: 'email@dating.com'
+       , password:'aProperPassword'
+       , username:'name'
+       , gender:'Gender'
+       , birthday:'Day'
+       , town:'aalborg'
+       , profileText:'I am old' 
+       , token:'LongTokenForAuthentication'
+       }
+db.users.insertOne(user)
+
+---Receive
+--Find All
+db.users.find({}, { username:1
+                  , gender:1
+                  , birthday:1
+                  , profileText:1
+                  , town:1
+                  }
+             )
+
+--Find One given ObjectId
+db.users.findOne({_id: ObjectId('TheStringId')}
+                , { username:1
+                  , gender:1
+                  , birthday:1
+                  , profileText:1
+                  , town:1
+                  }
+                )
+
+
+
+
+----Authentication----
+---LogIn
+user = db.users.findOne({$and:[{username:'name'}, {password:'aProperPassword'}]})
+--we probably want to add a token to this object as well, then push the same token to the DB
+db.users.update(user, {$set:{token:'TokenValue'}})
+
+---LogOut
+user = db.users.findOne({token:'TokenValue'})
+db.users.update(user, $unset:{token:1})
+
+
+
+
+----MESSAGE----
+--Need to add the message to a conversation as well as fetch messages from a conversation
+--If the conversation doesn't exist, add one
+db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
+
+if null do
+conv = {members: [ {id:1, username:"name"}
+                 , {id:2, username:"aaa"}
+                 ]
+                 , messages: []}
+db.conversations.insertOne(conv)
+
+
+
+---Create
+message = { username:'creatorName'
+          , timeStamp:'Date'
+          , "body" : "hej igen" 
+          }
+--we find the conversation
+conv = db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
+
+--and update it with the new message
+db.conversations.update(conv, {$push:{messages:message}})
+
+
+---Get messages
+db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]}, {_id:0, messages:1})
+
+
+
+---Get Conversations
+--Use Haskell to get the last message from each message list,
+--as well as return the ID and username of the other member in the member list
+db.conversations.find( {'members.id':1}, {_id:0})
+
