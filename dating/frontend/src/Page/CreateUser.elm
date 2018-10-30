@@ -2,7 +2,7 @@ module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, vi
 
 import DatingApi as Api exposing (Gender(..), User)
 import Html exposing (Html, div)
-import Html.Attributes as Attributes exposing (class)
+import Html.Attributes as Attributes exposing (class, classList)
 import Html.Events as Events exposing (onClick)
 import Validate exposing (Validator, Valid)
 import String
@@ -176,19 +176,25 @@ view model =
     , session = model.session
     , kids =
         El.contentWithHeader model.title
-            [ Html.form [ class "l-12", class "grid", Events.onSubmit Submitted ]
+            [ Html.form [ classList
+                            [ ( "grid", True )
+                            , ( "l-12", True )
+                            , ( "s-12", True )
+                            ]
+                        , Events.onSubmit Submitted
+                        ]
                 [ El.validatedInput Email "email" "Email" model.email FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Username "text" "Username"  model.username FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Birthday "text" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Password1 "password" "Password" model.password1 FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Bio "multiline" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged model.errors model.attemptedSubmission
                 , El.labelledRadio "Gender" GenderChanged model.gender
                     [ ( "Male", Male )
                     , ( "Female", Female )
                     , ( "Other", Other )
                     ]
-                , El.validatedInput Birthday "text" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Bio "multiline" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
                 , El.submitButton "Sign up"
                 ]
             , Html.text (responseToString model.response)

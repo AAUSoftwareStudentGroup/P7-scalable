@@ -2,7 +2,7 @@ module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser
 import Html exposing (Html, div)
-import Html.Attributes as Attributes
+import Html.Attributes as Attributes exposing (classList)
 import Html.Events as Events
 import Validate exposing (Validator, Valid)
 import Http
@@ -163,7 +163,13 @@ view model =
     , session = model.session
     , kids =
         El.contentWithHeader "Sign in"
-            [ Html.form [ Events.onSubmit Submitted ]
+            [ Html.form [ classList
+                            [ ( "grid", True )
+                            , ( "l-12", True )
+                            , ( "s-12", True )
+                            ]
+                        , Events.onSubmit Submitted
+                        ]
                 [ El.validatedInput Username "text" "Username" model.username FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Password "password" "Password" model.password FormFieldChanged model.errors model.attemptedSubmission
                 , El.submitButton "Sign in"

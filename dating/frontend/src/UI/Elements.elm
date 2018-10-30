@@ -142,7 +142,13 @@ validatedInput field typ caption value toMsg errors showErrors =
     let
         relevantErrors = List.filter (\( f, _ ) -> f == field) errors
     in
-        div [ classList [("input-group", True), ("l-6", True), ( "valid", relevantErrors == [] )] ]
+        div [ classList
+                [ ( "input-group", True )
+                , ( "l-6", True )
+                , ( "s-12", True )
+                , ( "valid", relevantErrors == [] )
+                ]
+            ]
             [ Html.label []
                 [ simpleInput typ caption value (toMsg field)
                 , Html.span [ class "label" ]
@@ -163,7 +169,12 @@ fieldError ( _, errorDesc) =
 
 labelledRadio : String -> (a -> msg) -> a -> List (String, a) -> Html msg
 labelledRadio caption toMsg model options =
-    div [ class "radio-group" ]
+    div [ classList
+            [ ( "radio-group", True )
+            , ( "l-6", True )
+            , ( "s-12", True )
+            ]
+        ]
         [ Html.label []
             ([ Html.text caption ] ++ List.map (\(name, value) -> radio name toMsg model value) options)
         ]
@@ -190,5 +201,5 @@ simpleInput typ placeholder value toMsg =
 
 submitButton : String -> Html msg
 submitButton caption =
-    Html.button [Attributes.type_ "submit" ]
+    Html.button [ class "btn", Attributes.type_ "submit" ]
         [ Html.text caption ]

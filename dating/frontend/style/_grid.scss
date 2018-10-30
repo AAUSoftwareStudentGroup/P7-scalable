@@ -1,5 +1,42 @@
 $small-screen: 900px;
 
+.a-1 {
+    grid-column: span 1;
+}
+.a-2 {
+    grid-column: span 2;
+}
+.a-3 {
+    grid-column: span 3;
+}
+.a-4 {
+    grid-column: span 4;
+}
+.a-5 {
+    grid-column: span 5;
+}
+.a-6 {
+    grid-column: span 6;
+}
+.a-7 {
+    grid-column: span 7;
+}
+.a-8 {
+    grid-column: span 8;
+}
+.a-9 {
+    grid-column: span 9;
+}
+.a-10 {
+    grid-column: span 10;
+}
+.a-11 {
+    grid-column: span 11;
+}
+.a-12 {
+    grid-column: span 12;
+}
+
 @media screen and (min-width: $small-screen) {
     .l-1 {
         grid-column: span 1;

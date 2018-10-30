@@ -1,6 +1,7 @@
 @import "colors";
 @import "typography";
 @import "grid";
+@import "shadows";
 
 $grid-gap: 1rem;
 
@@ -49,6 +50,7 @@ footer {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0 2rem;
 
 	.content {
         display: grid;
@@ -64,25 +66,34 @@ footer {
 
 
 
-.button {
-    text-decoration: none;
-    border-radius: 0.2em;
-    color: white;
-    background-color: #db2c2c;
-    margin-right: 1em;
-    padding: 0.25em 0.75em;
+button, .btn {
+    @extend %txt-button;
+    @extend %hoverable;
 
-    transition: box-shadow .25s;
-    box-shadow: rgba(0,0,0,0.2) 1px 1px 0;
+    width: auto;
+    display: inline-block;
+    outline: 0;
+    border: none;
+    padding: 0 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+
+    background-color: #852929;
+
+    -webkit-tap-highlight-color: transparent;
 
     &:hover {
-        box-shadow: rgba(0,0,0,0.2) 3px 3px 0;
+        background-color: $pri-col-light;
     }
 }
 
 .radio-group {
-  margin: auto auto 1.5rem;
-  width: 100%;
+    margin: auto auto 1.5rem;
+    width: 100%;
+
+    .radio-label-group {
+        display: inline;
+    }
 }
 
 .input-group {
@@ -93,7 +104,7 @@ footer {
         position: relative;
     }
 
-    input {
+    input, textarea {
         -webkit-appearance: none;
         width: 100%;
         border: 0;
