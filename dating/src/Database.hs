@@ -92,19 +92,19 @@ createUserPG pgInfo user = do
   let user' = user { userAuthToken = authToken }
   fromSqlKey <$> runAction pgInfo (insert user')
 
-fetchUserDataPG :: PGInfo -> Int64 -> IO (Maybe UserData)
-fetchUserDataPG pgInfo uid = runAction pgInfo selectAction
+fetchUserDTOPG :: PGInfo -> Int64 -> IO (Maybe UserDTO)
+fetchUserDTOPG pgInfo uid = runAction pgInfo selectAction
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe UserData)
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe UserDTO)
     selectAction = do
       userPartsFound <- select $
                     from $ \user -> do
                     where_ (user ^. UserId ==. valkey uid)
                     return (user ^. UserUsername, user ^. UserId, user ^. UserGender, user ^. UserBirthday, user ^. UserTown, user ^. UserProfileText)
-      return $ (fmap toUserData . listToMaybe) userPartsFound
+      return $ (fmap toUserDTO . listToMaybe) userPartsFound
 
-    toUserData (username, id, gender, birthday, town, pText)
-      = UserData (unValue username) (unValKey id) (unValue gender) (unValue town) (unValue pText)
+    toUserDTO (username, id, gender, birthday, town, pText)
+      = UserDTO (unValue username) (unValKey id) (unValue gender) (unValue town) (unValue pText)
 
 unValKey = fromSqlKey . unValue
 
@@ -137,16 +137,16 @@ fetchUserIdByAuthTokenPG pgInfo authToken = runAction pgInfo selectAction
         return (user ^. UserId)
       return $ listToMaybe $ fmap unValue userIdsFound
 
-fetchLoggedInDataByCredentialDataPG :: PGInfo -> CredentialData -> IO (Maybe LoggedInData)
-fetchLoggedInDataByCredentialDataPG pgInfo (CredentialData {username = usr, password = psw})
+fetchLoggedInDTOByCredentialDTOPG :: PGInfo -> CredentialDTO -> IO (Maybe LoggedInDTO)
+fetchLoggedInDTOByCredentialDTOPG pgInfo (CredentialDTO {username = usr, password = psw})
   = runAction pgInfo selectAction
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe LoggedInData)
+    selectAction :: SqlPersistT (LoggingT IO) (Maybe LoggedInDTO)
     selectAction = do
       userPartsFound <- select . from $ \user -> do
                        where_ (user ^. UserUsername ==. val usr &&. user ^. UserPassword ==. val psw)
                        return (user ^. UserUsername, user ^. UserId, user ^. UserAuthToken)
-      return $ (\(uName, uId, uToken) -> LoggedInData (unValue uName) (fromSqlKey . unValue $ uId) (unValue uToken)) <$> listToMaybe userParsFound
+      return $ (\(uName, uId, uToken) -> LoggedInDTO (unValue uName) (fromSqlKey . unValue $ uId) (unValue uToken)) <$> listToMaybe userParsFound
 
 
 -- Conversations
@@ -259,19 +259,19 @@ runRedisAction redisInfo action = do
 
 -- User
 
-createUserDataRedis :: RedisInfo -> Int64 -> UserData -> IO ()
-createUserDataRedis redisInfo uid user = runRedisAction redisInfo
+createUserDTORedis :: RedisInfo -> Int64 -> UserDTO -> IO ()
+createUserDTORedis redisInfo uid user = runRedisAction redisInfo
   $ void $ setex (pack . show $ uid) 3600 (pack . show $ user)
 
-fetchUserDataRedis :: RedisInfo -> Int64 -> IO (Maybe UserData)
-fetchUserDataRedis redisInfo uid = runRedisAction redisInfo $ do
+fetchUserDTORedis :: RedisInfo -> Int64 -> IO (Maybe UserDTO)
+fetchUserDTORedis redisInfo uid = runRedisAction redisInfo $ do
   result <- Redis.get (pack . show $ uid)
   case result of
     Right (Just userString) -> return $ Just (read . unpack $ userString)
     _                       -> return Nothing
 
-deleteUserDataRedis :: RedisInfo -> Int64 -> IO ()
-deleteUserDataRedis redisInfo uid = do
+deleteUserDTORedis :: RedisInfo -> Int64 -> IO ()
+deleteUserDTORedis redisInfo uid = do
   connection <- connect redisInfo
   runRedis connection $ do
     _ <- del [pack . show $ uid]

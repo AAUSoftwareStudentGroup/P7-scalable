@@ -1,7 +1,7 @@
 ----USERS----
 
 ---Create
---For CreateUserData
+--For CreateUserDTO
 user = { email: 'email@dating.com'
        , password:'aProperPassword'
        , username:'name'

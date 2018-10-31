@@ -17,7 +17,7 @@ import           SchemaEnums        (Gender)
 
 -- Users
 
-data CreateUserData = CreateUserData
+data CreateUserDTO = CreateUserDTO
   { email       :: Text
   , password    :: Text
   , username    :: Text
@@ -28,7 +28,7 @@ data CreateUserData = CreateUserData
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
-data UserData = UserData
+data UserDTO = UserDTO
   { username    :: Text
   , userId      :: Int64
   , gender      :: Gender
@@ -40,12 +40,12 @@ data UserData = UserData
 
 -- Authentication
 
-data CredentialData = CredentialData
+data CredentialDTO = CredentialDTO
   { username :: Text
   , password :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
-data LoggedInData = LoggedInData
+data LoggedInDTO = LoggedInDTO
   { username  :: Text
   , userId    :: Int64
   , authToken :: Text
@@ -53,7 +53,7 @@ data LoggedInData = LoggedInData
 
 -- Messages
 
-data ConversationPreviewData = ConversationPreviewData
+data ConversationPreviewDTO = ConversationPreviewDTO
   { convoWithUsername :: Text
   , convoWithId       :: Int64
   , isLastAuthor      :: Bool
@@ -62,12 +62,12 @@ data ConversationPreviewData = ConversationPreviewData
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 
-newtype CreateMessageData = CreateMessageData
+newtype CreateMessageDTO = CreateMessageDTO
   { body :: Text
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 
-data MessageData = MessageData
+data MessageDTO = MessageDTO
   { authorName :: Text
   , timeStamp  :: UTCTime
   , body       :: Text

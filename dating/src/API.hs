@@ -35,13 +35,13 @@ import           Schema
 
 
 -- | The API.
-type DatingAPI = "login" :> ReqBody '[JSON] CredentialData :> Post '[JSON] LoggedInData
-  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] UserData
-  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [UserData]
-  :<|> "users" :> ReqBody '[JSON] CreateUserData :> Post '[JSON] LoggedInData
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> ReqBody '[JSON] MessageData :> Post '[JSON] ()
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewData]
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] [MessageData]
+type DatingAPI = "login" :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO
+  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] UserDTO
+  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [UserDTO]
+  :<|> "users" :> ReqBody '[JSON] CreateUserDTO :> Post '[JSON] LoggedInDTO
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> ReqBody '[JSON] MessageDTO :> Post '[JSON] ()
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewDTO]
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "userid" Int64 :> Get '[JSON] [MessageDTO]
 
 
 -- | A proxy for the API. Technical detail.
@@ -50,7 +50,7 @@ datingAPI = Proxy :: Proxy DatingAPI
 
 
 -- | Fetches a user by id. First it tries redis, then postgres. It saves to cache if it goes to the db.
-fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler UserData
+fetchUserHandler :: PGInfo -> RedisInfo -> UserId -> Int64 -> Handler UserDTO
 fetchUserHandler pgInfo redisInfo _ uid = do
   maybeCachedUser <- liftIO $ fetchUserRedis redisInfo uid
   case maybeCachedUser of
@@ -62,12 +62,12 @@ fetchUserHandler pgInfo redisInfo _ uid = do
         Nothing -> Handler $ throwE $ err401 { errBody = "Could not find user with that ID"}
 
 -- | Fetches all users from db if you are authenticated.
-fetchAllUsersHandler :: PGInfo -> UserId -> Handler [UserData]
+fetchAllUsersHandler :: PGInfo -> UserId -> Handler [UserDTO]
 fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
 
 
 -- | Creates a user in the db.
-createUserHandler :: PGInfo -> User -> Handler LoggedInData
+createUserHandler :: PGInfo -> User -> Handler LoggedInDTO
 createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
 
 -- | Creates a new message between two users
@@ -75,16 +75,16 @@ createMessageHandler :: PGInfo -> UserId -> Int64 -> Message -> Handler ()
 createMessageHandler pgInfo _ otherUserId msg = liftIO $ createMessagePG pgInfo otherUserId msg
 
 -- | Fetches all messages between two users.
-fetchMessagesBetweenHandler :: PGInfo -> UserId -> Int64 -> Handler [MessageData]
+fetchMessagesBetweenHandler :: PGInfo -> UserId -> Int64 -> Handler [MessageDTO]
 fetchMessagesBetweenHandler pgInfo ownUserId otherUserId = liftIO $
   fetchMessagesBetweenPG pgInfo ownUserId otherUserId
 
-fetchRecentMessagesHandler :: PGInfo -> UserId -> Handler [ConversationPreviewData]
+fetchRecentMessagesHandler :: PGInfo -> UserId -> Handler [ConversationPreviewDTO]
 fetchRecentMessagesHandler pgInfo ownUserId = liftIO $ fetchRecentMessagesListPG pgInfo ownUserId
 
 
--- | Returns an LoggedInData when given correct credentials
-loginHandler :: PGInfo -> CredentialData -> Handler LoggedInData
+-- | Returns an LoggedInDTO when given correct credentials
+loginHandler :: PGInfo -> CredentialDTO -> Handler LoggedInDTO
 loginHandler pgInfo credentials = do
   maybeUser <- liftIO $ fetchUserByCredentialsPG pgInfo credentials
   case maybeUser of
