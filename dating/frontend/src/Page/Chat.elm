@@ -1,7 +1,7 @@
 module Page.Chat exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html, div)
-import Html.Attributes as Attributes
+import Html.Attributes as Attributes exposing (classList)
 import Html.Events as Events
 import Html.Keyed exposing (ul)
 import Http
@@ -137,7 +137,18 @@ view model =
 
 viewMessage : Model -> ChatMessage -> (String, Html Msg)
 viewMessage model message =
-    (message.timeStamp, Html.li [] [Html.text message.body])
+    let
+        myMessage = model.idYou == message.authorId
+    in
+        ( message.timeStamp
+        , Html.li [ classList
+                    [ ( "message", True )
+                    , ( "author-me", myMessage)
+                    , ( "author-friend", not myMessage)
+                    ]
+                  ]
+            [Html.text message.body]
+        )
 
 
 sendMessage : Model -> Cmd Msg

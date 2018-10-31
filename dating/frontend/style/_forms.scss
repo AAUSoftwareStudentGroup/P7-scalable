@@ -77,6 +77,12 @@
         color: $txt-col-light;
         transform: scale(0.8);
         transform-origin: 0 0;
+
+        transition: color 0.15s ease;
+    }
+
+    &:focus-within label:first-of-type {
+        color: $pri-col-dark;
     }
 
     .radio-label-group {
@@ -90,6 +96,11 @@
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
+        transition: color 0.15s ease;
+
+        &:focus-within {
+            color: $pri-col-dark;
+        }
 
         // Darken radio button on hover
         &:hover input ~ .checkmark {
@@ -101,10 +112,12 @@
             background-color: $pri-col-light;
         }
 
-
         // Hide default radio button
         input {
-            display: none;
+            //display: none;
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
 
             &:checked ~ .checkmark {
                 background-color: $pri-col;

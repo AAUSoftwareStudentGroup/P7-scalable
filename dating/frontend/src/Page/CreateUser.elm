@@ -183,12 +183,12 @@ view model =
                         , Events.onSubmit Submitted
                         ]
                 [ El.validatedInput Email "email" "Email" model.email FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Username "text" "Username"  model.username FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Birthday "text" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Password1 "password" "Password" model.password1 FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Bio "text" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Bio "text" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Birthday "text" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
                 , El.labelledRadio "Gender" GenderChanged model.gender
                     [ ( "Male", Male )
                     , ( "Female", Female )
