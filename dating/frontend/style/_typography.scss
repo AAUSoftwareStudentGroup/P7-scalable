@@ -85,9 +85,14 @@ html {
         @extend %txt-subheading;
     }
 
-    p, input {
+    p {
         @extend %txt-paragraph;
         padding: 10px 0;
+    }
+
+    input {
+        @extend %txt-paragraph;
+        padding: 0;
     }
 
     label {

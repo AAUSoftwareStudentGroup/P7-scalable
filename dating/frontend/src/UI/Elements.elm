@@ -175,21 +175,22 @@ labelledRadio caption toMsg model options =
             , ( "s-12", True )
             ]
         ]
-        [ Html.label []
-            ([ Html.text caption ] ++ List.map (\(name, value) -> radio name toMsg model value) options)
-        ]
+        ([ Html.label []
+            [ Html.text caption ]
+        ] ++ List.map (\(name, value) -> radio name toMsg model value) options)
+
 
 
 radio : String -> (a -> msg) -> a -> a -> Html msg
 radio caption toMsg model value =
-    let
-        id = caption ++ "-radio-input-id"
-    in
-        div [ class "radio-label-group" ]
-            [ Html.label [Attributes.for id]
-                [ Html.text caption ]
-            , Html.input [ Attributes.type_ "radio", Attributes.id id, Attributes.checked (model == value), Events.onClick (toMsg value) ] []
-            ]
+    Html.label [ class "radio-label-group" ]
+        [ Html.input [ Attributes.type_ "radio", Attributes.checked (model == value), Events.onClick (toMsg value) ]
+            []
+        , Html.span [ class "checkmark" ]
+            []
+        , Html.text caption
+        ]
+
 
 simpleInput : String -> String -> String -> (String -> msg) -> Html msg
 simpleInput typ placeholder value toMsg =

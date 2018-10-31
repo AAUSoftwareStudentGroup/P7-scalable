@@ -3,6 +3,8 @@
 @import "grid";
 @import "shadows";
 
+@import "forms";
+
 $grid-gap: 1rem;
 
 html, body  {
@@ -13,8 +15,6 @@ html, body  {
         box-sizing: border-box;
     }
 }
-
-
 
 .hidden {
     display: none !important;
@@ -27,7 +27,7 @@ html, body  {
     grid-template-columns: 1fr;
     grid-template-rows: 64px auto 64px;
     grid-gap: 8px;
-    align-items: stretch;
+    align-items: start;
 }
 
 .grid {
@@ -56,115 +56,32 @@ footer {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
         justify-items: stretch;
-
-        max-width: 900px;
-        background: #f5f2ec;
-        box-shadow: black 6px 6px 15px -12px;
 	}
 }
-
-
-
 
 button, .btn {
     @extend %txt-button;
     @extend %hoverable;
 
     width: auto;
+    min-width: 2.5rem;
+    height: 2rem;
     display: inline-block;
+    padding: 0 1rem;
     outline: 0;
     border: none;
-    padding: 0 1rem;
-    border-radius: 0.5rem;
+    border-radius: 0.3rem;
     text-align: center;
-
-    background-color: #852929;
-
+    background-color: $pri-col;
     -webkit-tap-highlight-color: transparent;
+    grid-column: span 12;
+    justify-self: right;
 
     &:hover {
         background-color: $pri-col-light;
     }
-}
 
-.radio-group {
-    margin: auto auto 1.5rem;
-    width: 100%;
-
-    .radio-label-group {
-        display: inline;
+    &:active {
+        background-color: lighten($pri-col-light, 2%);
     }
 }
-
-.input-group {
-    margin: auto auto 1.5rem;
-    width: 100%;
-
-    label {
-        position: relative;
-    }
-
-    input, textarea {
-        -webkit-appearance: none;
-        width: 100%;
-        border: 0;
-        height: 2rem;
-        border-bottom: 2px solid $txt-col-light;
-        background: none;
-        transition: background-color 0.15s ease;
-
-        &:hover {
-            background: rgba(0, 0, 0, 0.05);
-        }
-
-        &::placeholder {
-            color: transparent;
-        }
-
-        &:not(:placeholder-shown) + .label {
-            color: $txt-col-light;
-            transform: translateY(-26px) scale(.80)
-        }
-
-        &:focus {
-            background: none;
-            outline: none;
-
-            + .label {
-                cursor: default;
-                color: $pri-col-dark;
-                transform: translateY(-26px) scale(.80);
-
-                + .border {
-                    transform: scaleX(1)
-                }
-            }
-        }
-    }
-
-    span {
-        position: absolute;
-        transform-origin: 0 0;
-        transition: all .2s ease;
-    }
-
-    .label {
-        top: 0;
-        left: 0;
-        cursor: text;
-    }
-
-    .border {
-        top: 1.4rem;
-        left: 0;
-        height: 2px;
-        width: 100%;
-        background: $pri-col-dark;
-        transform: scaleX(0);
-    }
-}
-
-
-
-
-
