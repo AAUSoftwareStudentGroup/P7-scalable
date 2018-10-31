@@ -1,24 +1,13 @@
+@import "reset";
 @import "colors";
 @import "typography";
+@import "icons";
 @import "grid";
 @import "shadows";
 
+@import "helpers";
 @import "forms";
 
-$grid-gap: 1rem;
-
-html, body  {
-	padding: 0;
-	margin: 0;
-
-    *, *:before, *:after {
-        box-sizing: border-box;
-    }
-}
-
-.hidden {
-    display: none !important;
-}
 
 .main-wrapper {
     width: 100%;
@@ -30,15 +19,39 @@ html, body  {
     align-items: start;
 }
 
-.grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    grid-gap: $grid-gap;
-}
-
 header {
 	background: $pri-col;
     height: 64px;
+
+    .logo {
+        display: inline-block;
+        padding: 16px 16px 16px 0;
+
+        &, .material-icons {
+            font-size: 2rem;
+            line-height: 2rem;
+        }
+    }
+
+    nav {
+        justify-self: right;
+        margin: auto 0;
+
+        a {
+            padding: 12px 0 12px 12px;
+        }
+    }
+}
+
+%max-width-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.header-content {
+    @extend %max-width-container;
 }
 
 footer {
@@ -47,16 +60,17 @@ footer {
 }
 
 .content-container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 2rem;
+    @extend %max-width-container;
 
 	.content {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
         justify-items: stretch;
 	}
+}
+
+.flat-btn {
+    @extend %txt-white;
 }
 
 button, .btn {

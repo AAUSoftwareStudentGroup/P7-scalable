@@ -21,6 +21,10 @@ $txt-weight-regular: 400;
 $txt-weight-medium: 600;
 $txt-weight-bold: 800;
 
+%txt-white {
+    color: white;
+}
+
 %txt-title {
     font-size: $txt-size-1;
     line-height: $txt-lh-1;
@@ -50,10 +54,11 @@ $txt-weight-bold: 800;
 }
 
 %txt-button {
+    @extend %txt-white;
+
     font-size: $txt-size-7;
     line-height: $txt-lh-7;
     font-weight: $txt-weight-regular;
-    color: white;
     text-transform: uppercase;
     letter-spacing: 1px;
 }

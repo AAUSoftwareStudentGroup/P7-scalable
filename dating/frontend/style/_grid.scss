@@ -1,4 +1,11 @@
 $small-screen: 900px;
+$grid-gap: 1rem;
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-gap: $grid-gap;
+}
 
 .l-1 {
     grid-column: span 1;

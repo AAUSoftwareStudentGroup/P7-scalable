@@ -22,41 +22,63 @@ site toMsg children session =
 
 header : Session -> Html msg
 header session =
-    Html.header []
-        [ headerLogo
-        , headerNav session
+    Html.header [ class "grid" ]
+        [ div
+            [ classList
+                    [ ( "header-content", True )
+                    , ( "grid", True )
+                    , ( "l-12", True )
+                    ]
+            ]
+            [ headerLogo
+            , headerNav session
+            ]
         ]
 
 
 headerLogo : Html msg
 headerLogo =
-    div [ class "header-logo" ]
-        [ link []
-            (Routing.routeToString Home) "Dating"
+    div [ class "l-6" ]
+        [ linkHtml
+              [ classList
+                  [ ( "logo", True )
+                  , ( "flat-btn", True )
+                  ]
+              ]
+              (Routing.routeToString Home)
+              [ Html.i [ class "material-icons" ]
+                  [ Html.text "favorite" ]
+              , Html.text "Dating"
+              ]
         ]
 
 
 headerNav : Session -> Html msg
 headerNav session =
-    Html.nav []
+    Html.nav
+        [ classList
+            [ ( "l-6", True ) ]
+        ]
         (headerNavLinks session)
 
 
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     let
-        headerNavLinksClasses = []
+        headerNavLinksClasses = [ classList
+                                    [ ( "flat-btn", True ) ]
+                                ]
     in
         case session of
             Session.LoggedIn _ userInfo ->
-                [ link headerNavLinksClasses (Routing.routeToString Messages) "Messages"
-                , link headerNavLinksClasses (Routing.routeToString ListUsers) "All users"
-                , link headerNavLinksClasses (Routing.routeToString (Profile userInfo.userId)) "My profile"
+                [ linkText headerNavLinksClasses (Routing.routeToString Messages) "Messages"
+                , linkText headerNavLinksClasses (Routing.routeToString ListUsers) "All users"
+                , linkText headerNavLinksClasses (Routing.routeToString (Profile userInfo.userId)) "My profile"
                 ]
 
             Session.Guest _ ->
-                [ link headerNavLinksClasses (Routing.routeToString CreateUser) "Sign up"
-                , link headerNavLinksClasses (Routing.routeToString Login) "Sign in"
+                [ linkText headerNavLinksClasses (Routing.routeToString CreateUser) "Sign up"
+                , linkText headerNavLinksClasses (Routing.routeToString Login) "Sign in"
                 ]
 
 
@@ -81,9 +103,12 @@ contentWithHeader heading contents =
     ] ++ contents
 
 
-userCard : String -> Int -> Int -> Html msg
-userCard username userId friendId =
-    Html.li []
+userCard : String -> Int -> Html msg
+userCard username userId =
+    Html.li [ classList
+                [ ( "user-card", True )
+                ]
+            ]
         [ Html.text (toSentenceCase username)
         , linkButtonRight (Routing.routeToString (Profile userId)) "profile"
         , linkButtonRight (Routing.routeToString (Chat userId)) "chat"
@@ -116,7 +141,7 @@ linkButtonLeft url caption =
 
 linkButton : List (Attribute msg) -> String -> String -> Html msg
 linkButton attributes url caption =
-    link ([ class "button" ] ++ attributes) url caption
+    linkText ([ class "button" ] ++ attributes) url caption
 
 messageButtonRight : msg -> String -> Html msg
 messageButtonRight msg caption =
@@ -131,10 +156,13 @@ messageButton attributes msg caption =
     Html.input ([ class "button", Events.onClick msg] ++ attributes)
         [Html.text caption]
 
-
-link : List (Attribute msg) -> String -> String -> Html msg
-link attributes url label =
+linkText : List (Attribute msg) -> String -> String -> Html msg
+linkText attributes url label =
     Html.a ([Attributes.href url] ++ attributes) [Html.text label]
+
+linkHtml : List (Attribute msg) -> String -> List (Html msg) -> Html msg
+linkHtml attributes url children =
+    Html.a ([Attributes.href url] ++ attributes) children
 
 
 validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
