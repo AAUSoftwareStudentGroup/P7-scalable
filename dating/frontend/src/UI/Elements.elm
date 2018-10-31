@@ -84,8 +84,18 @@ headerNavLinks session =
 
 footer : Html msg
 footer =
-    Html.footer []
-        [Html.text "A Dating Service that Rocks! © 2018"]
+    Html.footer [ class "grid" ]
+        [ div
+            [ classList
+                    [ ( "footer-content", True )
+                    , ( "grid", True )
+                    , ( "l-12", True )
+                    ]
+            ]
+            [ div [ class "l-12" ]
+                [ Html.text "A Dating Service that Rocks! © 2018" ]
+            ]
+        ]
 
 
 content : (a -> msg) -> List (Html a) -> Html msg

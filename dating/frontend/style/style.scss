@@ -8,6 +8,12 @@
 @import "helpers";
 @import "forms";
 
+%max-width-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
 
 .main-wrapper {
     width: 100%;
@@ -19,9 +25,13 @@
     align-items: start;
 }
 
-header {
-	background: $pri-col;
+header, footer {
+	background-color: $pri-col;
     height: 64px;
+}
+
+.header-content {
+    @extend %max-width-container;
 
     .logo {
         display: inline-block;
@@ -43,20 +53,14 @@ header {
     }
 }
 
-%max-width-container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 2rem;
-}
-
-.header-content {
+.footer-content {
     @extend %max-width-container;
-}
 
-footer {
-    background-color: $pri-col;
-    padding: 2rem 0;
+    div {
+        @extend %txt-white;
+        justify-self: center;
+        margin: auto 0;
+    }
 }
 
 .content-container {
@@ -97,5 +101,15 @@ button, .btn {
 
     &:active {
         background-color: lighten($pri-col-light, 2%);
+    }
+}
+
+.message {
+    &.author-me {
+        justify-self: right;
+    }
+
+    &.author-friend {
+        justify-self: left;
     }
 }

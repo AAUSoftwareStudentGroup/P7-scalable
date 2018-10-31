@@ -124,16 +124,28 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ div []
-            [ ul []
+        El.contentWithHeader ("Chatting with " ++ model.username)
+            [ ul
+                [ classList
+                    [ ( "grid", True )
+                    , ( "l-12", True )
+                    , ( "l-6", True )
+                    ]
+                ]
                 (List.reverse (List.map (viewMessage model) model.content))
-            , Html.form [ Events.onSubmit SubmitMessage ]
+            , Html.form
+                [ Events.onSubmit SubmitMessage
+                , classList
+                      [ ( "l-12", True )
+                      , ( "l-6", True )
+                      ]
+                ]
                 [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged
                 , El.submitButton "Send"
                 ]
             ]
-        ]
     }
+
 
 viewMessage : Model -> ChatMessage -> (String, Html Msg)
 viewMessage model message =
@@ -143,6 +155,7 @@ viewMessage model message =
         ( message.timeStamp
         , Html.li [ classList
                     [ ( "message", True )
+                    , ( "l-12", True )
                     , ( "author-me", myMessage)
                     , ( "author-friend", not myMessage)
                     ]
