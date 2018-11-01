@@ -18,6 +18,7 @@ import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
 import Page.Login as Login
+import Page.Logout as Logout
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
@@ -52,6 +53,7 @@ type Page
     = NotFound NotFound.Model
     | CreateUser CreateUser.Model
     | Login Login.Model
+    | Logout Logout.Model
     | ListUsers ListUsers.Model
     | Messages Messages.Model
     | Profile Profile.Model
@@ -81,6 +83,9 @@ view model =
         Login loginModel ->
             viewContent LoginMsg (Login.view loginModel)
 
+        Logout logoutModel ->
+            viewContent LogoutMsg (Logout.view logoutModel)
+
         Messages messagesModel ->
             viewContent MessagesMsg (Messages.view messagesModel)
 
@@ -92,6 +97,7 @@ view model =
 
         Profile profileModel ->
             viewContent ProfileMsg (Profile.view profileModel)
+
 
 viewContent : (a -> msg) -> Session.Details a -> Browser.Document msg
 viewContent toMsg details =
@@ -114,6 +120,9 @@ subscriptions model =
 
             Login loginModel ->
                 Sub.map LoginMsg (Login.subscriptions loginModel)
+
+            Logout logoutModel ->
+                Sub.map LogoutMsg (Logout.subscriptions logoutModel)
 
             Messages messagesModel ->
                 Sub.map MessagesMsg (Messages.subscriptions messagesModel)
@@ -144,10 +153,12 @@ type Msg
   | CreateUserMsg CreateUser.Msg
   | ListUsersMsg ListUsers.Msg
   | LoginMsg Login.Msg
+  | LogoutMsg Logout.Msg
   | MessagesMsg Messages.Msg
   | ProfileMsg Profile.Msg
   | ChatMsg Chat.Msg
   | SessionChanged Session
+  | LogOutClicked
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List Message))
 
@@ -193,11 +204,19 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
+        LogoutMsg msg ->
+            case model.page of
+                Logout logoutModel ->
+                    stepLogout model (Logout.update msg logoutModel)
+                _ ->
+                    ( model, Cmd.none )
+
         ListUsersMsg msg ->
             case model.page of
                 ListUsers listUsersModel ->
                     stepListUsers model (ListUsers.update msg listUsersModel)
                 _ -> ( model, Cmd.none )
+
 
         ProfileMsg msg ->
             case model.page of
@@ -228,6 +247,9 @@ update message model =
                     , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
                     )
 
+        LogOutClicked ->
+            ( model, Session.logout )
+
         GetNumMessages newTime ->
             --(model, sendGetMessages HandleGetMessages (Debug.log "session: "(getSession model)))
             (model, Cmd.none)
@@ -254,6 +276,9 @@ replacePage page session =
         Login m ->
             Login { m | session = session }
 
+        Logout m ->
+            Logout { m | session = session }
+
         ListUsers m ->
              ListUsers { m | session = session }
 
@@ -279,13 +304,17 @@ stepCreateUser model ( createUserModel, cmds ) =
     , Cmd.map CreateUserMsg cmds
     )
 
-
 stepLogin : Model -> ( Login.Model, Cmd Login.Msg ) -> ( Model, Cmd Msg )
 stepLogin model ( loginModel, cmds ) =
     ( { model | page = Login loginModel }
     , Cmd.map LoginMsg cmds
     )
 
+stepLogout : Model -> ( Logout.Model, Cmd Logout.Msg ) -> ( Model, Cmd Msg )
+stepLogout model ( logoutModel, cmds ) =
+    ( { model | page = Logout logoutModel }
+    , Cmd.map LogoutMsg cmds
+    )
 
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
 stepListUsers model (listUsersModel, cmds) =
@@ -334,6 +363,9 @@ getSession model =
         Login m ->
             m.session
 
+        Logout m ->
+            m.session
+
         ListUsers m ->
             m.session
 
@@ -365,6 +397,8 @@ stepUrl url model =
                     (stepCreateUser model (CreateUser.init session))
                 , route (s "login")
                     (stepLogin model (Login.init session))
+                , route (s "logout")
+                    (stepLogout model (Logout.init session))
                 , route (s "list-users")
                     ( stepListUsers model (ListUsers.init session))
                 , route (s "user" </> Parser.int)
