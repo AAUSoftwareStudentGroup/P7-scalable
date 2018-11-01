@@ -21,8 +21,8 @@ import Page.Login as Login
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
-import Api.Messages exposing (ConversationPreview)
---import DatingApi as DatingApi exposing (Message, getRecentMessages)
+import Api.Messages exposing (ConversationPreviewDTO)
+--import DatingApi as DatingApi exposing (Message, getConversationPreviewDTOs)
 import Routing as Routing
 import UI.Elements as El
 
@@ -150,7 +150,7 @@ type Msg
   | ChatMsg Chat.Msg
   | SessionChanged Session
   | GetNumMessages Time.Posix
-  | HandleGetMessages (Result Http.Error (List ConversationPreview))
+  | HandleGetMessages (Result Http.Error (List ConversationPreviewDTO))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -312,7 +312,7 @@ stepChat model ( chat, cmds ) =
     , Cmd.map ChatMsg cmds
     )
 
-sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
+sendGetMessages : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
         Session.LoggedIn _ userInfo ->

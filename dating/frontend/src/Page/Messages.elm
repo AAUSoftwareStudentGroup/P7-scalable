@@ -11,13 +11,13 @@ import UI.Elements as El
 
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
-import Api.Messages exposing (ConversationPreview)
+import Api.Messages exposing (ConversationPreviewDTO)
 
 -- MODEL
 type alias Model = 
     { session   : Session
     , title     : String
-    , content   : List ConversationPreview
+    , content   : List ConversationPreviewDTO
     , zone      : Time.Zone
     , time      : Time.Posix
     }
@@ -37,7 +37,7 @@ init session =
 -- UPDATE
 type Msg
     = NoOp
-    | HandleGetMessages (Result Http.Error (List ConversationPreview))
+    | HandleGetMessages (Result Http.Error (List ConversationPreviewDTO))
     | FetchMessages Time.Posix
     | AdjustTimeZone Time.Zone
 
@@ -89,7 +89,7 @@ view model =
 
 
 
-viewMessage : ConversationPreview -> (String, Html msg)
+viewMessage : ConversationPreviewDTO -> (String, Html msg)
 viewMessage message =
     ( String.fromInt message.convoWithId
     , Html.li [ Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
@@ -99,7 +99,7 @@ viewMessage message =
     )
 
 
-sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
+sendGetMessages : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
         Session.LoggedIn _ userInfo ->

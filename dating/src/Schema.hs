@@ -14,19 +14,29 @@
 
 module Schema where
 
+import           Data.Aeson
+import           Data.ByteString               (ByteString)
 import           Data.Int                      (Int64)
 import           Data.Text                     (Text)
 import           Data.Time.Calendar            (Day)
 import           Data.Time.Clock               (UTCTime)
 import           Database.Persist              (Entity (..), Key)
+import           Database.Persist.MongoDB
 import qualified Database.Persist.TH           as PTH
 import           Elm                           (ElmType)
 import           Elm.Export.Persist
 import           Elm.Export.Persist.BackendKey ()
-import           GHC.Generics                  (Generic)
+import           GHC.Generics                  (Generic, Rep)
+import           Language.Haskell.TH.Syntax
+
 import           SchemaEnums
 
-PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persistLowerCase|
+type Membername = Text
+type MemberId = Text
+type Members = [(Membername, MemberId)]
+
+let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneric = False}
+ in PTH.share [PTH.mkPersist mongoSettings] [PTH.persistLowerCase|
   User json sql=users
     email           Text
     password        Text
@@ -42,23 +52,19 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
     deriving Show Read Eq Generic
 
   Conversation json sql=conversations
-    userOneId UserId
-    userTwoId UserId
+    members  Members
+    messages [Message]
     deriving Show Read Eq Generic
 
   Message json sql=messages
-    conversationId ConversationId
     authorId       UserId
-    authorName     Text
     timeStamp      UTCTime
     body           Text
     deriving Show Read Eq Generic
 |]
 
-instance ElmType User
-instance ElmType Message
-instance ElmType Conversation
 
-deriving instance ElmType UserId
-deriving instance ElmType MessageId
-deriving instance ElmType ConversationId
+-- instance FromJSON ByteString
+-- instance ToJSON ByteString
+-- instance Generic ByteString
+-- deriving instance Rep ByteString

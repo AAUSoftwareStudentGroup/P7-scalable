@@ -6,7 +6,9 @@
 
 module FrontendTypes where
 
-import           Data.Aeson.Types   (FromJSON, ToJSON)
+import           Data.Aeson
+import           Data.Aeson.Types
+import           Data.ByteString    (ByteString)
 import           Data.Int           (Int64)
 import           Data.Text          (Text)
 import           Data.Time.Calendar (Day)
@@ -30,7 +32,7 @@ data CreateUserDTO = CreateUserDTO
 
 data UserDTO = UserDTO
   { username    :: Text
-  , userId      :: Int64
+  , userId      :: ByteString
   , gender      :: Gender
   , birthday    :: Day
   , town        :: Text
@@ -47,7 +49,7 @@ data CredentialDTO = CredentialDTO
 
 data LoggedInDTO = LoggedInDTO
   { username  :: Text
-  , userId    :: Int64
+  , userId    :: Text
   , authToken :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
@@ -55,7 +57,7 @@ data LoggedInDTO = LoggedInDTO
 
 data ConversationPreviewDTO = ConversationPreviewDTO
   { convoWithUsername :: Text
-  , convoWithId       :: Int64
+  , convoWithId       :: ByteString
   , isLastAuthor      :: Bool
   , body              :: Text
   , timeStamp         :: UTCTime

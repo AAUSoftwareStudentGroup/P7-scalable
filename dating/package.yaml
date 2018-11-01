@@ -23,8 +23,8 @@ library:
   - monad-logger
   - mtl
   - persistent
-  - persistent-postgresql
   - persistent-template
+  - persistent-mongoDB
   - servant
   - servant-client
   - servant-elm
@@ -40,11 +40,12 @@ library:
   - cookie
   - containers
   - http-client
-  - esqueleto
   - elm-export-persistent
   - servant-elm
   - servant-foreign
   - random
+  - network
+  - template-haskell
 executables:
   dating:
     main: Main.hs
