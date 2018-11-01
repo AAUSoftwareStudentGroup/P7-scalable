@@ -1,4 +1,4 @@
-module Api.Users exposing (NewUser, User, postUsers, postLogin, getUserById, getUsers, emptyUser, encodeUserInfo, decodeUserInfo)
+module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserById, getUsers, emptyUser, encodeUserInfo, decodeUserInfo)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
