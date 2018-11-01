@@ -74,7 +74,10 @@ view model =
 
 chatButton : Int -> Session -> Html msg
 chatButton friendId session =
-    El.linkButtonRight (Routing.routeToString <| (Chat friendId)) "chat"
+    El.linkButton
+        []
+        (Routing.routeToString <| (Chat friendId))
+        [ Html.text "chat" ]
 
 
 

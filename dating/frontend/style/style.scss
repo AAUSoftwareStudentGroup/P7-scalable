@@ -100,7 +100,7 @@ button, .btn {
     }
 
     &:active {
-        background-color: lighten($pri-col-light, 2%);
+        background-color: $pri-col-dark;
     }
 }
 

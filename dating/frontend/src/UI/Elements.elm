@@ -64,22 +64,18 @@ headerNav session =
 
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
-    let
-        headerNavLinksClasses = [ classList
-                                    [ ( "flat-btn", True ) ]
-                                ]
-    in
-        case session of
-            Session.LoggedIn _ userInfo ->
-                [ linkText headerNavLinksClasses (Routing.routeToString Messages) "Messages"
-                , linkText headerNavLinksClasses (Routing.routeToString ListUsers) "All users"
-                , linkText headerNavLinksClasses (Routing.routeToString (Profile userInfo.userId)) "My profile"
-                ]
+    case session of
+        Session.LoggedIn _ userInfo ->
+            [ linkButtonFlat [] (Routing.routeToString Messages) [ Html.text "Messages" ]
+            , linkButtonFlat [] (Routing.routeToString ListUsers) [ Html.text "All users" ]
+            , linkButtonFlat [] (Routing.routeToString (Profile userInfo.userId)) [ Html.text "My profile" ]
+            , linkButtonFlat [] (Routing.routeToString Logout) [ Html.text "Log out" ]
+            ]
 
-            Session.Guest _ ->
-                [ linkText headerNavLinksClasses (Routing.routeToString CreateUser) "Sign up"
-                , linkText headerNavLinksClasses (Routing.routeToString Login) "Sign in"
-                ]
+        Session.Guest _ ->
+            [ linkButtonFlat [] (Routing.routeToString CreateUser) [ Html.text "Sign up" ]
+            , linkButtonFlat [] (Routing.routeToString Login) [ Html.text "Sign in" ]
+            ]
 
 
 footer : Html msg
@@ -120,8 +116,14 @@ userCard username userId =
                 ]
             ]
         [ Html.text (toSentenceCase username)
-        , linkButtonRight (Routing.routeToString (Profile userId)) "profile"
-        , linkButtonRight (Routing.routeToString (Chat userId)) "chat"
+        , linkButtonFlat
+            []
+            (Routing.routeToString (Profile userId))
+            [ Html.text "profile" ]
+        , linkButtonFlat
+            []
+            (Routing.routeToString (Chat userId))
+            [ Html.text "chat" ]
         ]
 
 
@@ -141,30 +143,26 @@ paragraphProperty labelText propertyText =
             [ Html.text propertyText ]
         ]
 
-linkButtonRight : String -> String -> Html msg
-linkButtonRight url caption =
-    linkButton [ class "right" ] url caption
 
-linkButtonLeft : String -> String -> Html msg
-linkButtonLeft url caption =
-    linkButton [ class "left" ] url caption
+linkButton : List (Attribute msg) -> String -> List (Html msg) -> Html msg
+linkButton attributes url children =
+    Html.a ([ class "btn", Attributes.href url ] ++ attributes)
+        children
 
-linkButton : List (Attribute msg) -> String -> String -> Html msg
-linkButton attributes url caption =
-    linkText ([ class "button" ] ++ attributes) url caption
+linkButtonFlat : List (Attribute msg) -> String -> List (Html msg) -> Html msg
+linkButtonFlat attributes url children =
+    Html.a ([ class "flat-btn", Attributes.href url ] ++ attributes)
+        children
 
-messageButtonRight : msg -> String -> Html msg
-messageButtonRight msg caption =
-    messageButton [ class "right" ] msg caption
+msgButton : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
+msgButton attributes msg children =
+    Html.a ([ class "btn", Events.onClick msg ] ++ attributes)
+        children
 
-messageButtonLeft : msg -> String -> Html msg
-messageButtonLeft msg caption =
-    messageButton [ class "left" ] msg caption
-
-messageButton : List (Attribute msg) -> msg -> String -> Html msg
-messageButton attributes msg caption =
-    Html.input ([ class "button", Events.onClick msg] ++ attributes)
-        [Html.text caption]
+msgButtonFlat : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
+msgButtonFlat attributes msg children =
+    Html.a ([ class "flat-btn", Events.onClick msg ] ++ attributes)
+        children
 
 linkText : List (Attribute msg) -> String -> String -> Html msg
 linkText attributes url label =
