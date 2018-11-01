@@ -1,7 +1,7 @@
 module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html, div)
-import Html.Attributes as Attributes exposing (class)
+import Html.Attributes as Attributes exposing (class, classList)
 import Html.Keyed as Keyed
 import Http
 import Task as Task
@@ -82,7 +82,13 @@ view model =
     , session = model.session
     , kids =
         El.contentWithHeader "Messages"
-            [ Keyed.ul [ class "messages" ]
+            [ Keyed.ul
+                [ classList
+                    [ ( "messages", True )
+                    , ( "l-12", True )
+                    , ( "l-6", True )
+                    ]
+                ]
                 (List.map viewMessage model.content)
             ]
     }
@@ -92,9 +98,11 @@ view model =
 viewMessage : ConversationPreview -> (String, Html msg)
 viewMessage message =
     ( String.fromInt message.convoWithId
-    , Html.li [ Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
-        [ Html.text message.convoWithUsername
-        , Html.text message.body
+    , Html.li [ class "conversation", Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
+        [ div [ class "conversation-with" ]
+            [ Html.text message.convoWithUsername ]
+        , div [ class "conversation-last-message" ]
+            [ Html.text message.body ]
         ]
     )
 

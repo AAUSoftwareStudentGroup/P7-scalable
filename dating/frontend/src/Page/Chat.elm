@@ -1,7 +1,7 @@
 module Page.Chat exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html, div)
-import Html.Attributes as Attributes
+import Html.Attributes as Attributes exposing (classList)
 import Html.Events as Events
 import Html.Keyed exposing (ul)
 import Http
@@ -22,7 +22,9 @@ type alias Model =
     { session           : Session
     , title             : String
     , content           : List Message
+    , idYou             : Int
     , idFriend          : Int
+    , username          : String
     , unsentMessage     : String
     , zone              : Time.Zone
     , time              : Time.Posix
@@ -33,7 +35,9 @@ init session idFriend =
   ( Model (Debug.log "messages session:" session)
     "Messages"
     []
+    (Maybe.withDefault -1 (Session.getUserId session))
     idFriend
+    (Maybe.withDefault "" (Session.getUsername session))
     ""
     Time.utc
     (Time.millisToPosix 0)
@@ -118,20 +122,43 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        [ div []
-            [ ul []
+        El.contentWithHeader ("Chatting with " ++ model.username)
+            [ ul
+                [ classList
+                    [ ( "grid", True )
+                    , ( "l-12", True )
+                    , ( "l-6", True )
+                    ]
+                ]
                 (List.reverse (List.map (viewMessage model) model.content))
-            , Html.form [ Events.onSubmit SubmitMessage ]
+            , Html.form
+                [ Events.onSubmit SubmitMessage
+                , classList
+                      [ ( "l-12", True )
+                      , ( "l-6", True )
+                      ]
+                ]
                 [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged
                 , El.submitButton "Send"
                 ]
             ]
-        ]
     }
 
 viewMessage : Model -> Message -> (String, Html Msg)
 viewMessage model message =
-    (message.timeStamp, Html.li [] [Html.text message.body])
+    let
+        myMessage = model.username == message.authorName
+    in
+        ( message.timeStamp
+        , Html.li [ classList
+                    [ ( "message", True )
+                    , ( "l-12", True )
+                    , ( "author-me", myMessage)
+                    , ( "author-friend", not myMessage)
+                    ]
+                  ]
+            [Html.text message.body]
+        )
 
 
 sendMessage : Model -> Cmd Msg

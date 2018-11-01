@@ -1,0 +1,160 @@
+.input-group {
+    min-height: 3.5rem;
+    width: 100%;
+
+    label {
+        position: relative;
+    }
+
+    input {
+        -webkit-appearance: none;
+        width: 100%;
+        border: 0;
+        height: 2rem;
+        border-bottom: 2px solid $txt-col-light;
+        background: none;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        &::placeholder {
+            color: transparent;
+        }
+
+        &:not(:placeholder-shown) ~ .label {
+            color: $txt-col-light;
+            transform: translateY(-26px) scale(.80)
+        }
+
+        &:focus {
+            background: none;
+            outline: none;
+
+            ~ .label {
+                cursor: default;
+                color: $pri-col-dark;
+                transform: translateY(-26px) scale(.80);
+            }
+            ~ .border {
+                transform: scaleX(1)
+            }
+        }
+    }
+
+    span {
+        position: absolute;
+        transform-origin: 0 0;
+        transition: all .2s ease;
+    }
+
+    .label {
+        top: 0;
+        left: 0;
+        cursor: text;
+    }
+
+    .border {
+        top: 1.4rem;
+        left: 0;
+        height: 2px;
+        width: 100%;
+        background: $pri-col-dark;
+        transform: scaleX(0);
+    }
+}
+
+.radio-group {
+    position: relative;
+    min-height: 3.5rem;
+    width: 100%;
+
+    label:first-of-type {
+        position: absolute;
+        top: -26px;
+        display: inline-block;
+        color: $txt-col-light;
+        transform: scale(0.8);
+        transform-origin: 0 0;
+
+        transition: color 0.15s ease;
+    }
+
+    &:focus-within label:first-of-type {
+        color: $pri-col-dark;
+    }
+
+    .radio-label-group {
+        display: inline-block;
+        position: relative;
+        margin-right: 2rem;
+        padding-left: 1.4rem;
+        cursor: pointer;
+
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        transition: color 0.15s ease;
+
+        &:focus-within {
+            color: $pri-col-dark;
+        }
+
+        // Darken radio button on hover
+        &:hover input ~ .checkmark {
+            background-color: $bg-col-dark;
+        }
+
+        // Color radio button on click
+        &:active input ~ .checkmark {
+            background-color: $pri-col-light;
+        }
+
+        // Hide default radio button
+        input {
+            //display: none;
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+
+            &:checked ~ .checkmark {
+                background-color: $pri-col;
+
+                // Display indicator inside radio button
+                &:after {
+                    display: block;
+                }
+            }
+        }
+
+        // Create a custom radio button
+        .checkmark {
+            position: absolute;
+            top: 2px;
+            left: 0;
+            height: 17px;
+            width: 17px;
+            background-color: $bg-col-light;
+            border-radius: 50%;
+            transition: background 0.15s ease;
+
+            // Create indicator inside radio button (hidden)
+            &:after {
+                content: "";
+                position: absolute;
+                display: none;
+                top: 6px;
+                left: 6px;
+                width: 5px;
+                height: 5px;
+                border-radius: 50%;
+                background: white;
+            }
+        }
+    }
+}
+
+
+

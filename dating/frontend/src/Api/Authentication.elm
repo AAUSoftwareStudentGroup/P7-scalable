@@ -15,7 +15,6 @@ type alias Credentials =
     , password : String
     }
 
-
 credentialsEncoder : Credentials -> Encode.Value
 credentialsEncoder x =
     Encode.object
