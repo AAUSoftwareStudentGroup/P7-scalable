@@ -1,7 +1,6 @@
 @import "reset";
 @import "colors";
 @import "typography";
-@import "icons";
 @import "grid";
 @import "shadows";
 
@@ -75,10 +74,12 @@ header, footer {
 
 .flat-btn {
     @extend %txt-white;
+
 }
 
 button, .btn {
     @extend %txt-button;
+    @extend %shadow-2;
     @extend %hoverable;
 
     width: auto;
@@ -94,6 +95,8 @@ button, .btn {
     -webkit-tap-highlight-color: transparent;
     grid-column: span 12;
     justify-self: right;
+
+    transition: background 0.15s ease;
 
     &:hover {
         background-color: $pri-col-light;

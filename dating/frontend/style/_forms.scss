@@ -2,6 +2,13 @@
     min-height: 3.5rem;
     width: 100%;
 
+    .errors {
+        color: #ff6a50;
+        font-size: 0.7rem;
+        line-height: 0.8rem;
+        margin: 0.4rem 0 2rem 0;
+    }
+
     label {
         position: relative;
     }
@@ -53,6 +60,19 @@
         top: 0;
         left: 0;
         cursor: text;
+
+        &:after {
+            @extend %material-icon;
+
+            content: "";
+            line-height: 1.4rem;
+        }
+    }
+
+
+
+    &.valid .label:after {
+        content: "done";
     }
 
     .border {

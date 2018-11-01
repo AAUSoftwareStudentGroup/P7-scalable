@@ -39,11 +39,9 @@ header session =
 headerLogo : Html msg
 headerLogo =
     div [ class "l-6" ]
-        [ linkHtml
+        [ linkButtonFlat
               [ classList
-                  [ ( "logo", True )
-                  , ( "flat-btn", True )
-                  ]
+                  [ ( "logo", True ) ]
               ]
               (Routing.routeToString Home)
               [ Html.i [ class "material-icons" ]
@@ -164,14 +162,10 @@ msgButtonFlat attributes msg children =
     Html.a ([ class "flat-btn", Events.onClick msg ] ++ attributes)
         children
 
-linkText : List (Attribute msg) -> String -> String -> Html msg
-linkText attributes url label =
-    Html.a ([Attributes.href url] ++ attributes) [Html.text label]
-
-linkHtml : List (Attribute msg) -> String -> List (Html msg) -> Html msg
-linkHtml attributes url children =
-    Html.a ([Attributes.href url] ++ attributes) children
-
+link : > String -> String -> Html msg
+link url caption =
+    Html.a [ Attributes.href url ]
+        [ Html.text caption ]
 
 validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
 validatedInput field typ caption value toMsg errors showErrors =
@@ -191,7 +185,12 @@ validatedInput field typ caption value toMsg errors showErrors =
                     [ Html.text caption ]
                 , Html.span [ class "border" ] []
                 ]
-            , Html.ul [ classList [("hidden", not showErrors)] ]
+            , Html.ul
+                [ classList
+                    [ ( "errors", True )
+                    , ( "hidden", not showErrors )
+                    ]
+                ]
                 (List.map fieldError relevantErrors)
             ]
 
