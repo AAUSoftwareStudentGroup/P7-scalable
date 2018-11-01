@@ -2,12 +2,14 @@ module UI.Elements exposing (..)
 
 
 import Html exposing (Html, Attribute, div)
-import Html.Attributes as Attributes exposing (class, classList)
+import Html.Attributes as Attributes exposing (class, classList, src)
 import Html.Events as Events
 import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
 import Session exposing (Session)
+
+import Random
 
 
 site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
@@ -111,20 +113,40 @@ contentWithHeader heading contents =
 
 userCard : String -> Int -> Html msg
 userCard username userId =
-    Html.li [ classList
-                [ ( "user-card", True )
-                ]
-            ]
-        [ Html.text (toSentenceCase username)
+    Html.li 
+        [ classList [ ( "user-card", True )
+                    , ( "l-12", True )
+                    , ( "s-12", True )
+                    , ( "grid", True )
+                    ]
+        ]
+        [ Html.a [ Attributes.href (Routing.routeToString (Profile userId)) ]
+                 [ Html.img [ src ("https://randomuser.me/api/portraits/men/"++(String.fromInt userId)++".jpg") ] [] ]
+        , Html.span 
+            [ classList [ ("l-7", True), ("s-7", True) ] ] 
+            [ Html.text (toSentenceCase username) ]
         , linkButtonFlat
-            []
+            [ classList [ ("l-2", True), ("s-2", True) ] ]
             (Routing.routeToString (Profile userId))
-            [ Html.text "profile" ]
+            [ labelledIcon "Profile" "perm_identity" 
+            ]
         , linkButtonFlat
-            []
+            [ classList [ ("l-2", True), ("s-2", True) ] ]
             (Routing.routeToString (Chat userId))
             [ Html.text "chat" ]
         ]
+
+labelledIcon : String -> String -> Html msg
+labelledIcon label iconName =
+    div [ class "labelled-icon" ] 
+    [ Html.span [] [ Html.text label ]
+    , materialIcon iconName
+    ]
+
+materialIcon : String -> Html msg
+materialIcon iconName = 
+    Html.i [ class "material-icons" ] 
+    [Html.text iconName ] 
 
 
 textProperty : String -> String -> Html msg

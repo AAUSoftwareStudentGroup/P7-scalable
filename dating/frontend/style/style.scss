@@ -158,4 +158,19 @@ button, .btn {
     }
 }
 
+.user-card {
+    height: 5rem;
+    border: 2px solid grey;
+    border-radius: .5rem;
+    box-sizing: content-box;
+    
+    align-items: center;
+    
+    img {
+        height: 4rem;
+        margin: .5rem;
+        border: 2px solid blue;
+        border-radius: 5rem;
 
+    } 
+}
