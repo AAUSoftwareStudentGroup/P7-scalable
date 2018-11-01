@@ -7,7 +7,7 @@ import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
 
 --import DatingApi as Api exposing (User, UserInfo)
-import Api.Types exposing (UserInfo, Token)
+import Api.Types exposing (UserInfo, Token, Id)
 import Api.Users
 
 -- TYPES
@@ -44,7 +44,7 @@ getUserInfo session =
         Guest _ ->
             Nothing
 
-getUserId : Session -> Maybe Int
+getUserId : Session -> Maybe Id
 getUserId session =
     case session of
         LoggedIn _ userInfo ->

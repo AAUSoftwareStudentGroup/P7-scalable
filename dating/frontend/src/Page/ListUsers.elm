@@ -69,7 +69,7 @@ subscriptions model =
 view : Model -> Session.Details Msg
 view model =
     let
-        myId = Maybe.withDefault -1 (Session.getUserId model.session)
+        myId = Maybe.withDefault "" (Session.getUserId model.session)
     in
         { title = "All users"
         , session = model.session

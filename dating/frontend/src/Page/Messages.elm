@@ -97,8 +97,8 @@ view model =
 
 viewMessage : ConversationPreview -> (String, Html msg)
 viewMessage message =
-    ( String.fromInt message.convoWithId
-    , Html.li [ class "conversation", Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
+    ( message.convoWithId
+    , Html.li [ class "conversation", Attributes.attribute "attr-id" <| message.convoWithId ]
         [ div [ class "conversation-with" ]
             [ Html.text message.convoWithUsername ]
         , div [ class "conversation-last-message" ]

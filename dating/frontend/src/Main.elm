@@ -402,11 +402,11 @@ stepUrl url model =
                     (stepLogout model (Logout.init session))
                 , route (s "list-users")
                     ( stepListUsers model (ListUsers.init session))
-                , route (s "user" </> Parser.int)
+                , route (s "user" </> Parser.string)
                     (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
                 , route (s "messages")
                     (stepMessages model (Messages.init session))
-                , route (s "chat" </> Parser.int)
+                , route (s "chat" </> Parser.string)
                     (\idFriend -> stepChat model (Chat.init session idFriend))
                 ]
 

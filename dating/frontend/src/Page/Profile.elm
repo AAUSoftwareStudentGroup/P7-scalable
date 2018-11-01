@@ -7,7 +7,7 @@ import Http
 import String
 
 import Api.Users exposing (User)
-import Api.Types exposing (Gender(..))
+import Api.Types exposing (Gender(..), Id)
 import Routing exposing (Route(..))
 import Session exposing (Session, Details)
 import UI.Elements as El
@@ -25,7 +25,7 @@ type Msg
     | LogoutClicked
 
 
-init : Session -> Int -> ( Model, Cmd Msg )
+init : Session -> Id -> ( Model, Cmd Msg )
 init session id =
     ( Model session "Profile" Api.Users.emptyUser
     , sendGetUser HandleGetUser id session
@@ -72,7 +72,7 @@ view model =
     }
 
 
-chatButton : Int -> Session -> Html msg
+chatButton : Id -> Session -> Html msg
 chatButton friendId session =
     El.linkButton
         []
@@ -81,7 +81,7 @@ chatButton friendId session =
 
 
 
-sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
+sendGetUser : (Result Http.Error User -> msg) -> Id -> Session -> Cmd msg
 sendGetUser responseMsg userId session =
     case session of
         Session.LoggedIn _ userInfo ->
