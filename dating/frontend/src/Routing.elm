@@ -13,6 +13,7 @@ type Route
     = Home
     | CreateUser
     | Login
+    | Logout
     | ListUsers
     | Messages
     | Profile Int
@@ -24,6 +25,7 @@ parser =
     oneOf
         [ Parser.map Home Parser.top
         , Parser.map Login (s "login")
+        , Parser.map Login (s "logout")
         , Parser.map CreateUser (s "create-user")
         , Parser.map ListUsers (s "list-users")  
         , Parser.map Messages (s "messages")
@@ -74,6 +76,9 @@ routeToString page =
 
                 Login ->
                     [ "login" ]
+
+                Logout ->
+                    [ "logout" ]
 
                 ListUsers ->
                     [ "list-users" ]

@@ -12,6 +12,19 @@ services:
         volumes:
           - ./docker/postgres/data:/var/lib/postgresql
 
+    mongodb:
+        image: 'bitnami/mongodb:latest'
+        user: root
+        ports:
+            - "27017:27017"
+        environment:
+            - MONGODB_ROOT_PASSWORD=strangerdanger
+            - MONGODB_USERNAME=datingdbuser
+            - MONGODB_PASSWORD=datingdbpassword
+            - MONGODB_DATABASE=datingdb
+        volumes:
+            - ./docker/mongodb/data:/bitnami
+
     redis:
       image: redis:4.0
       ports:

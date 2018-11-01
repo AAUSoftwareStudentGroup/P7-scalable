@@ -38,13 +38,14 @@ db.users.findOne({_id: ObjectId('TheStringId')}
 
 ----Authentication----
 ---LogIn
-user = db.users.findOne({$and:[{username:'name'}, {password:'aProperPassword'}]})
---we probably want to add a token to this object as well, then push the same token to the DB
-db.users.update(user, {$set:{token:'TokenValue'}})
+db.users.update( db.users.findOne({$and:[{username:'name'}, {password:'aProperPassword'}]})
+               , {$set:{token:'TokenValue'}}
+               )
 
 ---LogOut
-user = db.users.findOne({token:'TokenValue'})
-db.users.update(user, $unset:{token:1})
+db.users.update( db.users.findOne({token:'TokenValue'})
+               , $unset:{token:1}
+               )
 
 
 
@@ -55,33 +56,37 @@ db.users.update(user, $unset:{token:1})
 db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
 
 if null do
-conv = {members: [ {id:1, username:"name"}
-                 , {id:2, username:"aaa"}
-                 ]
-                 , messages: []}
-db.conversations.insertOne(conv)
-
+db.conversations.insertOne(
+    { members: [ { id:2
+                 , username:"name1"
+                 }
+               , { id:3
+                 , username:"name2"
+                 }
+               ]
+    , messages: [ { _id: new ObjectId()
+                  , authorId:2
+                  , timeStamp:'date'
+                  , body:'test message'
+                  }
+                ]
+    }
+)
 
 
 ---Create
-message = { username:'creatorName'
-          , timeStamp:'Date'
-          , "body" : "hej igen" 
-          }
---we find the conversation
-conv = db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
-
---and update it with the new message
-db.conversations.update(conv, {$push:{messages:message}})
+db.conversations.update( db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
+                       , { $push:{messages:{_id: new ObjectId(), username:'creatorName', timeStamp:'Date', body: "LastMessage"}}}
+                       )
 
 
----Get messages
-db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]}, {_id:0, messages:1})
+---Get messages / conversations
+db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
 
 
 
 ---Get Conversations
---Use Haskell to get the last message from each message list,
---as well as return the ID and username of the other member in the member list
-db.conversations.find( {'members.id':1}, {_id:0})
+--Get a list of objects each containing a message array with the last message as their only entry
+db.conversations.find( {'members.id':2}, {messages: {$slice: -1 }, _id:0, members:0})
+
 

@@ -68,20 +68,24 @@ subscriptions model =
 
 view : Model -> Session.Details Msg
 view model =
-    { title = "All users"
-    , session = model.session
-    , kids =
-        El.contentWithHeader "All users"
-            [ ul []
-                (List.map (showUser model.session) model.users)
-            ]
-    }
-
+    let
+        myId = Maybe.withDefault -1 (Session.getUserId model.session)
+    in
+        { title = "All users"
+        , session = model.session
+        , kids =
+            El.contentWithHeader "All users"
+                [ ul []
+                    (List.map (showUser model.session) <| List.filter (\user -> myId /= user.userId) model.users)
+                ]
+        }
 
 
 showUser : Session -> User -> (String, Html Msg)
 showUser session user =
-    (user.username, El.userCard user.username user.userId (Maybe.withDefault -1 (Session.getUserId session)))
+    ( user.username
+    , El.userCard user.username user.userId
+    )
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg

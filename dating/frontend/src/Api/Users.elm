@@ -1,4 +1,4 @@
-module Api.Users exposing (NewUser, User, postUsers, postLogin, getUserById, getUsers, emptyUser, encodeUserInfo, decodeUserInfo)
+module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserById, getUsers, emptyUser, encodeUserInfo, decodeUserInfo)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -7,7 +7,7 @@ import Http
 import String
 import Url
 
-import Api.Types exposing (Gender(..), UserInfo)
+import Api.Types exposing (Gender(..), UserInfo, Token)
 import Api.Authentication as Auth exposing (Credentials)
 
 
@@ -61,6 +61,11 @@ decodeGender =
         |> Decode.andThen decodeGenderHelper
 
 
+decodeToken : Decoder Token
+decodeToken =
+    Decode.field "authToken" Decode.string
+
+
 decodeGenderHelper : String -> Decoder Gender
 decodeGenderHelper str =
     case str of
@@ -93,8 +98,8 @@ encodeUserInfo : UserInfo -> Encode.Value
 encodeUserInfo userInfo =
     Encode.object
         [ ( "userId", Encode.int userInfo.userId )
-        , ( "authToken", Encode.string userInfo.authToken )
-        , ( "userUsername", Encode.string userInfo.username )
+        , ( "authToken", encodeToken userInfo.authToken )
+        , ( "userUsername",  Encode.string userInfo.username )
         ]
 
 decodeUser : Decoder User
@@ -112,8 +117,13 @@ decodeUserInfo : Decoder UserInfo
 decodeUserInfo =
     Decode.succeed UserInfo
         |> Pipeline.required "userId" Decode.int
-        |> Pipeline.required "authToken" Decode.string
+        |> Pipeline.custom decodeToken
         |> Pipeline.required "userUsername" Decode.string
+
+
+encodeToken : Token -> Encode.Value
+encodeToken token =
+    Encode.string token
 
 
 postUsers : NewUser -> Http.Request (UserInfo)
@@ -161,6 +171,28 @@ postLogin body =
             False
         }
 
+
+postLogout : Token -> Http.Request (String.String)
+postLogout token =
+    Http.request
+        { method =
+            "POST"
+        , headers =
+            []
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "logout"
+                ]
+        , body =
+            Http.jsonBody (encodeToken token)
+        , expect =
+            Http.expectString
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
 
 getUserById : Int -> UserInfo -> Http.Request (User)
 getUserById userId userInfo =
