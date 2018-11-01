@@ -34,6 +34,7 @@ header, footer {
     @extend %max-width-container;
 
     .logo {
+        @extend %txt-white;
         display: inline-block;
         padding: 16px 16px 16px 0;
 
@@ -47,11 +48,39 @@ header, footer {
         justify-self: right;
         margin: auto 0;
 
-        a {
-            padding: 12px 0 12px 12px;
+        li {
+            display: inline-block;
+
+            a {
+                @extend %txt-header-link;
+
+                position: relative;
+                padding: 0.5rem;
+
+                &:after {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    width: 0;
+                    height: 1px;
+                    margin: auto;
+                    content: "";
+                    color: transparent;
+                    background: white;
+
+                    transition: width .2s ease;
+                }
+
+                &:hover:after {
+                    width: 100%;
+                }
+            }
         }
     }
 }
+
+
 
 .footer-content {
     @extend %max-width-container;
@@ -73,30 +102,45 @@ header, footer {
 	}
 }
 
+%button {
+    @extend %txt-button;
+
+    outline: 0;
+    border: none;
+    border-radius: 0.15rem;
+    height: 2.2rem;
+    display: inline-block;
+    padding: 0 1rem;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background, color, box-shadow 0.15s ease;
+}
+
 .flat-btn {
-    @extend %txt-white;
+    @extend %button;
+
+    color: $txt-col-light;
+
+    &:hover {
+        color: $pri-col;
+    }
+
+    &:active {
+        color: $pri-col-dark;
+    }
 }
 
 button, .btn {
-    @extend %txt-button;
-    @extend %hoverable;
+    @extend %button;
+    @extend %txt-white;
+    @extend %shadow-2;
 
-    width: auto;
-    min-width: 2.5rem;
-    height: 2rem;
-    display: inline-block;
-    padding: 0 1rem;
-    outline: 0;
-    border: none;
-    border-radius: 0.3rem;
-    text-align: center;
     background-color: $pri-col;
-    -webkit-tap-highlight-color: transparent;
-    grid-column: span 12;
-    justify-self: right;
 
     &:hover {
         background-color: $pri-col-light;
+        @extend %shadow-4;
     }
 
     &:active {
@@ -113,3 +157,5 @@ button, .btn {
         justify-self: left;
     }
 }
+
+

@@ -54,10 +54,18 @@ $txt-weight-bold: 800;
 }
 
 %txt-button {
+    font-size: $txt-size-6;
+    line-height: 2.2rem;
+    font-weight: $txt-weight-regular;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+%txt-header-link {
     @extend %txt-white;
 
-    font-size: $txt-size-7;
-    line-height: $txt-lh-7;
+    font-size: $txt-size-6;
+    line-height: $txt-lh-6;
     font-weight: $txt-weight-regular;
     text-transform: uppercase;
     letter-spacing: 1px;

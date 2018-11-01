@@ -39,17 +39,11 @@ header session =
 headerLogo : Html msg
 headerLogo =
     div [ class "l-6" ]
-        [ linkHtml
-              [ classList
-                  [ ( "logo", True )
-                  , ( "flat-btn", True )
-                  ]
-              ]
-              (Routing.routeToString Home)
-              [ Html.i [ class "material-icons" ]
-                  [ Html.text "favorite" ]
-              , Html.text "Dating"
-              ]
+        [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
+            [ Html.i [ class "material-icons" ]
+                [ Html.text "favorite" ]
+            , Html.text "Dating"
+            ]
         ]
 
 
@@ -59,24 +53,30 @@ headerNav session =
         [ classList
             [ ( "l-6", True ) ]
         ]
-        (headerNavLinks session)
+        [ Html.ul []
+            (headerNavLinks session)
+        ]
 
 
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
         Session.LoggedIn _ userInfo ->
-            [ linkButtonFlat [] (Routing.routeToString Messages) [ Html.text "Messages" ]
-            , linkButtonFlat [] (Routing.routeToString ListUsers) [ Html.text "All users" ]
-            , linkButtonFlat [] (Routing.routeToString (Profile userInfo.userId)) [ Html.text "My profile" ]
-            , linkButtonFlat [] (Routing.routeToString Logout) [ Html.text "Log out" ]
+            [ headerNavLink (Routing.routeToString Messages) "Messages"
+            , headerNavLink (Routing.routeToString ListUsers) "All users"
+            , headerNavLink (Routing.routeToString (Profile userInfo.userId)) "My profile"
+            , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
         Session.Guest _ ->
-            [ linkButtonFlat [] (Routing.routeToString CreateUser) [ Html.text "Sign up" ]
-            , linkButtonFlat [] (Routing.routeToString Login) [ Html.text "Sign in" ]
+            [ headerNavLink (Routing.routeToString CreateUser) "Sign up"
+            , headerNavLink (Routing.routeToString Login) "Sign in"
             ]
 
+headerNavLink : String -> String -> Html msg
+headerNavLink url caption =
+    Html.li []
+        [ link url caption ]
 
 footer : Html msg
 footer =
@@ -164,13 +164,10 @@ msgButtonFlat attributes msg children =
     Html.a ([ class "flat-btn", Events.onClick msg ] ++ attributes)
         children
 
-linkText : List (Attribute msg) -> String -> String -> Html msg
-linkText attributes url label =
-    Html.a ([Attributes.href url] ++ attributes) [Html.text label]
-
-linkHtml : List (Attribute msg) -> String -> List (Html msg) -> Html msg
-linkHtml attributes url children =
-    Html.a ([Attributes.href url] ++ attributes) children
+link : String -> String -> Html msg
+link url caption =
+    Html.a [ Attributes.href url ]
+        [ Html.text caption ]
 
 
 validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
@@ -238,5 +235,12 @@ simpleInput typ placeholder value toMsg =
 
 submitButton : String -> Html msg
 submitButton caption =
-    Html.button [ class "btn", Attributes.type_ "submit" ]
+    Html.button
+        [ Attributes.type_ "submit"
+        , classList
+            [ ( "btn", True )
+            , ( "l-12", True )
+            , ( "right", True )
+            ]
+        ]
         [ Html.text caption ]

@@ -2,6 +2,15 @@
     min-height: 3.5rem;
     width: 100%;
 
+
+    .errors {
+        color: $error-col;
+        font-size: 0.7rem;
+        line-height: 0.8rem;
+        margin: 0.4rem 0 2rem 0;
+    }
+
+
     label {
         position: relative;
     }
