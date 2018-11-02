@@ -72,8 +72,13 @@ newtype CreateMessageDTO = CreateMessageDTO
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 
+data ConversationDTO = ConversationDTO
+  { convoWithUsername :: Text
+  , messages          :: [MessageDTO]
+  }
+
 data MessageDTO = MessageDTO
-  { authorName :: Text
-  , timeStamp  :: UTCTime
-  , body       :: Text
+  { authorUsername :: Text
+  , timeStamp      :: UTCTime
+  , body           :: Text
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
