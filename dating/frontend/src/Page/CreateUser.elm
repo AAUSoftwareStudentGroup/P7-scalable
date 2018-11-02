@@ -188,7 +188,7 @@ view model =
                 , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Bio "text" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Birthday "text" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Birthday "date" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
                 , El.labelledRadio "Gender" GenderChanged model.gender
                     [ ( "Male", Male )
                     , ( "Female", Female )
@@ -207,8 +207,7 @@ view model =
 modelValidator : Validator ( FormField, String ) Model
 modelValidator =
     Validate.all
-        [ Validate.ifBlank .email ( Email, "Please enter an email" )
-        , Validate.ifInvalidEmail .email (\_ -> ( Email, "Please enter a valid email" ))
+        [ Validate.ifInvalidEmail .email (\_ -> ( Email, "Please enter a valid email" ))
 
         , Validate.ifBlank .username ( Username, "Please enter a username" )
         , Validate.ifFalse (\model -> isUsernameValid model) ( Username, "Username already in use" )
@@ -217,8 +216,7 @@ modelValidator =
         , Validate.ifBlank .password2 ( Password2, "Please repeat your password" )
         , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password2, "Passwords don't match" )
 
-        , Validate.ifBlank .birthday ( Birthday, "Please enter your birthday" )
-        , Validate.ifFalse (\model -> isDateValid model) ( Birthday, "Please enter birthday in a valid format")
+        , Validate.ifTrue (\model -> Validate.isBlank model.birthday || not (isDateValid model)) ( Birthday, "Please enter a valid birthday")
 
         , Validate.ifBlank .city ( City, "Please enter your city" )
 

@@ -188,7 +188,12 @@ validatedInput field typ caption value toMsg errors showErrors =
                     [ Html.text caption ]
                 , Html.span [ class "border" ] []
                 ]
-            , Html.ul [ classList [("hidden", not showErrors)] ]
+            , Html.ul
+                [ classList
+                    [ ( "errors", True )
+                    , ( "hidden", not showErrors )
+                    ]
+                ]
                 (List.map fieldError relevantErrors)
             ]
 
