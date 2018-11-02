@@ -23,6 +23,10 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: background, color, box-shadow 0.15s ease;
+
+    .material-icons {
+        line-height: $txt-lh-btn;
+    }
 }
 
 .flat-btn {

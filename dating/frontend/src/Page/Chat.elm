@@ -135,7 +135,8 @@ view model =
                       ]
                 ]
                 [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged
-                , El.submitButton "Send"
+                , El.submitButtonHtml
+                    [ El.iconText "Send" "send" ]
                 ]
             ]
     }

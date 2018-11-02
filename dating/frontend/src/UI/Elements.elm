@@ -126,27 +126,34 @@ userCard username userId =
             [ classList [ ("l-7", True), ("s-7", True) ] ] 
             [ Html.text (toSentenceCase username) ]
         , linkButtonFlat
-            [ classList [ ("l-2", True), ("s-2", True) ] ]
-            (Routing.routeToString (Profile userId))
-            [ labelledIcon "Profile" "perm_identity" 
+            [ classList
+                [ ("l-2", True)
+                , ("s-2", True)
+                ]
             ]
+            (Routing.routeToString (Profile userId))
+            [ iconText "Profile" "perm_identity" ]
         , linkButtonFlat
-            [ classList [ ("l-2", True), ("s-2", True) ] ]
+            [ classList
+                [ ("l-2", True)
+                , ("s-2", True)
+                ]
+            ]
             (Routing.routeToString (Chat userId))
-            [ Html.text "chat" ]
+            [ iconText "Chat" "chat" ]
         ]
 
-labelledIcon : String -> String -> Html msg
-labelledIcon label iconName =
-    div [ class "labelled-icon" ] 
-    [ Html.span [] [ Html.text label ]
-    , materialIcon iconName
-    ]
+iconText : String -> String -> Html msg
+iconText label iconName =
+    div []
+        [ materialIcon iconName
+        , Html.text label
+        ]
 
 materialIcon : String -> Html msg
 materialIcon iconName = 
-    Html.i [ class "material-icons" ] 
-    [Html.text iconName ] 
+    Html.i [ class "material-icons" ]
+        [Html.text iconName ]
 
 
 textProperty : String -> String -> Html msg
@@ -210,21 +217,26 @@ validatedInput field typ caption value toMsg errors showErrors =
                     [ Html.text caption ]
                 , Html.span [ class "border" ] []
                 ]
-            , Html.ul
+            , Html.span
                 [ classList
                     [ ( "errors", True )
                     , ( "hidden", not showErrors )
                     ]
                 ]
-                (List.map fieldError relevantErrors)
+                [ severestFieldError relevantErrors ]
             ]
 
 
-
-fieldError : (fieldtype, String) -> Html msg
-fieldError ( _, errorDesc) =
-    Html.li []
-        [ Html.text errorDesc ]
+severestFieldError : List ((fieldtype, String)) -> Html msg
+severestFieldError errors =
+    let
+        maybeError = List.head errors
+    in
+        case maybeError of
+            Nothing ->
+                Html.text ""
+            Just (_, errorDesc) ->
+                Html.text errorDesc
 
 
 labelledRadio : String -> (a -> msg) -> a -> List (String, a) -> Html msg
@@ -271,3 +283,15 @@ submitButton caption =
             ]
         ]
         [ Html.text caption ]
+
+submitButtonHtml : List (Html msg) -> Html msg
+submitButtonHtml children =
+    Html.button
+        [ Attributes.type_ "submit"
+        , classList
+            [ ( "btn", True )
+            , ( "l-12", True )
+            , ( "right", True )
+            ]
+        ]
+        children
