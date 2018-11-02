@@ -46,6 +46,8 @@ library:
   - random
   - network
   - template-haskell
+  - generic-lens
+  - lens
 executables:
   dating:
     main: Main.hs

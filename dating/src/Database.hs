@@ -1,8 +1,11 @@
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeApplications      #-}
 
 module Database where
 
+import           Control.Lens
 import           Control.Monad              (void)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Control.Monad.Logger       (LogLevel (..), LoggingT,
@@ -12,6 +15,7 @@ import           Control.Monad.Reader       (ReaderT, runReaderT)
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.Char8      (pack, unpack)
+import           Data.Generics.Product      (getField)
 import           Data.Int                   (Int64)
 import           Data.List                  (intersperse, sort, sortBy)
 import           Data.Maybe                 (listToMaybe)
@@ -38,43 +42,48 @@ import           FrontendTypes
 import           Schema
 
 localMongoConf :: MongoConf
-localMongoConf = defaultMongoConf "test4"
+localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpassword"
+                      , mgHost = "mongodb"
+                      }
+  where
+    conf = defaultMongoConf "datingdb"
 
 
 runAction mongoConf action = withConnection mongoConf $ \pool -> do
-  runMongoDBPool master action pool
+                                                          runMongoDBPoolDef action pool
 
 createUser :: MongoConf -> CreateUserDTO -> IO LoggedInDTO
-createUser mongoConf userDTO = runAction mongoConf action
+createUser mongoConf createUserDTO = runAction mongoConf action
   where
-
-    generator <- Random.newStdGen
-    let authToken = T.pack $ take 32 $ Random.randomRs ('a', 'z') generator
-
-    newUser = User
-      { email = userDTO.email
-      , password = userDTO.password -- TODO: Encrypt
-      , username = userDTO.username
-      , gender = userDTO.gender
-      , birthday = userDTO.birthday
-      , town = userDTO.town
-      , profileText = userDTO.profileText
-      , authToken = authToken
-      }
+    action :: Action IO LoggedInDTO
     action = do
-      userId <- insert user
-      return $ LoggedInDTO userDTO.username userId authToken
+      generator <- liftIO $ Random.newStdGen
+      let authToken = T.pack $ take 32 $ Random.randomRs ('a', 'z') generator
+      let newUser = User
+            { userEmail = getField @"email" createUserDTO
+            , userPassword = getField @"password" createUserDTO -- TODO: Hash
+            , userUsername = getField @"username" createUserDTO
+            , userGender = getField @"gender" createUserDTO
+            , userBirthday = getField @"birthday" createUserDTO
+            , userTown = getField @"town" createUserDTO
+            , userProfileText = getField @"profileText" createUserDTO
+            , userAuthToken = authToken
+            }
+      userId <- insert newUser
+      return $ LoggedInDTO (getField @"username" createUserDTO) (keyToText . toBackendKey $ userId) authToken
 
-fetchLoggedInDTOByCredentials :: MongoConf -> CredentialDTO -> IO (Maybe LoggedInDTO)
-fetchLoggedInDTOByCredentials mongoConf credentials = runAction mongoConf fetchAction
+
+maybeLogin :: MongoConf -> CredentialDTO -> IO (Maybe LoggedInDTO)
+maybeLogin mongoConf credentials = runAction mongoConf fetchAction
   where
+    fetchAction :: Action IO (Maybe LoggedInDTO)
     fetchAction = do
-      maybeUserEnt <- getBy $ UserUsername credentials.username
+      maybeUserEnt <- getBy $ UniqueUsername (getField @"username" credentials)
       case maybeUserEnt of
-        Nothing -> Nothing
-        Just (Entity userId user) -> if user.password == credentials.password
-                                 then Just $ LoggedInDTO user.username userId user.authToken
-                                 else Nothing
+        Nothing -> return Nothing
+        Just (Entity userId user) -> if getField @"userPassword" user == getField @"password" credentials
+                                 then return . Just $ LoggedInDTO (userUsername user) (keyToText . toBackendKey $ userId) (userAuthToken user)
+                                 else return Nothing
 
 
 -- type PGInfo = ConnectionString

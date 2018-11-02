@@ -47,7 +47,7 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     profileText     Text
     authToken       Text
     UniqueEmail     email
-    UniqueUser      username
+    UniqueUsername  username
     UniqueAuthToken authToken
     deriving Show Read Eq Generic
 

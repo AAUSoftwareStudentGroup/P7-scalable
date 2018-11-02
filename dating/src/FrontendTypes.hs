@@ -1,21 +1,24 @@
-{-# LANGUAGE DeriveAnyClass        #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DerivingStrategies    #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE DataKinds                 #-}
+{-# LANGUAGE DeriveAnyClass            #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE DerivingStrategies        #-}
+{-# LANGUAGE DuplicateRecordFields     #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE TypeApplications          #-}
 
 module FrontendTypes where
 
 import           Data.Aeson
 import           Data.Aeson.Types
-import           Data.ByteString    (ByteString)
 import           Data.Int           (Int64)
 import           Data.Text          (Text)
 import           Data.Time.Calendar (Day)
 import           Data.Time.Clock    (UTCTime (..))
 import           GHC.Generics       (Generic)
-import           SchemaEnums        (Gender)
 
+import           SchemaEnums        (Gender)
 
 -- Users
 
@@ -32,7 +35,7 @@ data CreateUserDTO = CreateUserDTO
 
 data UserDTO = UserDTO
   { username    :: Text
-  , userId      :: ByteString
+  , userId      :: Text
   , gender      :: Gender
   , birthday    :: Day
   , town        :: Text
@@ -57,7 +60,7 @@ data LoggedInDTO = LoggedInDTO
 
 data ConversationPreviewDTO = ConversationPreviewDTO
   { convoWithUsername :: Text
-  , convoWithId       :: ByteString
+  , convoWithId       :: Text
   , isLastAuthor      :: Bool
   , body              :: Text
   , timeStamp         :: UTCTime
@@ -74,4 +77,3 @@ data MessageDTO = MessageDTO
   , timeStamp  :: UTCTime
   , body       :: Text
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
-
