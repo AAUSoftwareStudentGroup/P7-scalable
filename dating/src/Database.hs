@@ -15,7 +15,7 @@ import           Control.Monad.Reader       (ReaderT, runReaderT)
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.Char8      (pack, unpack)
-import           Data.Generics.Product      (getField)
+import           Data.Generics.Product      (getField, super, field)
 import           Data.Int                   (Int64)
 import           Data.List                  (intersperse, sort, sortBy)
 import           Data.Maybe                 (listToMaybe)
@@ -57,8 +57,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
   where
     action :: Action IO LoggedInDTO
     action = do
-      generator <- liftIO $ Random.newStdGen
-      let authToken = T.pack $ take 32 $ Random.randomRs ('a', 'z') generator
+      authToken <- liftIO mkAuthToken
       let newUser = User
             { userEmail = getField @"email" createUserDTO
             , userPassword = getField @"password" createUserDTO -- TODO: Hash
@@ -73,17 +72,69 @@ createUser mongoConf createUserDTO = runAction mongoConf action
       return $ LoggedInDTO (getField @"username" createUserDTO) (keyToText . toBackendKey $ userId) authToken
 
 
-maybeLogin :: MongoConf -> CredentialDTO -> IO (Maybe LoggedInDTO)
-maybeLogin mongoConf credentials = runAction mongoConf fetchAction
+addAuthTokenToUser :: MongoConf -> CredentialDTO -> IO (Maybe LoggedInDTO)
+addAuthTokenToUser mongoConf credentials = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Maybe LoggedInDTO)
     fetchAction = do
       maybeUserEnt <- getBy $ UniqueUsername (getField @"username" credentials)
       case maybeUserEnt of
         Nothing -> return Nothing
-        Just (Entity userId user) -> if getField @"userPassword" user == getField @"password" credentials
-                                 then return . Just $ LoggedInDTO (userUsername user) (keyToText . toBackendKey $ userId) (userAuthToken user)
-                                 else return Nothing
+        Just (Entity userId user) -> do 
+          authToken <- liftIO mkAuthToken
+          update userId [UserAuthToken =. authToken]
+          if getField @"userPassword" user == getField @"password" credentials
+            then return . Just $ LoggedInDTO (userUsername user) (keyToText . toBackendKey $ userId) authToken
+            else return Nothing
+
+{-
+deleteAuthTokenFromUser :: MongoConf -> Text -> IO ()
+deleteAuthTokenFromUser mongoConf token = runAction mongoConf deleteAction
+  where
+    deleteAction :: Action IO ()
+    deleteAction = do
+      maybeUserEnt <- getBy $ UniqueAuthToken token
+      case maybeUserEnt of
+        Nothing -> return ()
+        Just (Entity userAuthToken user) -> do
+-}
+
+
+mkUserDTOFromUserEntity :: Entity User -> UserDTO
+mkUserDTOFromUserEntity (Entity userId user) = userDTO
+  where 
+    userDTO = UserDTO 
+      { username = userUsername user
+      , userId = (keyToText . toBackendKey) userId
+      , gender = userGender user
+      , birthday = userBirthday user
+      , town = userTown user
+      , profileText = userProfileText user
+      }
+
+mkAuthToken :: IO Text
+mkAuthToken = do
+  generator <- Random.newStdGen
+  return . T.pack . take 32 $ Random.randomRs ('a', 'z') generator
+
+fetchAllUsers :: MongoConf -> IO [UserDTO]
+fetchAllUsers mongoConf = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [UserDTO]
+    fetchAction = do
+      users <- selectList [] []
+      return $ map mkUserDTOFromUserEntity users
+
+fetchUserDTOByUsername :: MongoConf -> Text -> IO (Maybe UserDTO)
+fetchUserDTOByUsername mongoConf username = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO (Maybe UserDTO)
+    fetchAction = do
+      maybeUserEnt <- getBy $ UniqueUsername username
+      case maybeUserEnt of
+        Nothing -> return Nothing
+        Just user -> return . Just $ mkUserDTOFromUserEntity user
+
 
 
 -- type PGInfo = ConnectionString
