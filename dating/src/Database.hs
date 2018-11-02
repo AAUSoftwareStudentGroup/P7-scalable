@@ -34,6 +34,7 @@ import           Database.Redis             (ConnectInfo, Redis, connect,
 import qualified Database.Redis             as Redis
 import           Elm                        (ElmType)
 import           GHC.Generics               (Generic)
+import qualified Database.MongoDB as Mongo
 import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
 import qualified System.Random              as Random
@@ -57,7 +58,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
   where
     action :: Action IO LoggedInDTO
     action = do
-      generator <- liftIO $ Random.newStdGen
+      generator <- liftIO Random.newStdGen
       let authToken = T.pack $ take 32 $ Random.randomRs ('a', 'z') generator
       let newUser = User
             { userEmail = getField @"email" createUserDTO
@@ -81,9 +82,10 @@ maybeLogin mongoConf credentials = runAction mongoConf fetchAction
       maybeUserEnt <- getBy $ UniqueUsername (getField @"username" credentials)
       case maybeUserEnt of
         Nothing -> return Nothing
-        Just (Entity userId user) -> if getField @"userPassword" user == getField @"password" credentials
+        Just (Entity userId user) -> if userPassword user == getField @"password" credentials
                                  then return . Just $ LoggedInDTO (userUsername user) (keyToText . toBackendKey $ userId) (userAuthToken user)
                                  else return Nothing
+
 
 
 -- type PGInfo = ConnectionString

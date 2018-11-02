@@ -48,6 +48,7 @@ library:
   - template-haskell
   - generic-lens
   - lens
+  - mongoDB
 executables:
   dating:
     main: Main.hs
