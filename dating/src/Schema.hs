@@ -31,9 +31,6 @@ import           Language.Haskell.TH.Syntax
 
 import           SchemaEnums
 
-type Membername = Text
-type MemberId = Text
-type Members = [(Membername, MemberId)]
 
 let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneric = False}
  in PTH.share [PTH.mkPersist mongoSettings] [PTH.persistLowerCase|
@@ -52,14 +49,14 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     deriving Show Read Eq Generic
 
   Conversation json sql=conversations
-    members  Members
+    members  [Text]
     messages [Message]
     deriving Show Read Eq Generic
 
   Message json sql=messages
-    authorId       UserId
-    timeStamp      UTCTime
-    body           Text
+    authorUsername   Text
+    timeStamp        UTCTime
+    body             Text
     deriving Show Read Eq Generic
 |]
 

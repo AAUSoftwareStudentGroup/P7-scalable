@@ -142,6 +142,32 @@ fetchUserDTOByUsername mongoConf username = runAction mongoConf fetchAction
         Just user -> return . Just $ mkUserDTOFromUserEntity user
 
 
+fetchMessageDTO :: MongoConf -> Text -> Text -> IO (Maybe ConversationDTO)
+fetchMessageDTO mongoConf username1 username2 = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO (Maybe ConversationDTO)
+    fetchAction = do
+       maybeConvo <- selectFirst [ConversationMembers `anyEq` username1] []
+       case maybeConvo of
+        Nothing -> return Nothing
+        Just convo -> return . Just $ mkConversationDTOFromConvoEntity convo username2
+
+mkConversationDTOFromConvoEntity :: Entity Conversation -> Text -> ConversationDTO
+mkConversationDTOFromConvoEntity convo username = conversationDTO
+  where
+    conversationDTO = ConversationDTO
+      { convoWithUsername = username
+      , messages = map mkMessageDTOFromMessage (getField @"conversationMessages" convo)
+      }
+
+mkMessageDTOFromMessage :: Message -> MessageDTO
+mkMessageDTOFromMessage message = messageDTO
+  where
+    messageDTO = MessageDTO
+      { authorUsername = messageAuthorUsername message
+      , body = messageBody message
+      , timeStamp = messageTimeStamp message
+      }
 
 
 type RedisInfo = ConnectInfo
