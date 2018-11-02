@@ -42,15 +42,22 @@ import qualified System.Random              as Random
 import           FrontendTypes
 import           Schema
 
-localMongoConf :: MongoConf
+-- Connection
+
+type MongoInfo = MongoConf
+
+localMongoConf :: MongoInfo
 localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpassword"
                       , mgHost = "mongodb"
                       }
   where
     conf = defaultMongoConf "datingdb"
 
+fetchMongoInfo :: IO MongoInfo
+fetchMongoInfo = return localMongoConf
 
-runAction mongoConf action = withConnection mongoConf $ 
+
+runAction mongoConf action = withConnection mongoConf $
   \pool -> runMongoDBPoolDef action pool
 
 createUser :: MongoConf -> CreateUserDTO -> IO LoggedInDTO
@@ -81,7 +88,7 @@ addAuthTokenToUser mongoConf credentials = runAction mongoConf fetchAction
       maybeUserEnt <- getBy $ UniqueUsername (getField @"username" credentials)
       case maybeUserEnt of
         Nothing -> return Nothing
-        Just (Entity userId user) -> do 
+        Just (Entity userId user) -> do
           authToken <- liftIO mkAuthToken
           update userId [UserAuthToken =. authToken]
           if getField @"userPassword" user == getField @"password" credentials
@@ -103,8 +110,8 @@ deleteAuthTokenFromUser mongoConf token = runAction mongoConf deleteAction
 
 mkUserDTOFromUserEntity :: Entity User -> UserDTO
 mkUserDTOFromUserEntity (Entity userId user) = userDTO
-  where 
-    userDTO = UserDTO 
+  where
+    userDTO = UserDTO
       { username = userUsername user
       , userId = (keyToText . toBackendKey) userId
       , gender = userGender user
@@ -137,9 +144,10 @@ fetchUserDTOByUsername mongoConf username = runAction mongoConf fetchAction
 
 
 
--- type PGInfo = ConnectionString
--- type RedisInfo = ConnectInfo
+type RedisInfo = ConnectInfo
 
+fetchRedisConnection :: IO RedisInfo
+fetchRedisConnection = return $ defaultConnectInfo {connectHost = "redis"}
 
 -- localConnString :: PGInfo
 -- localConnString = "host=postgres port=5432 dbname=datingdb user=datingdbuser password=datingdbpassword"
@@ -155,8 +163,6 @@ fetchUserDTOByUsername mongoConf username = runAction mongoConf fetchAction
 -- fetchPostgresConnection :: IO PGInfo
 -- fetchPostgresConnection = return localConnString
 
--- fetchRedisConnection :: IO RedisInfo
--- fetchRedisConnection = return $ defaultConnectInfo {connectHost = "redis"}
 
 -- runAction :: PGInfo -> SqlPersistT (LoggingT IO) a -> IO a
 -- runAction connectionString action =
