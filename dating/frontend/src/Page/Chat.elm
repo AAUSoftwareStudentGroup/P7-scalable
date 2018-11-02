@@ -11,6 +11,7 @@ import Time as Time
 
 --import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
 import Api.Messages exposing (Message)
+import Api.Types exposing (Id)
 import Api.Users
 
 import Routing exposing (Route(..))
@@ -22,27 +23,27 @@ type alias Model =
     { session           : Session
     , title             : String
     , content           : List Message
-    , idYou             : Int
-    , idFriend          : Int
+    , idYou             : Id
+    , idFriend          : Id
     , username          : String
     , unsentMessage     : String
     , zone              : Time.Zone
     , time              : Time.Posix
     }
 
-init : Session -> Int -> ( Model, Cmd Msg )
+init : Session -> Id -> ( Model, Cmd Msg )
 init session idFriend =
   ( Model (Debug.log "messages session:" session)
     "Messages"
     []
-    (Maybe.withDefault -1 (Session.getUserId session))
+    (Maybe.withDefault "" (Session.getUserId session))
     idFriend
     (Maybe.withDefault "" (Session.getUsername session))
     ""
     Time.utc
     (Time.millisToPosix 0)
   , Cmd.batch [ Task.perform AdjustTimeZone Time.here
-              , case (idFriend == (Maybe.withDefault -1 <| Session.getUserId session)) of
+              , case (idFriend == (Maybe.withDefault "notLoggedIn" <| Session.getUserId session)) of
                     False ->
                         Task.perform FetchMessages Time.now
                     True ->

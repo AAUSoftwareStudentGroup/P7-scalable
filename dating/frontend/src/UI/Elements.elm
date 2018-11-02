@@ -109,7 +109,7 @@ contentWithHeader heading contents =
     ] ++ contents
 
 
-userCard : String -> Int -> Html msg
+userCard : String -> String -> Html msg
 userCard username userId =
     Html.li [ classList
                 [ ( "user-card", True )

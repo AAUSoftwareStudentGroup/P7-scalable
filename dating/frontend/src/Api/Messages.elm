@@ -8,7 +8,7 @@ import String
 import Url
 import Time as Time
 
-import Api.Types exposing (UserInfo)
+import Api.Types exposing (UserInfo, Id)
 import Api.Authentication as Auth
 
 
@@ -20,14 +20,15 @@ apiLocation =
 
 
 type alias Message =
-    { authorName    : String
+    { messageId     : Id
+    , authorName    : String
     , timeStamp     : String
     , body          : String
     }
 
 type alias ConversationPreviewDTO =
     { convoWithUsername : String
-    , convoWithId       : Int
+    , convoWithId       : Id
     , isLastAuthor      : Bool
     , body              : String
     , timeStamp         : String
@@ -37,30 +38,31 @@ type alias ConversationPreviewDTO =
 encodeMessage : String -> Encode.Value
 encodeMessage x =
     Encode.object
-        [ ( "body", Encode.string x ) ]
+        [ ( "MessageDTOBody", Encode.string x ) ]
 
 
 
 decodeMessage : Decoder Message
 decodeMessage =
     Decode.succeed Message
-        |> Pipeline.required "authorName" Decode.string
-        |> Pipeline.required "timeStamp" Decode.string
-        |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "MessageDTOMessageId" Decode.string
+        |> Pipeline.required "MessageDTOAuthorName" Decode.string
+        |> Pipeline.required "MessageDTOTimeStamp" Decode.string
+        |> Pipeline.required "MessageDTOBody" Decode.string
 
 
 decodeConvoPreview : Decoder ConversationPreviewDTO
 decodeConvoPreview =
-    Decode.succeed ConversationPreviewDTO
-        |> Pipeline.required "convoWithUsername" Decode.string
-        |> Pipeline.required "convoWithId" Decode.int
-        |> Pipeline.required "imLastAuthor" Decode.bool
-        |> Pipeline.required "body" Decode.string
-        |> Pipeline.required "timeStamp" Decode.string
+    Decode.succeed ConversationPreview
+        |> Pipeline.required "ConvoPreviewDTOConvoWithUsername" Decode.string
+        |> Pipeline.required "ConvoPreviewDTOConvoWithId" Decode.string
+        |> Pipeline.required "ConvoPreviewDTOImLastAuthor" Decode.bool
+        |> Pipeline.required "ConvoPreviewDTOBody" Decode.string
+        |> Pipeline.required "ConvoPreviewDTOTimeStamp" Decode.string
 
 
 
-postMessage : UserInfo -> String -> Int -> Http.Request (String.String)
+postMessage : UserInfo -> String -> Id -> Http.Request (String.String)
 postMessage userInfo message userId =
     Http.request
         { method =
@@ -71,7 +73,7 @@ postMessage userInfo message userId =
             String.join "/"
                 [ apiLocation
                 , "messages"
-                , userId |> String.fromInt |> Url.percentEncode
+                , userId |> Url.percentEncode
                 ]
         , body =
             Http.jsonBody (encodeMessage <| message)
@@ -83,7 +85,7 @@ postMessage userInfo message userId =
             False
         }
 
-getMessagesFromId : UserInfo -> Int -> Http.Request (List (Message))
+getMessagesFromId : UserInfo -> Id -> Http.Request (List (Message))
 getMessagesFromId userInfo id =
     Http.request
         { method =
@@ -94,7 +96,7 @@ getMessagesFromId userInfo id =
             String.join "/"
                 [ apiLocation
                 , "messages"
-                , String.fromInt id
+                , id
                 ]
         , body =
             Http.emptyBody

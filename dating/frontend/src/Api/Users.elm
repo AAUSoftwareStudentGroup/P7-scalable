@@ -7,7 +7,7 @@ import Http
 import String
 import Url
 
-import Api.Types exposing (Gender(..), UserInfo, Token)
+import Api.Types exposing (Gender(..), UserInfo, Token, Id)
 import Api.Authentication as Auth exposing (Credentials)
 
 
@@ -28,7 +28,7 @@ type alias NewUser =
 
 type alias User =
     { username      : String
-    , userId        : Int
+    , userId        : Id
     , gender        : Gender
     , birthday      : String
     , town          : String
@@ -38,7 +38,7 @@ type alias User =
 
 emptyUser : User
 emptyUser =
-    User "" -1 Other "" "" ""
+    User "" "" Other "" "" ""
 
 
 encodeGender : Gender -> Encode.Value
@@ -57,13 +57,13 @@ encodeGender g =
 
 decodeGender : Decoder Gender
 decodeGender =
-    Decode.field "gender" Decode.string
+    Decode.field "userDTOGender" Decode.string
         |> Decode.andThen decodeGenderHelper
 
 
 decodeToken : Decoder Token
 decodeToken =
-    Decode.field "authToken" Decode.string
+    Decode.field "loggedInDTOAuthToken" Decode.string
 
 
 decodeGenderHelper : String -> Decoder Gender
@@ -85,40 +85,40 @@ decodeGenderHelper str =
 encodeUser : NewUser -> Encode.Value
 encodeUser user =
     Encode.object
-        [ ( "email", Encode.string user.email )
-        , ( "password", Encode.string user.password )
-        , ( "username", Encode.string user.username )
-        , ( "gender", encodeGender user.gender )
-        , ( "birthday", Encode.string user.birthday )
-        , ( "town", Encode.string user.town )
-        , ( "profileText", Encode.string user.profileText )
+        [ ( "CreateUserDTOEmail", Encode.string user.email )
+        , ( "CreateUserDTOPassword", Encode.string user.password )
+        , ( "CreateUserDTOUsername", Encode.string user.username )
+        , ( "CreateUserDTOGender", encodeGender user.gender )
+        , ( "CreateUserDTOBirthday", Encode.string user.birthday )
+        , ( "CreateUserDTOTown", Encode.string user.town )
+        , ( "CreateUserDTOProfileText", Encode.string user.profileText )
         ]
 
 encodeUserInfo : UserInfo -> Encode.Value
 encodeUserInfo userInfo =
     Encode.object
-        [ ( "userId", Encode.int userInfo.userId )
-        , ( "authToken", encodeToken userInfo.authToken )
-        , ( "userUsername",  Encode.string userInfo.username )
+        [ ( "loggedInDTOUsername",  Encode.string userInfo.username )
+        , ( "loggedInDTOUserId", Encode.string userInfo.userId )
+        , ( "loggedInDTOAuthToken", encodeToken userInfo.authToken )
         ]
 
 decodeUser : Decoder User
 decodeUser =
     Decode.succeed User
-        |> Pipeline.required "username" Decode.string
-        |> Pipeline.required "id" Decode.int
+        |> Pipeline.required "UserDTOUsername" Decode.string
+        |> Pipeline.required "UserDTOUserId" Decode.string
         |> Pipeline.custom decodeGender
-        |> Pipeline.required "birthday" Decode.string
-        |> Pipeline.required "town" Decode.string
-        |> Pipeline.required "profileText" Decode.string
+        |> Pipeline.required "UserDTOBirthday" Decode.string
+        |> Pipeline.required "UserDTOTown" Decode.string
+        |> Pipeline.required "UserDTOProfileText" Decode.string
 
 
 decodeUserInfo : Decoder UserInfo
 decodeUserInfo =
     Decode.succeed UserInfo
-        |> Pipeline.required "userId" Decode.int
+        |> Pipeline.required "loggedInDTOUsername" Decode.string
+        |> Pipeline.required "loggedInDTOUserId" Decode.string
         |> Pipeline.custom decodeToken
-        |> Pipeline.required "userUsername" Decode.string
 
 
 encodeToken : Token -> Encode.Value
@@ -194,7 +194,7 @@ postLogout token =
             False
         }
 
-getUserById : Int -> UserInfo -> Http.Request (User)
+getUserById : Id -> UserInfo -> Http.Request (User)
 getUserById userId userInfo =
     Http.request
         { method =
@@ -205,7 +205,7 @@ getUserById userId userInfo =
             String.join "/"
                 [ apiLocation
                 , "users"
-                , userId |> String.fromInt |> Url.percentEncode
+                , userId |> Url.percentEncode
                 ]
         , body =
             Http.emptyBody
