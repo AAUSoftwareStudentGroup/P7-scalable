@@ -24,7 +24,7 @@ import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
 import qualified Data.Text.Encoding         (decodeUtf8)
 import           Data.Time.Calendar         (fromGregorian)
-import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime)
+import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime, getCurrentTime)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.TH
@@ -37,6 +37,7 @@ import           GHC.Generics               (Generic)
 import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
 import qualified System.Random              as Random
+import           System.IO.Unsafe           (unsafePerformIO)
 
 import           FrontendTypes
 import           Schema
@@ -141,7 +142,7 @@ fetchMessageDTO mongoConf username1 username2 = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Maybe ConversationDTO)
     fetchAction = do
-       maybeConvo <- selectFirst [ConversationMembers `anyEq` username1] []
+       maybeConvo <- selectFirst [ConversationMembers `anyEq` username1, ConversationMembers `anyEq` username2] []
        case maybeConvo of
         Nothing -> return Nothing
         Just convo -> return . Just $ mkConversationDTOFromConvoEntity convo username2
@@ -163,6 +164,44 @@ mkMessageDTOFromMessage message = messageDTO
       , timeStamp = messageTimeStamp message
       }
 
+addMessageToConversation :: MongoConf -> Text -> Text -> Text -> IO ()
+addMessageToConversation mongoConf body from to = runAction mongoConf action
+  where
+    action :: Action IO ()
+    action = do
+      maybeConvo <- selectFirst [ConversationMembers `anyEq` from, ConversationMembers `anyEq` to] []
+      case maybeConvo of
+        Nothing -> do
+          convId <- insert (createNewConversation body from to)
+          return ()
+        Just (Entity conversationId convo) -> update conversationId [ConversationMessages `push` (addMessageToConversationHelper body from)]
+
+
+
+createNewConversation :: Text -> Text -> Text -> Conversation
+createNewConversation body from to = conversation
+  where
+    conversation = Conversation
+      { conversationMembers = [from, to]
+      , conversationMessages = [(addMessageToConversationHelper body from)]
+      }
+
+
+addMessageToConversationHelper :: Text -> Text -> Message
+addMessageToConversationHelper body from = message
+  where
+    message = Message
+      { messageAuthorUsername = from
+      , messageTimeStamp = unsafePerformIO getCurrentTime
+      , messageBody = body
+      }
+{-
+currentTime :: UTCTime
+currentTime = action
+ where
+  action = do
+    time <-  liftIO $ getCurrentTime
+-}
 -- type PGInfo = ConnectionString
 -- type RedisInfo = ConnectInfo
 
