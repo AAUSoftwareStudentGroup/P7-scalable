@@ -147,11 +147,11 @@ fetchMessageDTO mongoConf username1 username2 = runAction mongoConf fetchAction
         Just convo -> return . Just $ mkConversationDTOFromConvoEntity convo username2
 
 mkConversationDTOFromConvoEntity :: Entity Conversation -> Text -> ConversationDTO
-mkConversationDTOFromConvoEntity convo username = conversationDTO
+mkConversationDTOFromConvoEntity (Entity conversationId convo) username = conversationDTO
   where
     conversationDTO = ConversationDTO
       { convoWithUsername = username
-      , messages = map mkMessageDTOFromMessage (getField @"conversationMessages" convo)
+      , messages = map mkMessageDTOFromMessage (conversationMessages convo)
       }
 
 mkMessageDTOFromMessage :: Message -> MessageDTO
