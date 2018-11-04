@@ -403,11 +403,11 @@ stepUrl url model =
                 , route (s "list-users")
                     ( stepListUsers model (ListUsers.init session))
                 , route (s "user" </> Parser.string)
-                    (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
+                    (\username -> stepProfile model (Profile.init session (Debug.log "usernameParsed" username)))
                 , route (s "messages")
                     (stepMessages model (Messages.init session))
                 , route (s "chat" </> Parser.string)
-                    (\idFriend -> stepChat model (Chat.init session idFriend))
+                    (\username -> stepChat model (Chat.init session username))
                 ]
 
     in

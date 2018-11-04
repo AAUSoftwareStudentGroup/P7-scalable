@@ -1,4 +1,4 @@
-module Api.Types exposing (Gender(..), UserInfo, Token, Id, genderToString)
+module Api.Types exposing (Gender(..), UserInfo, Token, genderToString)
 
 
 type Gender
@@ -9,11 +9,8 @@ type Gender
 
 type alias Token = String
 
-type alias Id = String
-
 type alias UserInfo =
     { username      : String
-    , userId        : Id
     , authToken     : Token
     }
 

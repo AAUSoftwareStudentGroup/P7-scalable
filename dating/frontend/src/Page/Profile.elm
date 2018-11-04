@@ -7,7 +7,7 @@ import Http
 import String
 
 import Api.Users exposing (User)
-import Api.Types exposing (Gender(..), Id)
+import Api.Types exposing (Gender(..))
 import Routing exposing (Route(..))
 import Session exposing (Session, Details)
 import UI.Elements as El
@@ -25,10 +25,10 @@ type Msg
     | LogoutClicked
 
 
-init : Session -> Id -> ( Model, Cmd Msg )
-init session id =
+init : Session -> String -> ( Model, Cmd Msg )
+init session username =
     ( Model session "Profile" Api.Users.emptyUser
-    , sendGetUser HandleGetUser id session
+    , sendGetUser HandleGetUser username session
     )
 
 
@@ -66,26 +66,26 @@ view model =
                 , El.textProperty "Birthday" model.user.birthday
                 , El.textProperty "Town" model.user.town
                 , El.paragraphProperty "Description" model.user.profileText
-                , chatButton model.user.userId model.session
+                , chatButton model.user.username model.session
                 ]
             ]
     }
 
 
-chatButton : Id -> Session -> Html msg
-chatButton friendId session =
+chatButton : String -> Session -> Html msg
+chatButton username session =
     El.linkButton
         []
-        (Routing.routeToString <| (Chat friendId))
+        (Routing.routeToString <| (Chat username))
         [ Html.text "chat" ]
 
 
 
-sendGetUser : (Result Http.Error User -> msg) -> Id -> Session -> Cmd msg
-sendGetUser responseMsg userId session =
+sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
+sendGetUser responseMsg username session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (Api.Users.getUserById userId userInfo)
+            Http.send responseMsg (Api.Users.getUserByUsername username userInfo)
 
         Session.Guest _ ->
             Cmd.none

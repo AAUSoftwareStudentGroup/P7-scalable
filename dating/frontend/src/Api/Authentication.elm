@@ -18,16 +18,16 @@ type alias Credentials =
 credentialsEncoder : Credentials -> Encode.Value
 credentialsEncoder x =
     Encode.object
-        [ ( "CredentialDTOUsername", Encode.string x.username )
-        , ( "CredentialDTOPassword", Encode.string x.password )
+        [ ( "username", Encode.string x.username )
+        , ( "password", Encode.string x.password )
         ]
 
 
 credentialsDecoder : Decoder Credentials
 credentialsDecoder =
     Decode.succeed Credentials
-        |> Pipeline.required "CredentialDTOUsername" Decode.string
-        |> Pipeline.required "CredentialDTOPassword" Decode.string
+        |> Pipeline.required "username" Decode.string
+        |> Pipeline.required "password" Decode.string
 
 
 createAuthHeader : UserInfo -> Http.Header

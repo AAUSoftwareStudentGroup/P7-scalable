@@ -1,4 +1,4 @@
-module Api.Messages exposing (Message, ConversationPreviewDTO, postMessage, getMessagesFromId, getConvoPreview)
+module Api.Messages exposing (Message, Conversation, ConversationPreviewDTO, postMessage, getMessagesFromUsername, getConvoPreview)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -8,7 +8,7 @@ import String
 import Url
 import Time as Time
 
-import Api.Types exposing (UserInfo, Id)
+import Api.Types exposing (UserInfo)
 import Api.Authentication as Auth
 
 
@@ -20,50 +20,55 @@ apiLocation =
 
 
 type alias Message =
-    { messageId     : Id
-    , authorName    : String
+    { authorName    : String
     , timeStamp     : String
     , body          : String
     }
 
 type alias ConversationPreviewDTO =
     { convoWithUsername : String
-    , convoWithId       : Id
     , isLastAuthor      : Bool
     , body              : String
     , timeStamp         : String
     }
 
+type alias Conversation =
+    { convoWithUsername : String
+    , messages          : List Message
+    }
 
 encodeMessage : String -> Encode.Value
 encodeMessage x =
     Encode.object
-        [ ( "MessageDTOBody", Encode.string x ) ]
-
+        [ ( "body", Encode.string x ) ]
 
 
 decodeMessage : Decoder Message
 decodeMessage =
     Decode.succeed Message
-        |> Pipeline.required "MessageDTOMessageId" Decode.string
-        |> Pipeline.required "MessageDTOAuthorName" Decode.string
-        |> Pipeline.required "MessageDTOTimeStamp" Decode.string
-        |> Pipeline.required "MessageDTOBody" Decode.string
+        |> Pipeline.required "authorName" Decode.string
+        |> Pipeline.required "timeStamp" Decode.string
+        |> Pipeline.required "body" Decode.string
 
+
+decodeConversation : Decoder Conversation
+decodeConversation =
+    Decode.succeed Conversation
+        |> Pipeline.required "convoWithUsername" Decode.string
+        |> Pipeline.required "messages" (Decode.list (decodeMessage))
 
 decodeConvoPreview : Decoder ConversationPreviewDTO
 decodeConvoPreview =
-    Decode.succeed ConversationPreview
-        |> Pipeline.required "ConvoPreviewDTOConvoWithUsername" Decode.string
-        |> Pipeline.required "ConvoPreviewDTOConvoWithId" Decode.string
-        |> Pipeline.required "ConvoPreviewDTOImLastAuthor" Decode.bool
-        |> Pipeline.required "ConvoPreviewDTOBody" Decode.string
-        |> Pipeline.required "ConvoPreviewDTOTimeStamp" Decode.string
+    Decode.succeed ConversationPreviewDTO
+        |> Pipeline.required "convoWithUsername" Decode.string
+        |> Pipeline.required "imLastAuthor" Decode.bool
+        |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "timeStamp" Decode.string
 
 
 
-postMessage : UserInfo -> String -> Id -> Http.Request (String.String)
-postMessage userInfo message userId =
+postMessage : UserInfo -> String -> String -> Http.Request (String.String)
+postMessage userInfo message to =
     Http.request
         { method =
             "POST"
@@ -73,7 +78,7 @@ postMessage userInfo message userId =
             String.join "/"
                 [ apiLocation
                 , "messages"
-                , userId |> Url.percentEncode
+                , to |> Url.percentEncode
                 ]
         , body =
             Http.jsonBody (encodeMessage <| message)
@@ -85,8 +90,8 @@ postMessage userInfo message userId =
             False
         }
 
-getMessagesFromId : UserInfo -> Id -> Http.Request (List (Message))
-getMessagesFromId userInfo id =
+getMessagesFromUsername : UserInfo -> String -> Http.Request Conversation
+getMessagesFromUsername userInfo username =
     Http.request
         { method =
             "GET"
@@ -96,12 +101,12 @@ getMessagesFromId userInfo id =
             String.join "/"
                 [ apiLocation
                 , "messages"
-                , id
+                , username
                 ]
         , body =
             Http.emptyBody
         , expect =
-            Http.expectJson (Decode.list decodeMessage)
+            Http.expectJson decodeConversation
         , timeout =
             Nothing
         , withCredentials =
