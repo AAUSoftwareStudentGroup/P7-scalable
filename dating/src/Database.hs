@@ -15,7 +15,7 @@ import           Control.Monad.Reader       (ReaderT, runReaderT)
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.Char8      (pack, unpack)
-import           Data.Generics.Product      (getField, super, field)
+import           Data.Generics.Product      (field, getField, super)
 import           Data.Int                   (Int64)
 import           Data.List                  (intersperse, sort, sortBy)
 import           Data.Maybe                 (listToMaybe)
@@ -25,6 +25,7 @@ import qualified Data.Text                  as T (pack, unpack)
 import qualified Data.Text.Encoding         (decodeUtf8)
 import           Data.Time.Calendar         (fromGregorian)
 import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime)
+import qualified Database.MongoDB           as Mongo
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.TH
@@ -34,7 +35,6 @@ import           Database.Redis             (ConnectInfo, Redis, connect,
 import qualified Database.Redis             as Redis
 import           Elm                        (ElmType)
 import           GHC.Generics               (Generic)
-import qualified Database.MongoDB as Mongo
 import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
 import qualified System.Random              as Random
@@ -42,10 +42,14 @@ import qualified System.Random              as Random
 import           FrontendTypes
 import           Schema
 
--- Connection
+
+-------------------------------------------------------------------------------
+--                            CONNECTION INFO                                --
+-------------------------------------------------------------------------------
 
 type MongoInfo = MongoConf
 
+-- | Should probably be placed in a file instead
 localMongoConf :: MongoInfo
 localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpassword"
                       , mgHost = "mongodb"
@@ -53,13 +57,22 @@ localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpasswo
   where
     conf = defaultMongoConf "datingdb"
 
+-- | Has type IO because it should fetch the connection string from a file
 fetchMongoInfo :: IO MongoInfo
 fetchMongoInfo = return localMongoConf
 
+type RedisInfo = ConnectInfo
 
-runAction mongoConf action = withConnection mongoConf $
-  \pool -> runMongoDBPoolDef action pool
+-- | Has IO for same reason as fetchMongoInfo
+fetchRedisConnection :: IO RedisInfo
+fetchRedisConnection = return $ defaultConnectInfo {connectHost = "redis"}
 
+
+-------------------------------------------------------------------------------
+--                                   USERS                                   --
+-------------------------------------------------------------------------------
+
+-- | Create a user if the username is not taken
 createUser :: MongoConf -> CreateUserDTO -> IO LoggedInDTO
 createUser mongoConf createUserDTO = runAction mongoConf action
   where
@@ -67,80 +80,67 @@ createUser mongoConf createUserDTO = runAction mongoConf action
     action = do
       authToken <- liftIO mkAuthToken
       let newUser = User
-            { userEmail = getField @"email" createUserDTO
-            , userPassword = getField @"password" createUserDTO -- TODO: Hash
-            , userUsername = getField @"username" createUserDTO
-            , userGender = getField @"gender" createUserDTO
-            , userBirthday = getField @"birthday" createUserDTO
-            , userTown = getField @"town" createUserDTO
+            { userEmail       = getField @"email"       createUserDTO
+            , userPassword    = getField @"password"    createUserDTO -- TODO: Hash
+            , userUsername    = getField @"username"    createUserDTO
+            , userGender      = getField @"gender"      createUserDTO
+            , userBirthday    = getField @"birthday"    createUserDTO
+            , userTown        = getField @"town"        createUserDTO
             , userProfileText = getField @"profileText" createUserDTO
-            , userAuthToken = authToken
+            , userAuthToken   = authToken
             }
       userId <- insert newUser
-      return $ LoggedInDTO (getField @"username" createUserDTO) (keyToText . toBackendKey $ userId) authToken
+      return $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
-
-addAuthTokenToUser :: MongoConf -> CredentialDTO -> IO (Maybe LoggedInDTO)
-addAuthTokenToUser mongoConf credentials = runAction mongoConf fetchAction
-  where
-    fetchAction :: Action IO (Maybe LoggedInDTO)
-    fetchAction = do
-      maybeUserEnt <- getBy $ UniqueUsername (getField @"username" credentials)
-      case maybeUserEnt of
-        Nothing -> return Nothing
-        Just (Entity userId user) -> do
-          authToken <- liftIO mkAuthToken
-          update userId [UserAuthToken =. authToken]
-          if getField @"userPassword" user == getField @"password" credentials
-            then return . Just $ LoggedInDTO (userUsername user) (keyToText . toBackendKey $ userId) authToken
-            else return Nothing
-
-{-
-deleteAuthTokenFromUser :: MongoConf -> Text -> IO ()
-deleteAuthTokenFromUser mongoConf token = runAction mongoConf deleteAction
-  where
-    deleteAction :: Action IO ()
-    deleteAction = do
-      maybeUserEnt <- getBy $ UniqueAuthToken token
-      case maybeUserEnt of
-        Nothing -> return ()
-        Just (Entity userAuthToken user) -> do
--}
-
-
-mkUserDTOFromUserEntity :: Entity User -> UserDTO
-mkUserDTOFromUserEntity (Entity userId user) = userDTO
-  where
-    userDTO = UserDTO
-      { username = userUsername user
-      , userId = (keyToText . toBackendKey) userId
-      , gender = userGender user
-      , birthday = userBirthday user
-      , town = userTown user
-      , profileText = userProfileText user
-      }
-
+-- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
   generator <- Random.newStdGen
   return . T.pack . take 32 $ Random.randomRs ('a', 'z') generator
 
+
+-- | Fetch a user by username
+fetchUser :: MongoConf -> Username -> IO (Maybe UserDTO)
+fetchUser mongoConf username = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO (Maybe UserDTO)
+    fetchAction = fmap entityUserToUserDTO <$> getBy UniqueUsername username
+
+
+-- | Fetch a list of users
 fetchAllUsers :: MongoConf -> IO [UserDTO]
 fetchAllUsers mongoConf = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [UserDTO]
-    fetchAction = map mkUserDTOFromUserEntity <$> selectList [] []
+    fetchAction = fmap mkUserDTOFromUserEntity <$> selectList [] []
 
-fetchUserDTOByUsername :: MongoConf -> Text -> IO (Maybe UserDTO)
-fetchUserDTOByUsername mongoConf username = runAction mongoConf fetchAction
+
+-------------------------------------------------------------------------------
+--                             AUTHENTICATION                                --
+-------------------------------------------------------------------------------
+
+fetchUserByCredentials :: MongoConf -> CredentialDTO -> IO (Maybe LoggedInDTO)
+fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
   where
-    fetchAction :: Action IO (Maybe UserDTO)
-    fetchAction = do
-      maybeUserEnt <- getBy $ UniqueUsername username
-      case maybeUserEnt of
-        Nothing -> return Nothing
-        Just user -> return . Just $ mkUserDTOFromUserEntity user
+    username = getField @"username" credentials
+    password = getField @"password" credentials
 
+    fetchAction :: Action IO (Maybe LoggedInDTO)
+    fetchAction = fmap entitiyUserToLoggedInDTO <$>
+      selectFirst [UserUsername ==. username &&. UserPassword ==. password]
+
+
+
+fetchUsernameByAuthToken :: MongoConf -> AuthToken -> IO (Maybe Username)
+fetchUsernameByAuthToken mongoConf authToken = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO (Maybe AuthToken)
+    fetchAction = fmap (getField @"userAuthToken") <$> getBy UniqueAuthToken authToken
+
+
+-------------------------------------------------------------------------------
+--                              CONVERSATIONS                                --
+-------------------------------------------------------------------------------
 
 fetchMessageDTO :: MongoConf -> Text -> Text -> IO (Maybe ConversationDTO)
 fetchMessageDTO mongoConf username1 username2 = runAction mongoConf fetchAction
@@ -153,7 +153,7 @@ fetchMessageDTO mongoConf username1 username2 = runAction mongoConf fetchAction
         Just convo -> return . Just $ mkConversationDTOFromConvoEntity convo username2
 
 mkConversationDTOFromConvoEntity :: Entity Conversation -> Text -> ConversationDTO
-mkConversationDTOFromConvoEntity convo username = conversationDTO
+mkConversationDTOFromConvoEntity (Entity _ convo) username = conversationDTO
   where
     conversationDTO = ConversationDTO
       { convoWithUsername = username
@@ -170,10 +170,37 @@ mkMessageDTOFromMessage message = messageDTO
       }
 
 
-type RedisInfo = ConnectInfo
+-------------------------------------------------------------------------------
+--                                 HELPERS                                   --
+-------------------------------------------------------------------------------
 
-fetchRedisConnection :: IO RedisInfo
-fetchRedisConnection = return $ defaultConnectInfo {connectHost = "redis"}
+runAction mongoConf action = withConnection mongoConf $
+  \pool -> runMongoDBPoolDef action pool
+
+
+entityUserToUserDTO :: Entity User -> UserDTO
+entityUserToUserDTO (Entity _ user) = userDTO
+  where
+    userDTO = UserDTO
+      { username    = userUsername user
+      , gender      = userGender user
+      , birthday    = userBirthday user
+      , town        = userTown user
+      , profileText = userProfileText user
+      }
+
+entityUserToLoggedInDTO :: Entity User -> LoggedInDTO
+entityUserToLoggedInDTO (Entity _ user) = LoggedInDTO
+  { username  = getField @"userUsername"  user
+  , authToken = getField @"userAuthToken" user}
+
+
+-------------------------------------------------------------------------------
+--                                   TYPES                                   --
+-------------------------------------------------------------------------------
+
+type Username = Text
+type AuthToken = Text
 
 -- localConnString :: PGInfo
 -- localConnString = "host=postgres port=5432 dbname=datingdb user=datingdbuser password=datingdbpassword"

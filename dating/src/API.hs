@@ -29,114 +29,141 @@ import           Servant.Server
 import           Servant.Server.Experimental.Auth
 import           Web.Cookie                       (parseCookies)
 
-import           Database
+import           Database                         (MongoInfo, Username)
+import qualified Database                         as DB
 import           FrontendTypes
 import           Schema
 
-type Username = Text
 
+
+
+
+-----------------------------------------------------------------------
+--                                API                                --
+-----------------------------------------------------------------------
 -- | The API.
-type DatingAPI = AuthAPI -- :<|> UserAPI :<|> MessageAPI
-
-type AuthAPI = "login" :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO
+type DatingAPI = UserAPI -- :<|> AuthAPI :<|> MessageAPI
 
 type UserAPI =
        "users" :> ReqBody '[JSON] CreateUserDTO :> Post '[JSON] LoggedInDTO                       -- Create User
   :<|> "users" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] UserDTO -- Fetch User
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [UserDTO]                              -- Fetch Users
 
-type MessageAPI =
-       "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :>
-                                ReqBody '[JSON] MessageDTO :> Post '[JSON] ()                 -- Create Msg
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewDTO]        -- Fetch previews
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] [ConversationDTO] -- Fetch Convo
+type AuthAPI = "login" :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO
 
+type MessageAPI =
+       "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> ReqBody '[JSON] MessageDTO :> Post '[JSON] () -- Create Msg
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewDTO]                                         -- Fetch previews
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] [ConversationDTO]                 -- Fetch Convo
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
 datingAPI = Proxy :: Proxy DatingAPI
 
 
--- | Fetches a user by id. First it tries redis, then postgres. It saves to cache if it goes to the db.
-fetchUserHandler :: MongoInfo -> Username -> Username -> Handler UserDTO
-fetchUserHandler mongoInfo _ username = do
-  maybeUser <- liftIO $ fetchUser mongoInfo username
-  case maybeUser of
-    Just user -> return user
-    Nothing -> Handler $ throwE $ err401 { errBody = "Could not find user with that username"}
-
--- | Fetches all users from db if you are authenticated.
-fetchAllUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
-fetchAllUsersHandler pgInfo _ = liftIO $ fetchAllUsersPG pgInfo
-
+-------------------------------------------------------------------------------
+--                                  USERS                                    --
+-------------------------------------------------------------------------------
 
 -- | Creates a user in the db.
-createUserHandler :: PGInfo -> User -> Handler LoggedInDTO
-createUserHandler pgInfo user = liftIO $ createUserPG pgInfo user
+createUserHandler :: MongoInfo -> CreateUserDTO -> Handler LoggedInDTO
+createUserHandler mongoInfo newUser = liftIO $ DB.createUser mongoInfo newUser
 
--- | Creates a new message between two users
-createMessageHandler :: PGInfo -> UserId -> Int64 -> Message -> Handler ()
-createMessageHandler pgInfo _ otherUserId msg = liftIO $ createMessagePG pgInfo otherUserId msg
+-- | Fetches a user by username.
+fetchUserHandler :: MongoInfo -> Username -> Username -> Handler UserDTO
+fetchUserHandler mongoInfo _ username = do
+  maybeUser <- liftIO $ DB.fetchUser mongoInfo username
+  case maybeUser of
+    Just user -> return user
+    Nothing -> Handler $ throwE $ err401 { errBody = "The user '" <> username <> "' does not exist."}
 
--- | Fetches all messages between two users.
-fetchMessagesBetweenHandler :: PGInfo -> UserId -> Int64 -> Handler [MessageDTO]
-fetchMessagesBetweenHandler pgInfo ownUserId otherUserId = liftIO $
-  fetchMessagesBetweenPG pgInfo ownUserId otherUserId
+-- | Fetches all users from db.
+fetchAllUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
+fetchAllUsersHandler mongoInfo _ = liftIO $ DB.fetchAllUsers mongoInfo
 
-fetchConversationPreviewDTOsHandler :: PGInfo -> UserId -> Handler [ConversationPreviewDTO]
-fetchConversationPreviewDTOsHandler pgInfo ownUserId = liftIO $ fetchConversationPreviewDTOsListPG pgInfo ownUserId
+
+-------------------------------------------------------------------------------
+--                             AUTHENTICATION                                --
+-------------------------------------------------------------------------------
 
 
 -- | Returns an LoggedInDTO when given correct credentials
 loginHandler :: MongoInfo -> CredentialDTO -> Handler LoggedInDTO
 loginHandler mongoInfo credentials = do
-  maybeUser <- liftIO $ fetchUserByCredentials pgInfo credentials
+  maybeUser <- liftIO $ DB.fetchUserByCredentials mongoInfo credentials
   case maybeUser of
     Just user -> return user
-    Nothing   -> throwError (err403 {errBody = "Invalid credentials"})
+    Nothing   -> throwError (err403 {errBody = "Invalid credentials."})
 
--- | Given an AuthToken it returns either the UserId or throws and 403 error.
-lookupByAuthToken :: PGInfo -> ByteString -> Handler UserId
-lookupByAuthToken pgInfo authToken = do
-  maybeUserId <- liftIO $ fetchUserIdByAuthTokenPG pgInfo authToken
-  case maybeUserId of
-    Nothing -> throwError (err403 { errBody = "Invalid authentication token" })
-    Just userId -> return userId
+
+-- | Specifies the data returned after authentication.
+type instance AuthServerData (AuthProtect "cookie-auth") = Username
+
+
+-- | The context is sort of the state, being authenticated or not. Starts empty.
+datingServerContext :: MongoInfo -> Context (AuthHandler Request Username ': '[])
+datingServerContext mongoInfo = authHandler mongoInfo :. EmptyContext
 
 
 -- | The handler which is called whenever a protected endpoint is visited.
-authHandler :: PGInfo -> AuthHandler Request UserId
-authHandler pgInfo = mkAuthHandler handler
+authHandler :: MongoInfo -> AuthHandler Request Username
+authHandler mongoInfo = mkAuthHandler handler
   where
     throw401 msg = throwError $ err401 { errBody = msg }
-    handler req = either throw401 (lookupByAuthToken pgInfo) $ do
+    handler req = either throw401 (lookupByAuthToken mongoInfo) $ do
       cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
       maybeToEither "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
 
+
+-- | Given an AuthToken it returns either the Username or throws and 403 error.
+lookupByAuthToken :: MongoInfo -> Text -> Handler Username
+lookupByAuthToken mongoInfo authToken = do
+  maybeUsername <- liftIO $ DB.fetchUsernameByAuthToken mongoInfo authToken
+  case maybeUsername of
+    Nothing -> throwError (err403 { errBody = "Invalid authentication token." })
+    Just username -> return username
+
+
 maybeToEither e = maybe (Left e) Right
 
--- | Specifies the data returned after authentication.
-type instance AuthServerData (AuthProtect "cookie-auth") = UserId
 
+-------------------------------------------------------------------------------
+--                              CONVERSATIONS                                --
+-------------------------------------------------------------------------------
+
+-- | Creates a new message between two users
+createMessageHandler :: MongoInfo -> Username -> Username -> CreateMessageDTO -> Handler ()
+createMessageHandler mongoInfo _ otherUsername msg = liftIO $ DB.createMessage mongoInfo otherUsername msg
+
+-- | Fetches all messages between two users.
+fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Handler [ConversationDTO]
+fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername = liftIO $
+  DB.fetchConversation mongoInfo ownUsername otherUsername
+
+-- | Fetches an overview of conversations for one user.
+fetchConversationPreviewDTOsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]
+fetchConversationPreviewDTOsHandler mongoInfo ownUsername = liftIO $ DB.fetchConversationPreviewDTOs mongoInfo ownUsername
+
+
+
+-------------------------------------------------------------------------------
+--                          COMBINATION OF PARTS                             --
+-------------------------------------------------------------------------------
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
-datingServer :: PGInfo -> RedisInfo -> Server DatingAPI
-datingServer pgInfo redisInfo = authHandlers
+datingServer :: MongoInfo -> RedisInfo -> Server DatingAPI
+datingServer mongoInfo redisInfo = authHandlers
   where
 
-    authHandlers =       loginHandler pgInfo
+    authHandlers =       loginHandler mongoInfo
 
-    userHandlers =       fetchUserHandler pgInfo redisInfo
-                    :<|> fetchAllUsersHandler pgInfo
-                    :<|> createUserHandler pgInfo
+    userHandlers =       fetchUserHandler mongoInfo redisInfo
+                    :<|> fetchAllUsersHandler mongoInfo
+                    :<|> createUserHandler mongoInfo
 
-    messageHandlers =    createMessageHandler pgInfo
-                    :<|> fetchConversationPreviewDTOsHandler pgInfo
-                    :<|> fetchMessagesBetweenHandler pgInfo
-
--- | The context is sort of the state, being authenticated or not. Starts empty.
-datingServerContext :: PGInfo -> Context (AuthHandler Request UserId ': '[])
-datingServerContext pgInfo = authHandler pgInfo :. EmptyContext
+    messageHandlers =    createMessageHandler mongoInfo
+                    :<|> fetchConversationPreviewDTOsHandler mongoInfo
+                    :<|> fetchMessagesBetweenHandler mongoInfo
 
 
 -- | Serves the API on port 1234
@@ -146,11 +173,3 @@ runServer = do
   run port $ serveWithContext datingAPI (datingServerContext mongoInfo) (datingServer mongoInfo redisInfo)
   where
     port = 1234
-
-
--- Client functions for testing. Not updated to use authentication.
-
--- fetchUserClient :: Int64 -> ClientM User
--- fetchAllUsersClient :: ClientM [User]
--- createUserClient :: User -> ClientM Int64
--- (fetchUserClient :<|> fetchAllUsersClient :<|> createUserClient) = client (Proxy :: Proxy DatingAPI)

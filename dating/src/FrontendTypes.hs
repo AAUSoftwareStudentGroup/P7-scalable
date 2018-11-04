@@ -33,7 +33,6 @@ data CreateUserDTO = CreateUserDTO
 
 data UserDTO = UserDTO
   { username    :: Text
-  , userId      :: Text
   , gender      :: Gender
   , birthday    :: Day
   , town        :: Text
@@ -50,7 +49,6 @@ data CredentialDTO = CredentialDTO
 
 data LoggedInDTO = LoggedInDTO
   { username  :: Text
-  , userId    :: Text
   , authToken :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
@@ -58,7 +56,6 @@ data LoggedInDTO = LoggedInDTO
 
 data ConversationPreviewDTO = ConversationPreviewDTO
   { convoWithUsername :: Text
-  , convoWithId       :: Text
   , isLastAuthor      :: Bool
   , body              :: Text
   , timeStamp         :: UTCTime
