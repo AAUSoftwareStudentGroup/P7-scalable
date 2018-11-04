@@ -97,8 +97,8 @@ view model =
 
 viewMessage : ConversationPreviewDTO -> (String, Html msg)
 viewMessage message =
-    ( message.convoWithId
-    , Html.li [ class "conversation", Attributes.attribute "attr-id" <| message.convoWithId ]
+    ( message.convoWithUsername
+    , Html.li [ class "conversation", Attributes.attribute "attr-id" <| message.convoWithUsername ]
         [ div [ class "conversation-with" ]
             [ Html.text message.convoWithUsername ]
         , div [ class "conversation-last-message" ]

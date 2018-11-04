@@ -1,4 +1,4 @@
-port module Session exposing (Session(..), Details, getNavKey, getUserId, getUsername, getUserToken, onChange, login, logout, createSessionFromLocalStorageValue)
+port module Session exposing (Session(..), Details, getNavKey, getUsername, getUserToken, onChange, login, logout, createSessionFromLocalStorageValue)
 
 import Browser.Navigation as Nav
 import Html exposing (Html)
@@ -7,7 +7,7 @@ import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
 
 --import DatingApi as Api exposing (User, UserInfo)
-import Api.Types exposing (UserInfo, Token, Id)
+import Api.Types exposing (UserInfo, Token)
 import Api.Users
 
 -- TYPES
@@ -41,14 +41,6 @@ getUserInfo session =
         LoggedIn _ userInfo ->
             Just userInfo
 
-        Guest _ ->
-            Nothing
-
-getUserId : Session -> Maybe Id
-getUserId session =
-    case session of
-        LoggedIn _ userInfo ->
-            Just userInfo.userId
         Guest _ ->
             Nothing
 

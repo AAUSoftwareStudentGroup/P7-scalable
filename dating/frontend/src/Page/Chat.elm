@@ -10,8 +10,7 @@ import Task as Task
 import Time as Time
 
 --import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
-import Api.Messages exposing (Message)
-import Api.Types exposing (Id)
+import Api.Messages exposing (Message, Conversation)
 import Api.Users
 
 import Routing exposing (Route(..))
@@ -23,27 +22,25 @@ type alias Model =
     { session           : Session
     , title             : String
     , content           : List Message
-    , idYou             : Id
-    , idFriend          : Id
-    , username          : String
+    , usernameFriend    : String
+    , usernameSelf      : String
     , unsentMessage     : String
     , zone              : Time.Zone
     , time              : Time.Posix
     }
 
-init : Session -> Id -> ( Model, Cmd Msg )
-init session idFriend =
+init : Session -> String -> ( Model, Cmd Msg )
+init session friendUsername =
   ( Model (Debug.log "messages session:" session)
     "Messages"
     []
-    (Maybe.withDefault "" (Session.getUserId session))
-    idFriend
+    friendUsername
     (Maybe.withDefault "" (Session.getUsername session))
     ""
     Time.utc
     (Time.millisToPosix 0)
   , Cmd.batch [ Task.perform AdjustTimeZone Time.here
-              , case (idFriend == (Maybe.withDefault "notLoggedIn" <| Session.getUserId session)) of
+              , case (friendUsername == (Maybe.withDefault "notLoggedIn" <| Session.getUsername session)) of
                     False ->
                         Task.perform FetchMessages Time.now
                     True ->
@@ -64,7 +61,7 @@ type Msg
     | SubmitMessage
     | HandleMessageSent (Result Http.Error (String.String))
     | FetchMessages Time.Posix
-    | HandleFetchedMessages (Result Http.Error (List Message))
+    | HandleFetchedMessages (Result Http.Error Conversation)
     | AdjustTimeZone Time.Zone
 
 
@@ -94,13 +91,13 @@ update msg model =
                     ( { model | time = newTime }, Cmd.none)
                 Session.LoggedIn _ userInfo ->
                     ( { model | time = (Debug.log "current time: " newTime) }
-                    , Http.send HandleFetchedMessages (Api.Messages.getMessagesFromId userInfo model.idFriend)
+                    , Http.send HandleFetchedMessages (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend)
                     )
 
         HandleFetchedMessages result ->
             case result of
-                Ok messages ->
-                    ( { model | content = messages }, Cmd.none)
+                Ok conversation ->
+                    ( { model | content = conversation.messages }, Cmd.none)
                 Err _ ->
                     (model, Cmd.none)
 
@@ -123,7 +120,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.contentWithHeader ("Chatting with " ++ model.username)
+        El.contentWithHeader ("Chatting with " ++ model.usernameFriend)
             [ ul
                 [ classList
                     [ ( "grid", True )
@@ -148,7 +145,7 @@ view model =
 viewMessage : Model -> Message -> (String, Html Msg)
 viewMessage model message =
     let
-        myMessage = model.username == message.authorName
+        myMessage = model.usernameSelf == message.authorName
     in
         ( message.timeStamp
         , Html.li [ classList
@@ -169,7 +166,7 @@ sendMessage model =
     else
         case model.session of
             Session.LoggedIn _ userInfo ->
-                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.idFriend )
+                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.usernameFriend )
             Session.Guest _ ->
                 Cmd.none
 

@@ -68,7 +68,7 @@ headerNavLinks session =
         Session.LoggedIn _ userInfo ->
             [ linkButtonFlat [] (Routing.routeToString Messages) [ Html.text "Messages" ]
             , linkButtonFlat [] (Routing.routeToString ListUsers) [ Html.text "All users" ]
-            , linkButtonFlat [] (Routing.routeToString (Profile userInfo.userId)) [ Html.text "My profile" ]
+            , linkButtonFlat [] (Routing.routeToString (Profile userInfo.username)) [ Html.text "My profile" ]
             , linkButtonFlat [] (Routing.routeToString Logout) [ Html.text "Log out" ]
             ]
 
@@ -109,8 +109,8 @@ contentWithHeader heading contents =
     ] ++ contents
 
 
-userCard : String -> String -> Html msg
-userCard username userId =
+userCard : String -> Html msg
+userCard username =
     Html.li [ classList
                 [ ( "user-card", True )
                 ]
@@ -118,11 +118,11 @@ userCard username userId =
         [ Html.text (toSentenceCase username)
         , linkButtonFlat
             []
-            (Routing.routeToString (Profile userId))
+            (Routing.routeToString (Profile username))
             [ Html.text "profile" ]
         , linkButtonFlat
             []
-            (Routing.routeToString (Chat userId))
+            (Routing.routeToString (Chat username))
             [ Html.text "chat" ]
         ]
 

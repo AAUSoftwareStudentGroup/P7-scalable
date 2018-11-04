@@ -86,11 +86,11 @@ routeToString page =
                 Messages ->
                     [ "messages" ]
 
-                Profile id ->
-                    [ "user", id ]
+                Profile username ->
+                    [ "user", username ]
 
-                Chat idFriend ->
-                    [ "chat", idFriend ]
+                Chat username ->
+                    [ "chat", username ]
 
     in
     "/" ++ String.join "/" pieces

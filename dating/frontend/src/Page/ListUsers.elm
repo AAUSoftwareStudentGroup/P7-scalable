@@ -69,14 +69,14 @@ subscriptions model =
 view : Model -> Session.Details Msg
 view model =
     let
-        myId = Maybe.withDefault "" (Session.getUserId model.session)
+        myUsername = Maybe.withDefault "" (Session.getUsername model.session)
     in
         { title = "All users"
         , session = model.session
         , kids =
             El.contentWithHeader "All users"
                 [ ul []
-                    (List.map (showUser model.session) <| List.filter (\user -> myId /= user.userId) model.users)
+                    (List.map (showUser model.session) <| List.filter (\user -> myUsername /= user.username) model.users)
                 ]
         }
 
@@ -84,7 +84,7 @@ view model =
 showUser : Session -> User -> (String, Html Msg)
 showUser session user =
     ( user.username
-    , El.userCard user.username user.userId
+    , El.userCard user.username
     )
 
 
