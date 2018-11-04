@@ -24,8 +24,8 @@ import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
 import qualified Data.Text.Encoding         (decodeUtf8)
 import           Data.Time.Calendar         (fromGregorian)
-import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
+import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime, getCurrentTime)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.TH
@@ -38,6 +38,7 @@ import           GHC.Generics               (Generic)
 import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
 import qualified System.Random              as Random
+import           System.IO.Unsafe           (unsafePerformIO)
 
 import           FrontendTypes
 import           Schema
@@ -104,7 +105,7 @@ fetchUser :: MongoConf -> Username -> IO (Maybe UserDTO)
 fetchUser mongoConf username = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Maybe UserDTO)
-    fetchAction = fmap entityUserToUserDTO <$> getBy UniqueUsername username
+    fetchAction = fmap userEntityToUserDTO <$> getBy UniqueUsername username
 
 
 -- | Fetch a list of users
@@ -112,7 +113,7 @@ fetchAllUsers :: MongoConf -> IO [UserDTO]
 fetchAllUsers mongoConf = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [UserDTO]
-    fetchAction = fmap mkUserDTOFromUserEntity <$> selectList [] []
+    fetchAction = fmap userEntityToUserDTO <$> selectList [] []
 
 
 -------------------------------------------------------------------------------
@@ -126,7 +127,7 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
     password = getField @"password" credentials
 
     fetchAction :: Action IO (Maybe LoggedInDTO)
-    fetchAction = fmap entitiyUserToLoggedInDTO <$>
+    fetchAction = fmap userEntityToLoggedInDTO <$>
       selectFirst [UserUsername ==. username &&. UserPassword ==. password]
 
 
@@ -142,32 +143,54 @@ fetchUsernameByAuthToken mongoConf authToken = runAction mongoConf fetchAction
 --                              CONVERSATIONS                                --
 -------------------------------------------------------------------------------
 
-fetchMessageDTO :: MongoConf -> Text -> Text -> IO (Maybe ConversationDTO)
-fetchMessageDTO mongoConf username1 username2 = runAction mongoConf fetchAction
+createMessage :: MongoConf -> Username -> Username -> CreateMessageDTO -> IO ()
+createMessage mongoConf from to messageDTO = runAction mongoConf action
+  where
+    action :: Action IO ()
+    action = do
+      msgToInsert <- mkMessage from body
+      maybeConvo <- selectFirst [ConversationMembers `anyEq` from, ConversationMembers `anyEq` to] []
+      case maybeConvo of
+        Nothing -> void $ insert (mkConversation from to msgToInsert)
+        Just (Entity conversationId convo) -> 
+          update conversationId [ConversationMessages `push` msgToInse]
+
+    body :: Text
+    body = getField @"body" messageDTO
+
+    mkConversation :: Username -> Username -> Message -> Conversation
+    mkConversation from to msg = conversation
+      where
+        conversation = Conversation
+          { conversationMembers = [from, to]
+          , conversationMessages = [msg]
+          }
+          
+    mkMessage :: Username -> Text -> IO Message
+    mkMessage from body = do 
+      currentTime <- getCurrentTime
+      return  Message
+          { messageAuthorUsername = from
+          , messageTimeStamp = currentTime
+          , messageBody = body
+          }
+
+fetchConversation :: MongoConf -> Username -> Username -> IO ConversationDTO
+fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Maybe ConversationDTO)
     fetchAction = do
-       maybeConvo <- selectFirst [ConversationMembers `anyEq` username1] []
+       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername, ConversationMembers `anyEq` otherUsername] []
        case maybeConvo of
-        Nothing -> return Nothing
-        Just convo -> return . Just $ mkConversationDTOFromConvoEntity convo username2
+        Nothing -> return emptyConvoDTO
+        Just convo -> return $ convoEntityToConversationDTO convo otherUsername
+    
+    emptyConvoDTO :: ConversationDTO
+    emptyConvoDTO = ConversationDTO otherUsername ""
 
-mkConversationDTOFromConvoEntity :: Entity Conversation -> Text -> ConversationDTO
-mkConversationDTOFromConvoEntity (Entity _ convo) username = conversationDTO
-  where
-    conversationDTO = ConversationDTO
-      { convoWithUsername = username
-      , messages = map mkMessageDTOFromMessage (getField @"conversationMessages" convo)
-      }
 
-mkMessageDTOFromMessage :: Message -> MessageDTO
-mkMessageDTOFromMessage message = messageDTO
-  where
-    messageDTO = MessageDTO
-      { authorUsername = messageAuthorUsername message
-      , body = messageBody message
-      , timeStamp = messageTimeStamp message
-      }
+fetchConversationPreviews :: MongoConf -> Username -> IO [ConversationPreviewDTO]
+fetchConversationPreviews mongoConf ownUsername = undefined -- TODO
 
 
 -------------------------------------------------------------------------------
@@ -178,8 +201,8 @@ runAction mongoConf action = withConnection mongoConf $
   \pool -> runMongoDBPoolDef action pool
 
 
-entityUserToUserDTO :: Entity User -> UserDTO
-entityUserToUserDTO (Entity _ user) = userDTO
+userEntityToUserDTO :: Entity User -> UserDTO
+userEntityToUserDTO (Entity _ user) = userDTO
   where
     userDTO = UserDTO
       { username    = userUsername user
@@ -189,10 +212,28 @@ entityUserToUserDTO (Entity _ user) = userDTO
       , profileText = userProfileText user
       }
 
-entityUserToLoggedInDTO :: Entity User -> LoggedInDTO
-entityUserToLoggedInDTO (Entity _ user) = LoggedInDTO
+userEntityToLoggedInDTO :: Entity User -> LoggedInDTO
+userEntityToLoggedInDTO (Entity _ user) = LoggedInDTO
   { username  = getField @"userUsername"  user
   , authToken = getField @"userAuthToken" user}
+
+convoEntityToConversationDTO :: Entity Conversation -> Text -> ConversationDTO
+convoEntityToConversationDTO (Entity _ convo) username = conversationDTO
+  where
+    conversationDTO = ConversationDTO
+      { convoWithUsername = username
+      , messages = map messageToMessageDTO (conversationMessages convo)
+      }
+  
+messageToMessageDTO :: Message -> MessageDTO
+messageToMessageDTO message = messageDTO
+  where
+    messageDTO = MessageDTO
+      { authorUsername = messageAuthorUsername message
+      , body = messageBody message
+      , timeStamp = messageTimeStamp message
+      }
+
 
 
 -------------------------------------------------------------------------------
@@ -201,6 +242,12 @@ entityUserToLoggedInDTO (Entity _ user) = LoggedInDTO
 
 type Username = Text
 type AuthToken = Text
+
+
+
+-------------------------------------------------------------------------------
+--                                    OLD                                    --
+-------------------------------------------------------------------------------
 
 -- localConnString :: PGInfo
 -- localConnString = "host=postgres port=5432 dbname=datingdb user=datingdbuser password=datingdbpassword"

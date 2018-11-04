@@ -133,16 +133,18 @@ maybeToEither e = maybe (Left e) Right
 
 -- | Creates a new message between two users
 createMessageHandler :: MongoInfo -> Username -> Username -> CreateMessageDTO -> Handler ()
-createMessageHandler mongoInfo _ otherUsername msg = liftIO $ DB.createMessage mongoInfo otherUsername msg
+createMessageHandler mongoInfo ownUsername otherUsername msgDTO = 
+  liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
 
 -- | Fetches all messages between two users.
-fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Handler [ConversationDTO]
-fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername = liftIO $
-  DB.fetchConversation mongoInfo ownUsername otherUsername
+fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Handler ConversationDTO
+fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername = 
+  liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername
 
 -- | Fetches an overview of conversations for one user.
-fetchConversationPreviewDTOsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]
-fetchConversationPreviewDTOsHandler mongoInfo ownUsername = liftIO $ DB.fetchConversationPreviewDTOs mongoInfo ownUsername
+fetchConversationPreviewsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]
+fetchConversationPreviewsHandler mongoInfo ownUsername = 
+  liftIO $ DB.fetchConversationPreviews mongoInfo ownUsername
 
 
 
