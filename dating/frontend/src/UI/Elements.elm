@@ -162,7 +162,7 @@ msgButtonFlat attributes msg children =
     Html.a ([ class "flat-btn", Events.onClick msg ] ++ attributes)
         children
 
-link : > String -> String -> Html msg
+link : String -> String -> Html msg
 link url caption =
     Html.a [ Attributes.href url ]
         [ Html.text caption ]
