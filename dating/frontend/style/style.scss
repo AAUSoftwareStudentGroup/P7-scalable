@@ -1,7 +1,6 @@
 @import "reset";
 @import "colors";
 @import "typography";
-@import "icons";
 @import "grid";
 @import "shadows";
 
@@ -49,6 +48,8 @@ button, .btn {
     @extend %shadow-2;
 
     background-color: $pri-col;
+
+    transition: background 0.15s ease;
 
     &:hover {
         background-color: $pri-col-light;

@@ -198,7 +198,6 @@ link url caption =
     Html.a [ Attributes.href url ]
         [ Html.text caption ]
 
-
 validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
 validatedInput field typ caption value toMsg errors showErrors =
     let
