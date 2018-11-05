@@ -12,6 +12,7 @@ import           Control.Monad.Logger       (LogLevel (..), LoggingT,
                                              MonadLogger, filterLogger,
                                              runStdoutLoggingT)
 import           Control.Monad.Reader       (ReaderT, runReaderT)
+import qualified Crypto.Hash.SHA512         as SHA512    
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.Char8      (pack, unpack)
@@ -19,10 +20,11 @@ import           Data.Generics.Product      (field, getField, super)
 import           Data.Int                   (Int64)
 import           Data.List                  (intersperse, sort, sortBy)
 import           Data.Maybe                 (listToMaybe)
+import           Data.Semigroup             ((<>))
 import           Data.Ord                   (comparing)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
-import           Data.Text.Encoding         (decodeUtf8, encodeUtf16BE)
+import           Data.Text.Encoding         (decodeUtf8, encodeUtf16BE, encodeUtf16LE, decodeUtf16LE)
 import           Data.Time.Calendar         (fromGregorian)
 import qualified Database.MongoDB           as Mongo
 import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime, getCurrentTime)
@@ -80,20 +82,23 @@ createUser mongoConf createUserDTO = runAction mongoConf action
     action :: Action IO LoggedInDTO
     action = do
       authToken <- liftIO mkAuthToken
+      salt <- liftIO mkAuthToken
       let newUser = User
             { userEmail       = getField @"email"       createUserDTO
-            , userPassword    = getField @"password"    createUserDTO -- TODO: Hash
+            , userPassword    = hashPassword (getField @"password"    createUserDTO) salt -- TODO: Hash
             , userUsername    = getField @"username"    createUserDTO
             , userGender      = getField @"gender"      createUserDTO
             , userBirthday    = getField @"birthday"    createUserDTO
             , userTown        = getField @"town"        createUserDTO
             , userProfileText = getField @"profileText" createUserDTO
             , userAuthToken   = authToken
+            , userSalt        = salt
             }
       userId <- insert newUser
       return $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
--- | Generate a random authtoken.
+
+      -- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
   generator <- Random.newStdGen
@@ -125,10 +130,21 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
   where
     username = getField @"username" credentials
     password = getField @"password" credentials
-
+    
     fetchAction :: Action IO (Maybe LoggedInDTO)
-    fetchAction = fmap userEntityToLoggedInDTO <$>
-      selectFirst [UserUsername ==. username, UserPassword ==. password] []
+    fetchAction = do 
+      maybeEntUser <- selectFirst [UserUsername ==. username] []
+      case maybeEntUser of
+        Nothing -> return Nothing
+        Just (Entity _ user) -> 
+            if (hashPassword password $ getField @"userSalt" user) == getField @"userPassword" user 
+              then 
+                return $ Just LoggedInDTO
+                { username  = getField @"userUsername"  user
+                , authToken = getField @"userAuthToken" user
+                }
+              else
+                return Nothing      
 
 
 
@@ -195,7 +211,12 @@ fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetc
 
 
 fetchConversationPreviews :: MongoConf -> Username -> IO [ConversationPreviewDTO]
-fetchConversationPreviews mongoConf ownUsername = undefined -- TODO
+fetchConversationPreviews mongoConf ownUsername = undefined {-runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [ConversationPreviewDTO]
+    fetchAction = do
+      maybeconvos <- selectList [ConversationMembers `anyEq` ownUsername] []
+      case convos -}
 
 
 -------------------------------------------------------------------------------
@@ -240,6 +261,13 @@ messageToMessageDTO message = messageDTO
       }
 
 
+hashPassword :: Text -> Text -> Text
+hashPassword password salt = decodeUtf16LE hash
+  where
+    hash :: ByteString
+    hash = SHA512.finalize ctx
+    ctx = SHA512.update iCtx $ encodeUtf16LE $ (password <> salt)
+    iCtx = SHA512.init
 
 -------------------------------------------------------------------------------
 --                                   TYPES                                   --
