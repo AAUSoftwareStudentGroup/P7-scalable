@@ -2,6 +2,7 @@ module Page.ListUsers exposing (Model, Msg(..), init, subscriptions, update, vie
 
 import Browser.Navigation as Nav
 import Html exposing (Html)
+import Html.Attributes as Attributes exposing (classList)
 import Html.Keyed exposing (ul)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, int, list, string)
@@ -9,6 +10,7 @@ import String exposing (toUpper)
 import String.Extra exposing (toSentenceCase)
 import List exposing (map)
 import Url
+
 
 import DatingApi as Api exposing (User)
 import Session exposing (Session, Details)
@@ -75,7 +77,12 @@ view model =
         , session = model.session
         , kids =
             El.contentWithHeader "All users"
-                [ ul []
+                [ ul    [ classList
+                            [ ( "grid", True )
+                            , ( "l-12", True )
+                            , ( "s-12", True )
+                            ]
+                        ]
                     (List.map (showUser model.session) <| List.filter (\user -> myId /= user.userId) model.users)
                 ]
         }

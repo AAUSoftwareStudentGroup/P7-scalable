@@ -22,6 +22,7 @@ $txt-lh-4: 1.75rem;
 $txt-lh-5: 1.5rem;
 $txt-lh-6: 1.4rem;
 $txt-lh-7: 1.0rem;
+$txt-lh-btn: 2.2rem;
 
 $txt-weight-light: 300;
 $txt-weight-regular: 400;
@@ -83,11 +84,23 @@ $txt-weight-bold: 800;
     color: $txt-col-dark;
 }
 
+
+%txt-header-link {
+    @extend %txt-white;
+
+    font-size: $txt-size-6;
+    line-height: $txt-lh-6;
+    font-weight: $txt-weight-regular;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+
 %txt-button {
     @extend %txt-white;
 
     font-size: $txt-size-7;
-    line-height: $txt-lh-7;
+    line-height: $txt-lh-btn;
     font-weight: $txt-weight-regular;
     text-transform: uppercase;
     letter-spacing: 1px;
