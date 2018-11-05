@@ -70,7 +70,7 @@ newtype CreateMessageDTO = CreateMessageDTO
 data ConversationDTO = ConversationDTO
   { convoWithUsername :: Text
   , messages          :: [MessageDTO]
-  }
+  } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 data MessageDTO = MessageDTO
   { authorUsername :: Text

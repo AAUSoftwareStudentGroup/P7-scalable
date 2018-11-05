@@ -2,11 +2,8 @@
 module Main where
 
 import Database
-import SchemaEnums (Gender(..))
-import Data.Time.Calendar (fromGregorian)
-import FrontendTypes
-import Data.Text (Text)
-import Data.Aeson
+import API
+
 -- import API (runServer)
 
 main :: IO ()
@@ -24,4 +21,4 @@ main = do
   --ElmCodeGen.genUsersApiCode
   --putStrLn "DONE"
   putStrLn "RUNNING SERVER"
-  -- runServer
+  runServer

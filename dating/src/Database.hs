@@ -22,7 +22,7 @@ import           Data.Maybe                 (listToMaybe)
 import           Data.Ord                   (comparing)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
-import qualified Data.Text.Encoding         (decodeUtf8, encodeUtf16BE)
+import           Data.Text.Encoding         (decodeUtf8, encodeUtf16BE)
 import           Data.Time.Calendar         (fromGregorian)
 import qualified Database.MongoDB           as Mongo
 import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime, getCurrentTime)
@@ -138,7 +138,7 @@ fetchUsernameByAuthToken mongoConf authToken = runAction mongoConf fetchAction
     fetchAction :: Action IO (Maybe Username)
     fetchAction = do
       
-      maybeEntUser <- getBy (UniqueAuthToken $ encodeUtf16BE authToken)
+      maybeEntUser <- getBy (UniqueAuthToken authToken)
       case maybeEntUser of
         Nothing -> return Nothing
         Just (Entity _ user) -> return . Just $ getField @"userUsername" user
@@ -246,7 +246,7 @@ messageToMessageDTO message = messageDTO
 -------------------------------------------------------------------------------
 
 type Username = Text
-type AuthToken = ByteString
+type AuthToken = Text
 
 
 

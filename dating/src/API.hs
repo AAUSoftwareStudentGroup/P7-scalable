@@ -19,7 +19,8 @@ import           Data.Proxy                       (Proxy (..))
 import           Data.Semigroup                   ((<>))
 import           Data.Text                        (Text)
 import           Data.Text.Encoding               (decodeASCII)
-import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.ByteString.Char8 as BS
 import           Database.Persist                 (Entity, Key)
 import           Network.Wai                      (Request, requestHeaders)
 import           Network.Wai.Handler.Warp         (run)
@@ -46,7 +47,7 @@ import           Schema
 --                                API                                --
 -----------------------------------------------------------------------
 -- | The API.
-type DatingAPI = UserAPI -- :<|> AuthAPI :<|> MessageAPI
+type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI
 
 type UserAPI =
        "users" :> ReqBody '[JSON] CreateUserDTO :> Post '[JSON] LoggedInDTO                       -- Create User
@@ -56,9 +57,9 @@ type UserAPI =
 type AuthAPI = "login" :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO
 
 type MessageAPI =
-       "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> ReqBody '[JSON] MessageDTO :> Post '[JSON] () -- Create Msg
+       "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> ReqBody '[JSON] CreateMessageDTO :> Post '[JSON] () -- Create Msg
   :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewDTO]                                         -- Fetch previews
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] [ConversationDTO]                 -- Fetch Convo
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] ConversationDTO                   -- Fetch Convo
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -109,19 +110,21 @@ type instance AuthServerData (AuthProtect "cookie-auth") = Username
 datingServerContext :: MongoInfo -> Context (AuthHandler Request Username ': '[])
 datingServerContext mongoInfo = authHandler mongoInfo :. EmptyContext
 
-
+-- err401 ::
 -- | The handler which is called whenever a protected endpoint is visited.
 authHandler :: MongoInfo -> AuthHandler Request Username
 authHandler mongoInfo = mkAuthHandler handler
   where
+    throw401 :: LBS.ByteString -> Handler Username
     throw401 msg = throwError $ err401 { errBody = msg }
-    handler req = either throw401 (lookupByAuthToken mongoInfo) $ do
-      cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
-      maybeToEither $ "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
+    handler req = either throw401 (lookupByAuthToken mongoInfo) $ Left "fail"
+
+      --cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
+      --maybeToEither $ "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
 
 
 -- | Given an AuthToken it returns either the Username or throws and 403 error.
-lookupByAuthToken :: MongoInfo -> ByteString -> Handler Username
+lookupByAuthToken :: MongoInfo -> Text -> Handler Username
 lookupByAuthToken mongoInfo authToken = do
   maybeUsername <- liftIO $ DB.fetchUsernameByAuthToken mongoInfo authToken
   case maybeUsername of
@@ -159,14 +162,14 @@ fetchConversationPreviewsHandler mongoInfo ownUsername =
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: MongoInfo -> RedisInfo -> Server DatingAPI
-datingServer mongoInfo redisInfo = userHandlers
+datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHandlers
   where
 
     authHandlers =       loginHandler mongoInfo
 
-    userHandlers =       fetchUserHandler mongoInfo
-                    :<|> fetchAllUsersHandler mongoInfo
-                    :<|> createUserHandler mongoInfo
+    userHandlers =       createUserHandler mongoInfo
+                    :<|> fetchUserHandler mongoInfo
+                    :<|> fetchAllUsersHandler mongoInfo 
 
     messageHandlers =    createMessageHandler mongoInfo
                     :<|> fetchConversationPreviewsHandler mongoInfo
