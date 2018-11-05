@@ -8,6 +8,7 @@ import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
 import Session exposing (Session)
+import DatingApi exposing (User, Gender(..))
 
 import Random
 
@@ -111,37 +112,57 @@ contentWithHeader heading contents =
     ] ++ contents
 
 
-userCard : String -> Int -> Html msg
-userCard username userId =
-    Html.li 
-        [ classList [ ( "user-card", True )
-                    , ( "l-12", True )
-                    , ( "s-12", True )
-                    , ( "grid", True )
+userCard : User -> Html msg
+userCard user =
+    let
+        username = user.userUsername
+        userId = user.userId
+    in
+        Html.li
+            [ classList [ ( "user-card", True )
+                        , ( "l-12", True )
+                        , ( "s-12", True )
+                        , ( "grid", True )
+                        ]
+            ]
+            [ Html.a [ Attributes.href (Routing.routeToString (Profile userId)) ]
+                     [ Html.img [ src (avatarUrl user) ] [] ]
+            , Html.span
+                [ classList [ ("l-7", True), ("s-7", True) ] ]
+                [ Html.text (toSentenceCase username) ]
+            , linkButtonFlat
+                [ classList
+                    [ ("l-2", True)
+                    , ("s-2", True)
                     ]
-        ]
-        [ Html.a [ Attributes.href (Routing.routeToString (Profile userId)) ]
-                 [ Html.img [ src ("https://randomuser.me/api/portraits/men/"++(String.fromInt userId)++".jpg") ] [] ]
-        , Html.span 
-            [ classList [ ("l-7", True), ("s-7", True) ] ] 
-            [ Html.text (toSentenceCase username) ]
-        , linkButtonFlat
-            [ classList
-                [ ("l-2", True)
-                , ("s-2", True)
                 ]
-            ]
-            (Routing.routeToString (Profile userId))
-            [ iconText "Profile" "perm_identity" ]
-        , linkButtonFlat
-            [ classList
-                [ ("l-2", True)
-                , ("s-2", True)
+                (Routing.routeToString (Profile userId))
+                [ iconText "Profile" "perm_identity" ]
+            , linkButtonFlat
+                [ classList
+                    [ ("l-2", True)
+                    , ("s-2", True)
+                    ]
                 ]
+                (Routing.routeToString (Chat userId))
+                [ iconText "Chat" "chat" ]
             ]
-            (Routing.routeToString (Chat userId))
-            [ iconText "Chat" "chat" ]
-        ]
+
+avatarUrl : User -> String
+avatarUrl user =
+    let
+        idString = String.fromInt (remainderBy 100 user.userId )
+        genderString =
+            case user.userGender of
+                Male ->
+                    "men"
+                Female ->
+                    "women"
+                Other ->
+                    "error"
+    in
+        "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ idString ++ ".jpg"
+
 
 iconText : String -> String -> Html msg
 iconText label iconName =
@@ -153,21 +174,33 @@ iconText label iconName =
 materialIcon : String -> Html msg
 materialIcon iconName = 
     Html.i [ class "material-icons" ]
-        [Html.text iconName ]
+        [ Html.text iconName ]
 
 
 textProperty : String -> String -> Html msg
 textProperty labelText propertyText =
-    div []
-        [ Html.text labelText
-        , Html.text propertyText
+    div
+        [ classList
+            [ ( "property", True )
+            , ( "l-6", True )
+            ]
         ]
-
+        [ Html.span []
+            [ Html.text labelText ]
+        , Html.span []
+            [ Html.text propertyText ]
+        ]
 
 paragraphProperty : String -> String -> Html msg
 paragraphProperty labelText propertyText =
-    div []
-        [ Html.text labelText
+    div
+        [ classList
+            [ ( "property", True )
+            , ( "l-12", True )
+            ]
+        ]
+        [ Html.span []
+            [ Html.text labelText ]
         , Html.p []
             [ Html.text propertyText ]
         ]
