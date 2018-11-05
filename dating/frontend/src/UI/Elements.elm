@@ -151,7 +151,6 @@ userCard user =
 avatarUrl : User -> String
 avatarUrl user =
     let
-        idString = String.fromInt (remainderBy 100 user.userId )
         genderString =
             case user.userGender of
                 Male ->
@@ -159,7 +158,16 @@ avatarUrl user =
                 Female ->
                     "women"
                 Other ->
-                    "error"
+                    "lego"
+        maxId =
+            case user.userGender of
+                Male ->
+                    100
+                Female ->
+                    100
+                Other ->
+                    9
+        idString = String.fromInt (remainderBy maxId user.userId )
     in
         "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ idString ++ ".jpg"
 
