@@ -22,6 +22,7 @@ import Page.Logout as Logout
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
+import Common as Common
 import DatingApi as DatingApi exposing (Message, getRecentMessages)
 import Routing as Routing
 import UI.Elements as El
@@ -47,6 +48,7 @@ type alias Model =
     { key : Nav.Key
     , page : Page
     , numMessages : Int
+    , notifications : List Common.Notification
     }
 
 type Page
@@ -65,7 +67,8 @@ init maybeValue url key =
     stepUrl url
         { key = key
         , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-        , numMessages = 0}
+        , numMessages = 0
+        , notifications = [] }
 
 
 
@@ -159,6 +162,7 @@ type Msg
   | ChatMsg Chat.Msg
   | SessionChanged Session
   | LogOutClicked
+  | CommonMsg Common.Msg
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List Message))
 
@@ -203,6 +207,12 @@ update message model =
                     stepLogin model (Login.update msg loginModel)
                 _ ->
                     ( model, Cmd.none )
+
+        CommonMsg msg ->
+            case msg of
+                Common.NotificationReceived newNotification ->
+                    ( { model | notifications = ( newNotification :: model.notifications ) }
+                    , Cmd.none )
 
         LogoutMsg msg ->
             case model.page of

@@ -18,8 +18,7 @@ type Session
 type alias Details msg =
     { title : String
     , session : Session
-    , kids : List (Html msg)
-    }
+    , kids : List (Html msg) }
 
 
 empty : Nav.Key -> Session

@@ -10,6 +10,7 @@ import String
 
 import DatingApi as Api exposing (User, Credentials)
 import Session exposing (Session, Details)
+import Common as Common
 import Routing exposing (Route(..))
 import UI.Elements as El
 
@@ -56,6 +57,7 @@ init session =
 type Msg
     = FormFieldChanged FormField String
     | Submitted
+    | FuckNotifications String
     | HandleUserLogin (Result Http.Error User)
 
 
@@ -85,6 +87,9 @@ update msg model =
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
+
+        FuckNotifications notificationText ->
+            (model, Cmd.none)
 
 
 setField : Model -> FormField -> String -> Model
@@ -168,6 +173,7 @@ view model =
                             , ( "l-12", True )
                             , ( "s-12", True )
                             ]
+                        --, Events.onSubmit (FuckNotifications "Test")
                         , Events.onSubmit Submitted
                         ]
                 [ El.validatedInput Username "text" "Username" model.username FormFieldChanged model.errors model.attemptedSubmission
