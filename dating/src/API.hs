@@ -12,12 +12,14 @@ module API where
 
 import           Control.Monad.IO.Class           (liftIO)
 import           Control.Monad.Trans.Except       (throwE)
-import           Data.ByteString                  (ByteString)
 import           Data.Int                         (Int64)
 import           Data.Map                         (Map, fromList)
 import qualified Data.Map                         as Map
 import           Data.Proxy                       (Proxy (..))
+import           Data.Semigroup                   ((<>))
 import           Data.Text                        (Text)
+import           Data.Text.Encoding               (decodeASCII)
+import Data.ByteString (ByteString)
 import           Database.Persist                 (Entity, Key)
 import           Network.Wai                      (Request, requestHeaders)
 import           Network.Wai.Handler.Warp         (run)
@@ -28,8 +30,10 @@ import           Servant.Client
 import           Servant.Server
 import           Servant.Server.Experimental.Auth
 import           Web.Cookie                       (parseCookies)
+import Data.Text.Encoding (encodeUtf16BE)
 
-import           Database                         (MongoInfo, Username)
+import           Database                         (MongoInfo, RedisInfo,
+                                                   Username)
 import qualified Database                         as DB
 import           FrontendTypes
 import           Schema
@@ -75,7 +79,8 @@ fetchUserHandler mongoInfo _ username = do
   maybeUser <- liftIO $ DB.fetchUser mongoInfo username
   case maybeUser of
     Just user -> return user
-    Nothing -> Handler $ throwE $ err401 { errBody = "The user '" <> username <> "' does not exist."}
+    
+    Nothing -> Handler $ throwE $ err401 { errBody = "The user does not exist."}
 
 -- | Fetches all users from db.
 fetchAllUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
@@ -112,11 +117,11 @@ authHandler mongoInfo = mkAuthHandler handler
     throw401 msg = throwError $ err401 { errBody = msg }
     handler req = either throw401 (lookupByAuthToken mongoInfo) $ do
       cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
-      maybeToEither "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
+      maybeToEither $ "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
 
 
 -- | Given an AuthToken it returns either the Username or throws and 403 error.
-lookupByAuthToken :: MongoInfo -> Text -> Handler Username
+lookupByAuthToken :: MongoInfo -> ByteString -> Handler Username
 lookupByAuthToken mongoInfo authToken = do
   maybeUsername <- liftIO $ DB.fetchUsernameByAuthToken mongoInfo authToken
   case maybeUsername of
@@ -133,17 +138,17 @@ maybeToEither e = maybe (Left e) Right
 
 -- | Creates a new message between two users
 createMessageHandler :: MongoInfo -> Username -> Username -> CreateMessageDTO -> Handler ()
-createMessageHandler mongoInfo ownUsername otherUsername msgDTO = 
+createMessageHandler mongoInfo ownUsername otherUsername msgDTO =
   liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
 
 -- | Fetches all messages between two users.
 fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Handler ConversationDTO
-fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername = 
+fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername =
   liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername
 
 -- | Fetches an overview of conversations for one user.
 fetchConversationPreviewsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]
-fetchConversationPreviewsHandler mongoInfo ownUsername = 
+fetchConversationPreviewsHandler mongoInfo ownUsername =
   liftIO $ DB.fetchConversationPreviews mongoInfo ownUsername
 
 
@@ -154,24 +159,25 @@ fetchConversationPreviewsHandler mongoInfo ownUsername =
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: MongoInfo -> RedisInfo -> Server DatingAPI
-datingServer mongoInfo redisInfo = authHandlers
+datingServer mongoInfo redisInfo = userHandlers
   where
 
     authHandlers =       loginHandler mongoInfo
 
-    userHandlers =       fetchUserHandler mongoInfo redisInfo
+    userHandlers =       fetchUserHandler mongoInfo
                     :<|> fetchAllUsersHandler mongoInfo
                     :<|> createUserHandler mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo
-                    :<|> fetchConversationPreviewDTOsHandler mongoInfo
+                    :<|> fetchConversationPreviewsHandler mongoInfo
                     :<|> fetchMessagesBetweenHandler mongoInfo
 
 
 -- | Serves the API on port 1234
 runServer :: IO ()
 runServer = do
-  mongoInfo <- fetchMongoInfo
+  mongoInfo <- DB.fetchMongoInfo
+  redisInfo <- DB.fetchRedisInfo
   run port $ serveWithContext datingAPI (datingServerContext mongoInfo) (datingServer mongoInfo redisInfo)
   where
     port = 1234

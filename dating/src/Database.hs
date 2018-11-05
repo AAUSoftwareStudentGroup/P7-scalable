@@ -22,7 +22,7 @@ import           Data.Maybe                 (listToMaybe)
 import           Data.Ord                   (comparing)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
-import qualified Data.Text.Encoding         (decodeUtf8)
+import qualified Data.Text.Encoding         (decodeUtf8, encodeUtf16BE)
 import           Data.Time.Calendar         (fromGregorian)
 import qualified Database.MongoDB           as Mongo
 import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime, getCurrentTime)
@@ -65,8 +65,8 @@ fetchMongoInfo = return localMongoConf
 type RedisInfo = ConnectInfo
 
 -- | Has IO for same reason as fetchMongoInfo
-fetchRedisConnection :: IO RedisInfo
-fetchRedisConnection = return $ defaultConnectInfo {connectHost = "redis"}
+fetchRedisInfo :: IO RedisInfo
+fetchRedisInfo = return $ defaultConnectInfo {connectHost = "redis"}
 
 
 -------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ fetchUser :: MongoConf -> Username -> IO (Maybe UserDTO)
 fetchUser mongoConf username = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Maybe UserDTO)
-    fetchAction = fmap userEntityToUserDTO <$> getBy UniqueUsername username
+    fetchAction = fmap userEntityToUserDTO <$> getBy (UniqueUsername username)
 
 
 -- | Fetch a list of users
@@ -128,15 +128,20 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
 
     fetchAction :: Action IO (Maybe LoggedInDTO)
     fetchAction = fmap userEntityToLoggedInDTO <$>
-      selectFirst [UserUsername ==. username &&. UserPassword ==. password]
+      selectFirst [UserUsername ==. username, UserPassword ==. password] []
 
 
 
 fetchUsernameByAuthToken :: MongoConf -> AuthToken -> IO (Maybe Username)
 fetchUsernameByAuthToken mongoConf authToken = runAction mongoConf fetchAction
   where
-    fetchAction :: Action IO (Maybe AuthToken)
-    fetchAction = fmap (getField @"userAuthToken") <$> getBy UniqueAuthToken authToken
+    fetchAction :: Action IO (Maybe Username)
+    fetchAction = do
+      
+      maybeEntUser <- getBy (UniqueAuthToken $ encodeUtf16BE authToken)
+      case maybeEntUser of
+        Nothing -> return Nothing
+        Just (Entity _ user) -> return . Just $ getField @"userUsername" user
 
 
 -------------------------------------------------------------------------------
@@ -148,12 +153,12 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
   where
     action :: Action IO ()
     action = do
-      msgToInsert <- mkMessage from body
+      msgToInsert <- liftIO $ mkMessage from body
       maybeConvo <- selectFirst [ConversationMembers `anyEq` from, ConversationMembers `anyEq` to] []
       case maybeConvo of
         Nothing -> void $ insert (mkConversation from to msgToInsert)
         Just (Entity conversationId convo) -> 
-          update conversationId [ConversationMessages `push` msgToInse]
+          update conversationId [ConversationMessages `push` msgToInsert]
 
     body :: Text
     body = getField @"body" messageDTO
@@ -178,7 +183,7 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
 fetchConversation :: MongoConf -> Username -> Username -> IO ConversationDTO
 fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetchAction
   where
-    fetchAction :: Action IO (Maybe ConversationDTO)
+    fetchAction :: Action IO ConversationDTO
     fetchAction = do
        maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername, ConversationMembers `anyEq` otherUsername] []
        case maybeConvo of
@@ -186,7 +191,7 @@ fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetc
         Just convo -> return $ convoEntityToConversationDTO convo otherUsername
     
     emptyConvoDTO :: ConversationDTO
-    emptyConvoDTO = ConversationDTO otherUsername ""
+    emptyConvoDTO = ConversationDTO otherUsername mempty
 
 
 fetchConversationPreviews :: MongoConf -> Username -> IO [ConversationPreviewDTO]
@@ -241,7 +246,7 @@ messageToMessageDTO message = messageDTO
 -------------------------------------------------------------------------------
 
 type Username = Text
-type AuthToken = Text
+type AuthToken = ByteString
 
 
 
