@@ -1,7 +1,6 @@
 @import "reset";
 @import "colors";
 @import "typography";
-@import "icons";
 @import "grid";
 @import "shadows";
 
@@ -50,6 +49,8 @@ button, .btn {
 
     background-color: $pri-col;
 
+    transition: background 0.15s ease;
+
     &:hover {
         background-color: $pri-col-light;
         @extend %shadow-4;
@@ -69,6 +70,13 @@ button, .btn {
         justify-self: left;
     }
 }
+
+.property {
+    span {
+        display: block;
+    }
+}
+
 
 .user-card {
     height: 5rem;

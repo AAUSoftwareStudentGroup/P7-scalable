@@ -3,6 +3,7 @@ module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 import Browser.Navigation as Nav
 import DatingApi as Api exposing (Gender(..), User, emptyUser, genderToString)
 import Html exposing (Html, div)
+import Html.Attributes exposing (classList)
 
 import Http
 import String
@@ -60,10 +61,15 @@ view model =
     { title = model.user.userUsername ++ "'s profile"
     , session = model.session
     , kids =
-        El.contentWithHeader (model.user.userUsername ++ "'s profile")
-            [ div []
-                [ El.textProperty "Username" model.user.userUsername
-                , El.textProperty "Email" model.user.userEmail
+        El.contentWithHeader model.user.userUsername
+            [ div
+                [ classList
+                    [ ( "grid", True )
+                    , ( "l-12", True )
+                    , ( "s-6", True )
+                    ]
+                ]
+                [ El.textProperty "Email" model.user.userEmail
                 , El.textProperty "Gender" (genderToString model.user.userGender)
                 , El.textProperty "Birthday" model.user.userBirthday
                 , El.textProperty "Town" model.user.userTown

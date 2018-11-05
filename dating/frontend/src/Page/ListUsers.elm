@@ -77,21 +77,26 @@ view model =
         , session = model.session
         , kids =
             El.contentWithHeader "All users"
-                [ ul    [ classList
+                [ Html.ul
+                    [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )
                             , ( "s-12", True )
                             ]
-                        ]
-                    (List.map (showUser model.session) <| List.filter (\user -> myId /= user.userId) model.users)
+                    ]
+                    (List.map (showUser2 model.session) <| List.filter (\user -> myId /= user.userId) model.users)
                 ]
         }
+
+showUser2 : Session -> User -> Html Msg
+showUser2 session user =
+    El.userCard user
 
 
 showUser : Session -> User -> (String, Html Msg)
 showUser session user =
     ( user.userUsername
-    , El.userCard user.userUsername user.userId
+    , El.userCard user
     )
 
 

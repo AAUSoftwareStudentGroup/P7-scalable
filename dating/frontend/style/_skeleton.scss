@@ -91,6 +91,8 @@ header, footer {
 .content-container {
     @extend %max-width-container;
 
+    margin-bottom: 1rem;
+
     .content {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
