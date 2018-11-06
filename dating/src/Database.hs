@@ -12,21 +12,27 @@ import           Control.Monad.Logger       (LogLevel (..), LoggingT,
                                              MonadLogger, filterLogger,
                                              runStdoutLoggingT)
 import           Control.Monad.Reader       (ReaderT, runReaderT)
+import qualified Crypto.Hash.SHA512         as SHA512
 import           Data.Aeson.Types           (FromJSON, ToJSON)
+import           Data.Bson                  (Document, Value, fval, typed, val)
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.Char8      (pack, unpack)
+import           Data.Either                (rights)
 import           Data.Generics.Product      (field, getField, super)
 import           Data.Int                   (Int64)
 import           Data.List                  (intersperse, sort, sortBy)
 import           Data.Maybe                 (listToMaybe)
 import           Data.Ord                   (comparing)
+import           Data.Semigroup             ((<>))
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
-import           Data.Text.Encoding         (decodeUtf8, encodeUtf16BE)
+import           Data.Text.Encoding         (decodeUtf16LE, decodeUtf8,
+                                             encodeUtf16BE, encodeUtf16LE)
 import           Data.Time.Calendar         (fromGregorian)
 import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
+import           Database.MongoDB.Query     (find, rest, select)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.TH
@@ -89,20 +95,23 @@ createUser mongoConf createUserDTO = runAction mongoConf action
     action :: Action IO LoggedInDTO
     action = do
       authToken <- liftIO mkAuthToken
+      salt <- liftIO mkAuthToken
       let newUser = User
             { userEmail       = getField @"email"       createUserDTO
-            , userPassword    = getField @"password"    createUserDTO -- TODO: Hash
+            , userPassword    = hashPassword (getField @"password"    createUserDTO) salt -- TODO: Hash
             , userUsername    = getField @"username"    createUserDTO
             , userGender      = getField @"gender"      createUserDTO
             , userBirthday    = getField @"birthday"    createUserDTO
             , userTown        = getField @"town"        createUserDTO
             , userProfileText = getField @"profileText" createUserDTO
             , userAuthToken   = authToken
+            , userSalt        = salt
             }
       userId <- insert newUser
       return $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
--- | Generate a random authtoken.
+
+      -- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
   generator <- Random.newStdGen
@@ -136,8 +145,19 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
     password = getField @"password" credentials
 
     fetchAction :: Action IO (Maybe LoggedInDTO)
-    fetchAction = fmap userEntityToLoggedInDTO <$>
-      selectFirst [UserUsername ==. username, UserPassword ==. password] []
+    fetchAction = do
+      maybeEntUser <- selectFirst [UserUsername ==. username] []
+      case maybeEntUser of
+        Nothing -> return Nothing
+        Just (Entity _ user) ->
+            if hashPassword password (getField @"userSalt" user) == getField @"userPassword" user
+              then
+                return $ Just LoggedInDTO
+                { username  = getField @"userUsername"  user
+                , authToken = getField @"userAuthToken" user
+                }
+              else
+                return Nothing
 
 
 
@@ -194,7 +214,8 @@ fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetc
   where
     fetchAction :: Action IO ConversationDTO
     fetchAction = do
-       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername, ConversationMembers `anyEq` otherUsername] []
+       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername, 
+        ConversationMembers `anyEq` otherUsername] []
        case maybeConvo of
         Nothing -> return emptyConvoDTO
         Just convo -> return $ convoEntityToConversationDTO convo otherUsername
@@ -204,7 +225,21 @@ fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetc
 
 
 fetchConversationPreviews :: MongoConf -> Username -> IO [ConversationPreviewDTO]
-fetchConversationPreviews mongoConf ownUsername = undefined -- TODO
+fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [ConversationPreviewDTO]
+    fetchAction = do
+      cursor <- find ( select
+        [ "members.username" =: (ownUsername::Text)
+        , "messages" =:
+            [ "$slice" =: (-1::Int)
+            ]
+        ] "conversations")
+      docList <- rest cursor
+      return $ 
+        fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap docToEntityEither 
+        $ docList
+
 
 
 -------------------------------------------------------------------------------
@@ -213,6 +248,18 @@ fetchConversationPreviews mongoConf ownUsername = undefined -- TODO
 
 runAction mongoConf action = withConnection mongoConf $
   \pool -> runMongoDBPoolDef action pool
+
+conversationEntityToConversationPreviewDTO :: Text -> Entity Conversation -> ConversationPreviewDTO
+conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversationPreview
+  where
+    members = getField @"conversationMembers" convo
+    message = last $ getField @"conversationMessages" convo
+    conversationPreview = ConversationPreviewDTO
+      { convoWithUsername = if head members == username then last members else head members
+      , isLastAuthor = username == getField @"messageAuthorUsername" message
+      , body = getField @"messageBody" message
+      , timeStamp = getField @"messageTimeStamp" message
+      }
 
 
 userEntityToUserDTO :: Entity User -> UserDTO
@@ -249,4 +296,10 @@ messageToMessageDTO message = messageDTO
       }
 
 
-
+hashPassword :: Text -> Text -> Text
+hashPassword password salt = decodeUtf16LE hash
+  where
+    hash :: ByteString
+    hash = SHA512.finalize ctx
+    ctx = SHA512.update iCtx $ encodeUtf16LE (password <> salt)
+    iCtx = SHA512.init

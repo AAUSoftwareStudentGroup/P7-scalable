@@ -43,6 +43,7 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     town            Text
     profileText     Text
     authToken       Text
+    salt            Text
     UniqueEmail     email
     UniqueUsername  username
     UniqueAuthToken authToken

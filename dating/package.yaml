@@ -21,6 +21,7 @@ library:
   - wai
   - aeson
   - monad-logger
+  - bson
   - mtl
   - persistent
   - persistent-template
@@ -49,6 +50,7 @@ library:
   - generic-lens
   - lens
   - mongoDB
+  - cryptohash
 executables:
   dating:
     main: Main.hs

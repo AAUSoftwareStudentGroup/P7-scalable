@@ -10,8 +10,8 @@ type Gender
 type alias Token = String
 
 type alias UserInfo =
-    { username      : String
-    , authToken     : Token
+    { authToken   : Token
+    , username    : String
     }
 
 

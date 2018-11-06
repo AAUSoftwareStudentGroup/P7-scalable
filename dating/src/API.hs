@@ -117,8 +117,7 @@ authHandler mongoInfo = mkAuthHandler handler
   where
     throw401 :: LBS.ByteString -> Handler Username
     throw401 msg = throwError $ err401 { errBody = msg }
-    handler req = either throw401 (lookupByAuthToken mongoInfo) $ Left "fail"
-
+    handler req = either throw401 (lookupByAuthToken mongoInfo) $Left "fail"
       --cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
       --maybeToEither $ "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
 
