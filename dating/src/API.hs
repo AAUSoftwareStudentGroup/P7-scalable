@@ -12,15 +12,15 @@ module API where
 
 import           Control.Monad.IO.Class           (liftIO)
 import           Control.Monad.Trans.Except       (throwE)
+import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy.Char8       as LBS
 import           Data.Int                         (Int64)
 import           Data.Map                         (Map, fromList)
 import qualified Data.Map                         as Map
 import           Data.Proxy                       (Proxy (..))
 import           Data.Semigroup                   ((<>))
 import           Data.Text                        (Text)
-import           Data.Text.Encoding               (decodeASCII)
-import qualified Data.ByteString.Lazy.Char8 as LBS
-import qualified Data.ByteString.Char8 as BS
+import           Data.Text.Encoding               (decodeUtf8, encodeUtf16BE)
 import           Database.Persist                 (Entity, Key)
 import           Network.Wai                      (Request, requestHeaders)
 import           Network.Wai.Handler.Warp         (run)
@@ -31,7 +31,6 @@ import           Servant.Client
 import           Servant.Server
 import           Servant.Server.Experimental.Auth
 import           Web.Cookie                       (parseCookies)
-import Data.Text.Encoding (encodeUtf16BE)
 
 import           Database                         (MongoInfo, RedisInfo,
                                                    Username)
@@ -80,7 +79,7 @@ fetchUserHandler mongoInfo _ username = do
   maybeUser <- liftIO $ DB.fetchUser mongoInfo username
   case maybeUser of
     Just user -> return user
-    
+
     Nothing -> Handler $ throwE $ err401 { errBody = "The user does not exist."}
 
 -- | Fetches all users from db.
@@ -117,9 +116,9 @@ authHandler mongoInfo = mkAuthHandler handler
   where
     throw401 :: LBS.ByteString -> Handler Username
     throw401 msg = throwError $ err401 { errBody = msg }
-    handler req = either throw401 (lookupByAuthToken mongoInfo) $Left "fail"
-      --cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
-      --maybeToEither $ "Missing token in cookie" $ lookup "dating-auth-cookie" $ parseCookies cookie
+    handler req = either throw401 (lookupByAuthToken mongoInfo) $ do
+      cookie <- maybeToEither "Missing cookie header" $ lookup "Auth-Token" $ requestHeaders req
+      maybeToEither "Missing token in cookie" $ decodeUtf8 <$> lookup "dating-auth-cookie" (parseCookies cookie)
 
 
 -- | Given an AuthToken it returns either the Username or throws and 403 error.
@@ -130,7 +129,7 @@ lookupByAuthToken mongoInfo authToken = do
     Nothing -> throwError (err403 { errBody = "Invalid authentication token." })
     Just username -> return username
 
-
+maybeToEither :: a -> Maybe b -> Either a b
 maybeToEither e = maybe (Left e) Right
 
 
@@ -168,7 +167,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
 
     userHandlers =       createUserHandler mongoInfo
                     :<|> fetchUserHandler mongoInfo
-                    :<|> fetchAllUsersHandler mongoInfo 
+                    :<|> fetchAllUsersHandler mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo
                     :<|> fetchConversationPreviewsHandler mongoInfo
