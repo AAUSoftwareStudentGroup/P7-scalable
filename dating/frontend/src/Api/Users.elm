@@ -96,8 +96,8 @@ encodeUser user =
 encodeUserInfo : UserInfo -> Encode.Value
 encodeUserInfo userInfo =
     Encode.object
-        [ ( "username",  Encode.string userInfo.username )
-        , ( "authToken", encodeToken userInfo.authToken )
+        [ ( "authToken", Encode.string userInfo.authToken )
+        , ( "username",  Encode.string userInfo.username )
         ]
 
 decodeUser : Decoder User
@@ -113,8 +113,9 @@ decodeUser =
 decodeUserInfo : Decoder UserInfo
 decodeUserInfo =
     Decode.succeed UserInfo
+        |> Pipeline.required "authToken" Decode.string
         |> Pipeline.required "username" Decode.string
-        |> Pipeline.custom decodeToken
+
 
 
 encodeToken : Token -> Encode.Value

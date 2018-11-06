@@ -16,6 +16,7 @@ import qualified Crypto.Hash.SHA512         as SHA512
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.Char8      (pack, unpack)
+import           Data.Bson                  (val, fval, typed, Document, Value)
 import           Data.Generics.Product      (field, getField, super)
 import           Data.Int                   (Int64)
 import           Data.List                  (intersperse, sort, sortBy)
@@ -26,7 +27,9 @@ import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
 import           Data.Text.Encoding         (decodeUtf8, encodeUtf16BE, encodeUtf16LE, decodeUtf16LE)
 import           Data.Time.Calendar         (fromGregorian)
+import           Data.Either                (rights)
 import qualified Database.MongoDB           as Mongo
+import           Database.MongoDB.Query     (find, select, rest)   
 import           Data.Time.Clock            (UTCTime (..), secondsToDiffTime, getCurrentTime)
 import           Database.Persist
 import           Database.Persist.MongoDB
@@ -211,12 +214,20 @@ fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetc
 
 
 fetchConversationPreviews :: MongoConf -> Username -> IO [ConversationPreviewDTO]
-fetchConversationPreviews mongoConf ownUsername = undefined {-runAction mongoConf fetchAction
+fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [ConversationPreviewDTO]
     fetchAction = do
-      maybeconvos <- selectList [ConversationMembers `anyEq` ownUsername] []
-      case convos -}
+      cursor <- find ( select 
+        [ "members.username" =: (ownUsername::Text)
+        , "messages" =: 
+            [ "$slice" =: (-1::Int)
+            ]
+        ] "conversations")
+      docList <- rest cursor
+      return $ fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap docToEntityEither $ docList
+      --return $ fmap (conversationEntityToConversationPreviewDTO ownUsername) (fmap docToEntityEither (rest cursor))
+
 
 
 -------------------------------------------------------------------------------
@@ -225,6 +236,36 @@ fetchConversationPreviews mongoConf ownUsername = undefined {-runAction mongoCon
 
 runAction mongoConf action = withConnection mongoConf $
   \pool -> runMongoDBPoolDef action pool
+
+{-
+toConversation :: Document -> Conversation
+toConversation document = convo
+  where
+    convo = Conversation
+      { conversationMembers = []
+      , conversationMessages = [toMsgFromField $ look "messages" document]
+      }
+
+toMsgFromField :: [Value] -> Message
+toMsgFromField values = msg
+  where
+    msg = Message
+      { messageAuthorUsername =  typed values[0]
+      , messageTimeStamp      =  typed values[1]
+      , messageBody           =  typed values[2]
+      }
+-}
+conversationEntityToConversationPreviewDTO :: Text -> Entity Conversation -> ConversationPreviewDTO
+conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversationPreview
+  where
+    members = getField @"conversationMembers" convo
+    message = last $ getField @"conversationMessages" convo
+    conversationPreview = ConversationPreviewDTO
+      { convoWithUsername = if (head members == username) then last members else head members
+      , isLastAuthor = (username == getField @"messageAuthorUsername" message)
+      , body = getField @"messageBody" message
+      , timeStamp = getField @"messageTimeStamp" message
+      }
 
 
 userEntityToUserDTO :: Entity User -> UserDTO
