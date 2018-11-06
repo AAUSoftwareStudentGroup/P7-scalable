@@ -149,15 +149,18 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
       maybeEntUser <- selectFirst [UserUsername ==. username] []
       case maybeEntUser of
         Nothing -> return Nothing
-        Just (Entity _ user) ->
-            if hashPassword password (getField @"userSalt" user) == getField @"userPassword" user
-              then
-                return $ Just LoggedInDTO
+        Just (Entity id user) -> do
+          token <- liftIO mkAuthToken
+            --newUser <- update id [UserAuthToken =. mkAuthToken]
+          if hashPassword password (getField @"userSalt" user) == getField @"userPassword" user
+            then do
+              temp <- update id [UserAuthToken =. token]
+              return $ Just LoggedInDTO
                 { username  = getField @"userUsername"  user
                 , authToken = getField @"userAuthToken" user
                 }
-              else
-                return Nothing
+            else
+              return Nothing
 
 
 
@@ -173,6 +176,15 @@ fetchUsernameByAuthToken mongoConf authToken = runAction mongoConf fetchAction
         Just (Entity _ user) -> return . Just $ getField @"userUsername" user
 
 
+removeAuthToken :: MongoConf -> AuthToken -> IO ()
+removeAuthToken mongoConf token = runAction mongoConf action
+  where
+    action :: Action IO ()
+    action = do
+      maybeEntUser <- getBy (UniqueAuthToken token)
+      case maybeEntUser of
+        Nothing -> return ()
+        Just (Entity id user) -> void $ update id [UserAuthToken =. ""]
 -------------------------------------------------------------------------------
 --                              CONVERSATIONS                                --
 -------------------------------------------------------------------------------

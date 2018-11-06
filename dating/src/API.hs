@@ -21,7 +21,7 @@ import           Data.Proxy                       (Proxy (..))
 import           Data.Semigroup                   ((<>))
 import           Data.Text                        (Text)
 import           Data.Text.Encoding               (decodeUtf8, encodeUtf16BE)
-import           Database.Persist                 (Entity, Key)
+import           Database.Persist                 (Entity, Key, update)
 import           Network.Wai                      (Request, requestHeaders)
 import           Network.Wai.Handler.Warp         (run)
 import           Servant                          (throwError)
@@ -33,7 +33,7 @@ import           Servant.Server.Experimental.Auth
 import           Web.Cookie                       (parseCookies)
 
 import           Database                         (MongoInfo, RedisInfo,
-                                                   Username)
+                                                   Username, AuthToken)
 import qualified Database                         as DB
 import           FrontendTypes
 import           Schema
@@ -53,7 +53,10 @@ type UserAPI =
   :<|> "users" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] UserDTO -- Fetch User
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [UserDTO]                              -- Fetch Users
 
-type AuthAPI = "login" :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO
+type AuthAPI = 
+       "login"  :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO    -- Login
+  :<|> "logout" :> ReqBody '[JSON] Text :> Post '[JSON] ()                      -- Logout
+
 
 type MessageAPI =
        "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> ReqBody '[JSON] CreateMessageDTO :> Post '[JSON] () -- Create Msg
@@ -100,6 +103,13 @@ loginHandler mongoInfo credentials = do
     Just user -> return user
     Nothing   -> throwError (err403 {errBody = "Invalid credentials."})
 
+
+-- | Logs a user out
+logoutHandler :: MongoInfo -> AuthToken -> Handler ()
+logoutHandler mongoInfo token = 
+  liftIO $ DB.removeAuthToken mongoInfo token
+  
+  
 
 -- | Specifies the data returned after authentication.
 type instance AuthServerData (AuthProtect "cookie-auth") = Username
@@ -164,6 +174,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
   where
 
     authHandlers =       loginHandler mongoInfo
+                    :<|> logoutHandler mongoInfo
 
     userHandlers =       createUserHandler mongoInfo
                     :<|> fetchUserHandler mongoInfo
