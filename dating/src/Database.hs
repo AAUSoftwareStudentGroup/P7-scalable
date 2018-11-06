@@ -157,7 +157,7 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
               temp <- update id [UserAuthToken =. token]
               return $ Just LoggedInDTO
                 { username  = getField @"userUsername"  user
-                , authToken = getField @"userAuthToken" user
+                , authToken = token
                 }
             else
               return Nothing

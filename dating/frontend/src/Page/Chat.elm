@@ -29,41 +29,35 @@ type alias Model =
     , time              : Time.Posix
     }
 
+
 init : Session -> String -> ( Model, Cmd Msg )
-init session friendUsername =
-  ( Model (Debug.log "messages session:" session)
-    "Messages"
-    []
-    friendUsername
-    (Maybe.withDefault "" (Session.getUsername session))
-    ""
-    Time.utc
-    (Time.millisToPosix 0)
-  , Cmd.batch [ Task.perform AdjustTimeZone Time.here
-              , case (friendUsername == (Maybe.withDefault "notLoggedIn" <| Session.getUsername session)) of
-                    False ->
-                        Task.perform FetchMessages Time.now
-                    True ->
-                        case session of
-                            Session.LoggedIn key _ ->
-                                Routing.replaceUrl key (Routing.routeToString Home)
-                            Session.Guest key ->
-                                Routing.replaceUrl key (Routing.routeToString Home)
-              ]
-  )
+init session usernameFriend =
+    let
+        username = Maybe.withDefault "" (Session.getUsername session)
+    in
+        ( Model session "Messages" [] usernameFriend username "" Time.utc (Time.millisToPosix 0)
+        , getMessagesOrRedirect session username usernameFriend
+        )
 
-
+getMessagesOrRedirect : Session -> String -> String -> Cmd Msg
+getMessagesOrRedirect session usernameSelf usernameFriend =
+    if usernameSelf == usernameFriend then
+        Routing.replaceUrl (Session.getNavKey session) (Routing.routeToString Home)
+    else
+        Cmd.batch
+            [ Task.perform AdjustTimeZone Time.here
+            , Task.perform FetchMessages Time.now
+            ]
 
 -- UPDATE
 type Msg
     = NoOp
-    | UnsentMessageChanged String
-    | SubmitMessage
-    | HandleMessageSent (Result Http.Error (String.String))
+    | AdjustTimeZone Time.Zone
     | FetchMessages Time.Posix
     | HandleFetchedMessages (Result Http.Error Conversation)
-    | AdjustTimeZone Time.Zone
-
+    | UnsentMessageChanged String
+    | SendMessage
+    | HandleMessageSent (Result Http.Error (String.String))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -71,50 +65,55 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        UnsentMessageChanged new ->
-            ( { model | unsentMessage = new }, Cmd.none )
-
-        SubmitMessage ->
-            ( model, sendMessage model )
-
-        HandleMessageSent result ->
-            case (Debug.log "response: "result) of
-                Ok responseString ->
-                    ( { model | unsentMessage = "" }
-                    , Cmd.none)
-                Err _ ->
-                    ( model , Cmd.none  )
+        AdjustTimeZone newZone ->
+            ( { model | zone = newZone }, Cmd.none )
 
         FetchMessages newTime ->
             case (model.session) of
                 Session.Guest _ ->
                     ( { model | time = newTime }, Cmd.none)
                 Session.LoggedIn _ userInfo ->
-                    ( { model | time = (Debug.log "current time: " newTime) }
+                    ( { model | time = newTime }
                     , Http.send HandleFetchedMessages (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend)
                     )
+
+        HandleMessageSent result ->
+            case result of
+                Ok responseString ->
+                    ( { model | content = addMessageToList model, unsentMessage = "" }, Cmd.none )
+                Err _ ->
+                    ( model , Cmd.none  )
+
+        UnsentMessageChanged new ->
+            ( { model | unsentMessage = new }, Cmd.none )
+
+        SendMessage ->
+            ( model, sendMessage model )
 
         HandleFetchedMessages result ->
             case result of
                 Ok conversation ->
                     ( { model | content = conversation.messages }, Cmd.none)
                 Err _ ->
-                    (model, Cmd.none)
+                    ( model, Cmd.none )
 
-        AdjustTimeZone newZone ->
-            ( { model | zone = newZone }, Cmd.none )
 
+addMessageToList : Model -> List Message
+addMessageToList model =
+    (Message model.usernameSelf (toUtcString model.time model.zone) model.unsentMessage) :: model.content
 
 
 -- SUBSCRIPTIONS
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Time.every 3000 FetchMessages
 
 
-
-
 -- VIEW
+
+
 view : Model -> Session.Details Msg
 view model =
     { title = model.title
@@ -130,14 +129,15 @@ view model =
                 ]
                 (List.reverse (List.map (viewMessage model) model.content))
             , Html.form
-                [ Events.onSubmit SubmitMessage
+                [ Events.onSubmit SendMessage
                 , classList
                       [ ( "l-12", True )
                       , ( "l-6", True )
                       ]
                 ]
                 [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged
-                , El.submitButton "Send"
+                , El.submitButtonHtml
+                    [ El.iconText "Send" "send" ]
                 ]
             ]
     }
@@ -166,7 +166,7 @@ sendMessage model =
     else
         case model.session of
             Session.LoggedIn _ userInfo ->
-                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.usernameFriend )
+                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.usernameFriend)
             Session.Guest _ ->
                 Cmd.none
 

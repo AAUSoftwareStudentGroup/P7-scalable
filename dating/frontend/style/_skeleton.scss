@@ -1,0 +1,99 @@
+%max-width-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.main-wrapper {
+    width: 100%;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 64px auto 64px;
+    grid-gap: 8px;
+    align-items: start;
+}
+
+header, footer {
+    background-color: $pri-col;
+    height: 64px;
+}
+
+.header-content {
+    @extend %max-width-container;
+
+    .logo {
+        @extend %txt-white;
+        display: inline-block;
+        padding: 16px 16px 16px 0;
+
+        &, .material-icons {
+            font-size: 2rem;
+            line-height: 2rem;
+        }
+    }
+
+    nav {
+        justify-self: right;
+        margin: auto 0;
+
+        li {
+            display: inline-block;
+
+            a {
+                @extend %txt-header-link;
+
+                position: relative;
+                padding: 0.5rem;
+
+
+                &:active {
+                    color: $txt-col-light;
+                }
+
+                &:after {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    width: 0;
+                    height: 1px;
+                    margin: auto;
+                    content: "";
+                    color: transparent;
+                    background: white;
+
+                    transition: width .2s ease;
+                }
+
+                &:hover:after {
+                    width: 100%;
+                }
+
+            }
+        }
+    }
+}
+
+
+
+.footer-content {
+    @extend %max-width-container;
+
+    div {
+        @extend %txt-white;
+        justify-self: center;
+        margin: auto 0;
+    }
+}
+
+.content-container {
+    @extend %max-width-container;
+
+    .content {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        justify-items: stretch;
+    }
+}

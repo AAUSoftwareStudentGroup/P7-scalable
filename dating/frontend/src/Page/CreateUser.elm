@@ -146,7 +146,6 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
 
-
 userFromValidForm : Valid Model -> NewUser
 userFromValidForm validForm =
     userFromModel (Validate.fromValid validForm)
@@ -192,7 +191,7 @@ view model =
                 , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
                 , El.validatedInput Bio "text" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Birthday "text" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
+                , El.validatedInput Birthday "date" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
                 , El.labelledRadio "Gender" GenderChanged model.gender
                     [ ( "Male", Male )
                     , ( "Female", Female )
@@ -222,7 +221,8 @@ modelValidator =
         , Validate.ifFalse (\model -> doPasswordsMatch model) ( Password2, "Passwords don't match" )
 
         , Validate.ifBlank .birthday ( Birthday, "Please enter your birthday" )
-        , Validate.ifFalse (\model -> isDateValid model) ( Birthday, "Please enter birthday in a valid format")
+        , Validate.ifFalse (\model -> isDateValidFormat model ) ( Birthday, "Please enter birthday in a valid format" )
+        , Validate.ifFalse (\model -> isDateValid model ) ( Birthday, "You must be at least 18 years old" )
 
         , Validate.ifBlank .city ( City, "Please enter your city" )
 
@@ -243,8 +243,8 @@ doPasswordsMatch model =
      model.password1 == model.password2
 
 
-isDateValid : Model -> Bool
-isDateValid model =
+isDateValidFormat : Model -> Bool
+isDateValidFormat model =
     let
         date = model.birthday
         dateLength = String.length date
@@ -254,9 +254,20 @@ isDateValid model =
 
         separators = String.slice 4 5 date ++ String.slice 7 8 date
 
-        isYearNice = year >= 0 && year <= 2018
+        isYearNice = year >= 0 && year <= 9999
         isMonthNice = month >= 0 && month <= 12
         isDayNice = day >= 0 && day <= 31
         isSeparatorsNice = separators == "--"
     in
         dateLength == 10 && isYearNice && isSeparatorsNice && isMonthNice && isDayNice
+
+
+isDateValid : Model -> Bool
+isDateValid model =
+    let
+        date = model.birthday
+        year = Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
+        month = Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
+        day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
+    in
+        year <= 2000

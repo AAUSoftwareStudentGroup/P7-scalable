@@ -1,5 +1,12 @@
 @import url("https://fonts.googleapis.com/css?family=Roboto:300,400,600,800");
 
+@font-face {
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: 400;
+    src: url("https://fonts.gstatic.com/s/materialicons/v41/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2") format('woff2');
+}
+
 $txt-size-1: 2.125rem;
 $txt-size-2: 1.5rem;
 $txt-size-3: 1.25rem;
@@ -15,11 +22,35 @@ $txt-lh-4: 1.75rem;
 $txt-lh-5: 1.5rem;
 $txt-lh-6: 1.4rem;
 $txt-lh-7: 1.0rem;
+$txt-lh-btn: 2.2rem;
 
 $txt-weight-light: 300;
 $txt-weight-regular: 400;
 $txt-weight-medium: 600;
 $txt-weight-bold: 800;
+
+.material-icons {
+    @extend %material-icon;
+}
+
+%material-icon {
+    font-family: 'Material Icons' !important;
+    text-rendering: optimizeLegibility;
+    vertical-align: bottom;
+    font-style: normal;
+    font-size: 24px;
+    margin: 0 4px;
+    font-weight: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+}
 
 %txt-white {
     color: white;
@@ -53,11 +84,23 @@ $txt-weight-bold: 800;
     color: $txt-col-dark;
 }
 
+
+%txt-header-link {
+    @extend %txt-white;
+
+    font-size: $txt-size-6;
+    line-height: $txt-lh-6;
+    font-weight: $txt-weight-regular;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+
 %txt-button {
     @extend %txt-white;
 
     font-size: $txt-size-7;
-    line-height: $txt-lh-7;
+    line-height: $txt-lh-btn;
     font-weight: $txt-weight-regular;
     text-transform: uppercase;
     letter-spacing: 1px;

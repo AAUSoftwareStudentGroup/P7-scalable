@@ -2,12 +2,14 @@ module UI.Elements exposing (..)
 
 
 import Html exposing (Html, Attribute, div)
-import Html.Attributes as Attributes exposing (class, classList)
+import Html.Attributes as Attributes exposing (class, classList, src)
 import Html.Events as Events
 import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
 import Session exposing (Session)
+
+import Random
 
 
 site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
@@ -39,17 +41,11 @@ header session =
 headerLogo : Html msg
 headerLogo =
     div [ class "l-6" ]
-        [ linkHtml
-              [ classList
-                  [ ( "logo", True )
-                  , ( "flat-btn", True )
-                  ]
-              ]
-              (Routing.routeToString Home)
-              [ Html.i [ class "material-icons" ]
-                  [ Html.text "favorite" ]
-              , Html.text "Dating"
-              ]
+        [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
+            [ Html.i [ class "material-icons" ]
+                [ Html.text "favorite" ]
+            , Html.text "Dating"
+            ]
         ]
 
 
@@ -59,24 +55,30 @@ headerNav session =
         [ classList
             [ ( "l-6", True ) ]
         ]
-        (headerNavLinks session)
+        [ Html.ul []
+            (headerNavLinks session)
+        ]
 
 
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
         Session.LoggedIn _ userInfo ->
-            [ linkButtonFlat [] (Routing.routeToString Messages) [ Html.text "Messages" ]
-            , linkButtonFlat [] (Routing.routeToString ListUsers) [ Html.text "All users" ]
-            , linkButtonFlat [] (Routing.routeToString (Profile userInfo.username)) [ Html.text "My profile" ]
-            , linkButtonFlat [] (Routing.routeToString Logout) [ Html.text "Log out" ]
+            [ headerNavLink (Routing.routeToString Messages) "Messages"
+            , headerNavLink (Routing.routeToString ListUsers) "All users"
+            , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
+            , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
         Session.Guest _ ->
-            [ linkButtonFlat [] (Routing.routeToString CreateUser) [ Html.text "Sign up" ]
-            , linkButtonFlat [] (Routing.routeToString Login) [ Html.text "Sign in" ]
+            [ headerNavLink (Routing.routeToString CreateUser) "Sign up"
+            , headerNavLink (Routing.routeToString Login) "Sign in"
             ]
 
+headerNavLink : String -> String -> Html msg
+headerNavLink url caption =
+    Html.li []
+        [ link url caption ]
 
 footer : Html msg
 footer =
@@ -111,20 +113,47 @@ contentWithHeader heading contents =
 
 userCard : String -> Html msg
 userCard username =
-    Html.li [ classList
-                [ ( "user-card", True )
+    Html.li 
+        [ classList [ ( "user-card", True )
+                    , ( "l-12", True )
+                    , ( "s-12", True )
+                    , ( "grid", True )
+                    ]
+        ]
+        [ Html.a [ Attributes.href (Routing.routeToString (Profile username)) ]
+                 [ Html.img [ src ("https://randomuser.me/api/portraits/men/"++ username ++".jpg") ] [] ]
+        , Html.span 
+            [ classList [ ("l-7", True), ("s-7", True) ] ] 
+            [ Html.text (toSentenceCase username) ]
+        , linkButtonFlat
+            [ classList
+                [ ("l-2", True)
+                , ("s-2", True)
                 ]
             ]
-        [ Html.text (toSentenceCase username)
-        , linkButtonFlat
-            []
             (Routing.routeToString (Profile username))
-            [ Html.text "profile" ]
+            [ iconText "Profile" "perm_identity" ]
         , linkButtonFlat
-            []
+            [ classList
+                [ ("l-2", True)
+                , ("s-2", True)
+                ]
+            ]
             (Routing.routeToString (Chat username))
-            [ Html.text "chat" ]
+            [ iconText "Chat" "chat" ]
         ]
+
+iconText : String -> String -> Html msg
+iconText label iconName =
+    div []
+        [ materialIcon iconName
+        , Html.text label
+        ]
+
+materialIcon : String -> Html msg
+materialIcon iconName = 
+    Html.i [ class "material-icons" ]
+        [Html.text iconName ]
 
 
 textProperty : String -> String -> Html msg
@@ -164,14 +193,10 @@ msgButtonFlat attributes msg children =
     Html.a ([ class "flat-btn", Events.onClick msg ] ++ attributes)
         children
 
-linkText : List (Attribute msg) -> String -> String -> Html msg
-linkText attributes url label =
-    Html.a ([Attributes.href url] ++ attributes) [Html.text label]
-
-linkHtml : List (Attribute msg) -> String -> List (Html msg) -> Html msg
-linkHtml attributes url children =
-    Html.a ([Attributes.href url] ++ attributes) children
-
+link : String -> String -> Html msg
+link url caption =
+    Html.a [ Attributes.href url ]
+        [ Html.text caption ]
 
 validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
 validatedInput field typ caption value toMsg errors showErrors =
@@ -191,16 +216,26 @@ validatedInput field typ caption value toMsg errors showErrors =
                     [ Html.text caption ]
                 , Html.span [ class "border" ] []
                 ]
-            , Html.ul [ classList [("hidden", not showErrors)] ]
-                (List.map fieldError relevantErrors)
+            , Html.span
+                [ classList
+                    [ ( "errors", True )
+                    , ( "hidden", not showErrors )
+                    ]
+                ]
+                [ severestFieldError relevantErrors ]
             ]
 
 
-
-fieldError : (fieldtype, String) -> Html msg
-fieldError ( _, errorDesc) =
-    Html.li []
-        [ Html.text errorDesc ]
+severestFieldError : List ((fieldtype, String)) -> Html msg
+severestFieldError errors =
+    let
+        maybeError = List.head errors
+    in
+        case maybeError of
+            Nothing ->
+                Html.text ""
+            Just (_, errorDesc) ->
+                Html.text errorDesc
 
 
 labelledRadio : String -> (a -> msg) -> a -> List (String, a) -> Html msg
@@ -238,5 +273,24 @@ simpleInput typ placeholder value toMsg =
 
 submitButton : String -> Html msg
 submitButton caption =
-    Html.button [ class "btn", Attributes.type_ "submit" ]
+    Html.button
+        [ Attributes.type_ "submit"
+        , classList
+            [ ( "btn", True )
+            , ( "l-12", True )
+            , ( "right", True )
+            ]
+        ]
         [ Html.text caption ]
+
+submitButtonHtml : List (Html msg) -> Html msg
+submitButtonHtml children =
+    Html.button
+        [ Attributes.type_ "submit"
+        , classList
+            [ ( "btn", True )
+            , ( "l-12", True )
+            , ( "right", True )
+            ]
+        ]
+        children

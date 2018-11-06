@@ -2,6 +2,7 @@ module Page.ListUsers exposing (Model, Msg(..), init, subscriptions, update, vie
 
 import Browser.Navigation as Nav
 import Html exposing (Html)
+import Html.Attributes as Attributes exposing (classList)
 import Html.Keyed exposing (ul)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, int, list, string)
@@ -75,7 +76,12 @@ view model =
         , session = model.session
         , kids =
             El.contentWithHeader "All users"
-                [ ul []
+                [ ul    [ classList
+                            [ ( "grid", True )
+                            , ( "l-12", True )
+                            , ( "s-12", True )
+                            ]
+                        ]
                     (List.map (showUser model.session) <| List.filter (\user -> myUsername /= user.username) model.users)
                 ]
         }
