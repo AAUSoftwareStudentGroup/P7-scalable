@@ -32,7 +32,7 @@ import           Data.Time.Calendar         (fromGregorian)
 import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
-import           Database.MongoDB.Query     (find, rest, select)
+import           Database.MongoDB.Query     (find, rest, select, project)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.TH
@@ -241,12 +241,10 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
   where
     fetchAction :: Action IO [ConversationPreviewDTO]
     fetchAction = do
-      cursor <- find ( select
-        [ "members.username" =: (ownUsername::Text)
-        , "messages" =:
-            [ "$slice" =: (-1::Int)
-            ]
-        ] "conversations")
+      cursor <- find ( 
+        ( select [ "members" =: (ownUsername::Text) ] "conversations") 
+        { project = [ "messages" =: [ "$slice" =: (-1::Int) ] ] }
+        )
       docList <- rest cursor
       return $ 
         fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap docToEntityEither 
