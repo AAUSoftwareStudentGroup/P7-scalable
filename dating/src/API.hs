@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
 module API where
@@ -14,13 +15,14 @@ import           Control.Monad.IO.Class           (liftIO)
 import           Control.Monad.Trans.Except       (throwE)
 import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.Lazy.Char8       as LBS
+import           Data.Generics.Product            (getField)
 import           Data.Int                         (Int64)
 import           Data.Map                         (Map, fromList)
 import qualified Data.Map                         as Map
 import           Data.Proxy                       (Proxy (..))
 import           Data.Semigroup                   ((<>))
 import           Data.Text                        (Text)
-import           Data.Text.Encoding               (decodeUtf8, encodeUtf16BE)
+import           Data.Text.Encoding               (encodeUtf8, decodeUtf8, encodeUtf16BE)
 import           Database.Persist                 (Entity, Key, update)
 import           Network.Wai                      (Request, requestHeaders)
 import           Network.Wai.Handler.Warp         (run)
@@ -74,7 +76,11 @@ datingAPI = Proxy :: Proxy DatingAPI
 
 -- | Creates a user in the db.
 createUserHandler :: MongoInfo -> CreateUserDTO -> Handler LoggedInDTO
-createUserHandler mongoInfo newUser = liftIO $ DB.createUser mongoInfo newUser
+createUserHandler mongoInfo newUser = do
+  maybeCreated <- liftIO $ DB.createUser mongoInfo newUser
+  case maybeCreated of
+    Just loggedInDTO -> return loggedInDTO
+    Nothing -> Handler $ throwE $ err409 {errBody = "A user named \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"username" newUser)) <> "\" already exists"}
 
 -- | Fetches a user by username.
 fetchUserHandler :: MongoInfo -> Username -> Username -> Handler UserDTO

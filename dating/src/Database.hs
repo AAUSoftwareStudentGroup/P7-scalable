@@ -90,10 +90,10 @@ fetchRedisInfo = return $ defaultConnectInfo {connectHost = "redis"}
 -------------------------------------------------------------------------------
 
 -- | Create a user if the username is not taken
-createUser :: MongoConf -> CreateUserDTO -> IO LoggedInDTO
+createUser :: MongoConf -> CreateUserDTO -> IO (Maybe LoggedInDTO)
 createUser mongoConf createUserDTO = runAction mongoConf action
   where
-    action :: Action IO LoggedInDTO
+    action :: Action IO (Maybe LoggedInDTO)
     action = do
       authToken <- liftIO mkAuthToken
       salt <- liftIO mkAuthToken
@@ -108,12 +108,16 @@ createUser mongoConf createUserDTO = runAction mongoConf action
             , userAuthToken   = authToken
             , userSalt        = salt
             }
-      userId <- insert newUser
-      addIndex <- Mongo.Admin.ensureIndex userIndex
-      return $ LoggedInDTO (getField @"username" createUserDTO) authToken
+      canNotBeInserted <- checkUnique newUser
+      case canNotBeInserted of
+        Just a -> return Nothing
+        Nothing -> do
+          userId <- insert newUser
+          addIndex <- Mongo.Admin.ensureIndex userIndex
+          return $ Just $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
 
-      -- | Generate a random authtoken.
+-- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
   generator <- Random.newStdGen
