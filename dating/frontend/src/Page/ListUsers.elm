@@ -25,16 +25,16 @@ import UI.Elements as El
 type alias Model =
     { session : Session
     , title : String
+    , loaded: Bool
     , users : List User
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "List Users" []
+    ( Model session "List Users" False []
     , sendGetUsers UsersFetched session
     )
-
 
 
 -- UPDATE
@@ -50,7 +50,7 @@ update msg model =
         UsersFetched result ->
             case result of
                 Ok newUsers ->
-                    ( { model | users = newUsers }, Cmd.none )
+                    ( { model | users = newUsers, loaded = True }, Cmd.none )
 
                 Err error ->
                     Debug.log (Debug.toString error) ( { model | users = [] }, Cmd.none )
@@ -76,7 +76,7 @@ view model =
         { title = "All users"
         , session = model.session
         , kids =
-            El.contentWithHeader "All users"
+            El.titledContentLoader model.loaded "All users"
                 [ Html.ul
                     [ classList
                             [ ( "grid", True )

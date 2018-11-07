@@ -105,12 +105,20 @@ content toMsg children =
     )
 
 
-contentWithHeader : String -> List (Html msg) -> List (Html msg)
-contentWithHeader heading contents =
+titledContent : String -> List (Html msg) -> List (Html msg)
+titledContent heading contents =
     [ Html.h1 [ class "l-12"]
         [ Html.text heading ]
     ] ++ contents
 
+
+titledContentLoader : Bool -> String -> List (Html msg) -> List (Html msg)
+titledContentLoader isLoaded heading contents =
+    if isLoaded then
+        titledContent heading contents
+    else
+        titledContent heading
+        [ div [ class "loading-spinner" ] [] ]
 
 userCard : User -> Html msg
 userCard user =

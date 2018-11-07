@@ -174,7 +174,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.contentWithHeader model.title
+        El.titledContent model.title
             [ Html.form [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )
