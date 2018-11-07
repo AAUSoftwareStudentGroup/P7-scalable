@@ -41,7 +41,11 @@ header session =
 
 headerLogo : Html msg
 headerLogo =
-    div [ class "l-6" ]
+    div [ classList
+            [ ( "l-6", True )
+            , ( "s-8", True )
+            ]
+        ]
         [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
             [ Html.i [ class "material-icons" ]
                 [ Html.text "favorite" ]
@@ -54,7 +58,10 @@ headerNav : Session -> Html msg
 headerNav session =
     Html.nav
         [ classList
-            [ ( "l-6", True ) ]
+            [ ( "l-6", True )
+            , ( "s-4", True )
+            , ( "closed", True )
+            ]
         ]
         [ Html.ul []
             (headerNavLinks session)
