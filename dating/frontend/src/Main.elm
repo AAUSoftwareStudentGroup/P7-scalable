@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Element exposing (..)
 import Html exposing (Html)
 import Url
-import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
+import Url.Parser as Parser exposing ((</>), Parser)
 import Url.Parser.Query as Query
 import Json.Encode as Encode
 import Json.Decode as Decode
@@ -22,7 +22,6 @@ import Page.Logout as Logout
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
-import Common as Common
 import DatingApi as DatingApi exposing (Message, getRecentMessages)
 import Routing as Routing
 import UI.Elements as El
@@ -48,7 +47,6 @@ type alias Model =
     { key : Nav.Key
     , page : Page
     , numMessages : Int
-    , notifications : List Common.Notification
     }
 
 type Page
@@ -68,7 +66,7 @@ init maybeValue url key =
         { key = key
         , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
         , numMessages = 0
-        , notifications = [] }
+        }
 
 
 
@@ -162,7 +160,6 @@ type Msg
   | ChatMsg Chat.Msg
   | SessionChanged Session
   | LogOutClicked
-  | CommonMsg Common.Msg
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List Message))
 
@@ -207,12 +204,6 @@ update message model =
                     stepLogin model (Login.update msg loginModel)
                 _ ->
                     ( model, Cmd.none )
-
-        CommonMsg msg ->
-            case msg of
-                Common.NotificationReceived newNotification ->
-                    ( { model | notifications = ( newNotification :: model.notifications ) }
-                    , Cmd.none )
 
         LogoutMsg msg ->
             case model.page of
@@ -399,23 +390,23 @@ stepUrl url model =
             { url | path = Maybe.withDefault ("path="++url.path) url.query, query = Nothing}
 
         parser =
-            s "path=" </>
-            oneOf
-                [ route (s "Main.elm")
+            Parser.s "path=" </>
+            Parser.oneOf
+                [ route (Parser.s "Main.elm")
                     (stepLogin model (Login.init session))
-                , route (s "create-user")
+                , route (Parser.s "create-user")
                     (stepCreateUser model (CreateUser.init session))
-                , route (s "login")
+                , route (Parser.s "login")
                     (stepLogin model (Login.init session))
-                , route (s "logout")
+                , route (Parser.s "logout")
                     (stepLogout model (Logout.init session))
-                , route (s "list-users")
+                , route (Parser.s "list-users")
                     ( stepListUsers model (ListUsers.init session))
-                , route (s "user" </> Parser.int)
+                , route (Parser.s "user" </> Parser.int)
                     (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
-                , route (s "messages")
+                , route (Parser.s "messages")
                     (stepMessages model (Messages.init session))
-                , route (s "chat" </> Parser.int)
+                , route (Parser.s "chat" </> Parser.int)
                     (\idFriend -> stepChat model (Chat.init session idFriend))
                 ]
 
