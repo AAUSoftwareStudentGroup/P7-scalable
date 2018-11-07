@@ -1,3 +1,5 @@
+echo "DELETE FROM messages WHERE id > -1;" | PGPASSWORD=datingdbpassword psql -h localhost -d datingdb -U datingdbuser
+echo "DELETE FROM conversations WHERE id > -1;" | PGPASSWORD=datingdbpassword psql -h localhost -d datingdb -U datingdbuser
 echo "DELETE FROM users WHERE id > -1;" | PGPASSWORD=datingdbpassword psql -h localhost -d datingdb -U datingdbuser
 curl -X POST \
 http://api.dating.local:8002/users \
