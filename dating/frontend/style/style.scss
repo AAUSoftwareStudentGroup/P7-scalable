@@ -77,6 +77,12 @@ button, .btn {
     }
 }
 
+.messages {
+    li {
+        margin-bottom: 1rem;
+    }
+}
+
 .property {
     span {
         display: block;
@@ -108,33 +114,5 @@ button, .btn {
 
     .flat-btn {
         margin: 0 0 1rem -7px;
-    }
-}
-
-.loading-spinner {
-    width: 4rem;
-    height: 4rem;
-    grid-column: span 12;
-    justify-self: center;
-
-    &:after  {
-        content: " ";
-        display: block;
-        width: 4rem;
-        height: 4rem;
-        margin: 0;
-        border-radius: 50%;
-        border: 5px solid $txt-col-light;
-        border-color: $txt-col-light transparent $txt-col-light transparent;
-        animation: lds-dual-ring 1.2s linear infinite;
-    }
-}
-
-@keyframes lds-dual-ring {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
     }
 }
