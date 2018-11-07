@@ -41,7 +41,11 @@ header session =
 
 headerLogo : Html msg
 headerLogo =
-    div [ class "l-6" ]
+    div [ classList
+            [ ( "l-6", True )
+            , ( "s-8", True )
+            ]
+        ]
         [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
             [ Html.i [ class "material-icons" ]
                 [ Html.text "favorite" ]
@@ -54,7 +58,10 @@ headerNav : Session -> Html msg
 headerNav session =
     Html.nav
         [ classList
-            [ ( "l-6", True ) ]
+            [ ( "l-6", True )
+            , ( "s-4", True )
+            , ( "closed", True )
+            ]
         ]
         [ Html.ul []
             (headerNavLinks session)
@@ -105,12 +112,20 @@ content toMsg children =
     )
 
 
-contentWithHeader : String -> List (Html msg) -> List (Html msg)
-contentWithHeader heading contents =
+titledContent : String -> List (Html msg) -> List (Html msg)
+titledContent heading contents =
     [ Html.h1 [ class "l-12"]
         [ Html.text heading ]
     ] ++ contents
 
+
+titledContentLoader : Bool -> String -> List (Html msg) -> List (Html msg)
+titledContentLoader isLoaded heading contents =
+    if isLoaded then
+        titledContent heading contents
+    else
+        titledContent heading
+        [ div [ class "loading-spinner" ] [] ]
 
 userCard : User -> Html msg
 userCard user =

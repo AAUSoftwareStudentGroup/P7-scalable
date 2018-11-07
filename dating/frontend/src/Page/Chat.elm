@@ -18,6 +18,7 @@ import UI.Elements as El
 type alias Model =
     { session : Session
     , title : String
+    , loaded : Bool
     , content : List ChatMessage
     , idYou : Int
     , idFriend : Int
@@ -33,7 +34,7 @@ init session idFriend =
         idYou = Maybe.withDefault -1 (Session.getUserId session)
         username = Maybe.withDefault "" (Session.getUsername session)
     in
-        ( Model session "Messages" [] idYou idFriend username "" Time.utc (Time.millisToPosix 0)
+        ( Model session "Messages" False [] idYou idFriend username "" Time.utc (Time.millisToPosix 0)
         , getMessagesOrRedirect session idYou idFriend
         )
 
@@ -92,7 +93,7 @@ update msg model =
         HandleFetchedMessages result ->
             case result of
                 Ok messages ->
-                    ( { model | content = messages }, Cmd.none)
+                    ( { model | content = messages, loaded = True }, Cmd.none)
                 Err _ ->
                     ( model, Cmd.none )
 
@@ -118,7 +119,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.contentWithHeader ("Chatting with " ++ model.username)
+        El.titledContentLoader model.loaded ("Chatting with " ++ model.username)
             [ ul
                 [ classList
                     [ ( "grid", True )

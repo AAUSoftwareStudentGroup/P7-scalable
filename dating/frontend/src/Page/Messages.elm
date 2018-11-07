@@ -16,6 +16,7 @@ import UI.Elements as El
 type alias Model = 
     { session : Session
     , title : String
+    , loaded : Bool
     , content : List Message
     , zone : Time.Zone
     , time : Time.Posix
@@ -24,7 +25,7 @@ type alias Model =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-  ( Model (Debug.log "messages session:" session) "Messages" []
+  ( Model (Debug.log "messages session:" session) "Messages" False []
     Time.utc
     (Time.millisToPosix 0)
   , Cmd.batch [ (sendGetMessages HandleGetMessages session)
@@ -49,7 +50,7 @@ update msg model =
         HandleGetMessages result ->
             case result of
                 Ok fetchedMessages ->
-                    Debug.log (Debug.toString fetchedMessages) ( {model | content = fetchedMessages }, Cmd.none)
+                    Debug.log (Debug.toString fetchedMessages) ( { model | content = fetchedMessages, loaded = True }, Cmd.none)
 
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( model, Cmd.none )
@@ -80,7 +81,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.contentWithHeader "Messages"
+        El.titledContentLoader model.loaded "Messages"
             [ Keyed.ul
                 [ classList
                     [ ( "messages", True )
@@ -98,10 +99,12 @@ viewMessage : Message -> (String, Html msg)
 viewMessage message =
     ( String.fromInt message.convoWithId
     , Html.li [ class "conversation", Attributes.attribute "attr-id" <| String.fromInt message.convoWithId ]
-        [ div [ class "conversation-with" ]
-            [ Html.text message.convoWithUsername ]
-        , div [ class "conversation-last-message" ]
-            [ Html.text message.body ]
+        [ Html.a [ Attributes.href (Routing.routeToString (Chat message.convoWithId)) ]
+            [ div [ class "conversation-with" ]
+                [ Html.text message.convoWithUsername ]
+            , div [ class "conversation-last-message" ]
+                [ Html.text message.body ]
+            ]
         ]
     )
 

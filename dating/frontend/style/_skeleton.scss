@@ -1,8 +1,10 @@
+$header-height: 64px;
+
 %max-width-container {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 2rem;
+    padding: 0 1rem;
 }
 
 .main-wrapper {
@@ -10,14 +12,14 @@
     height: 100vh;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 64px auto 64px;
+    grid-template-rows: $header-height auto 64px;
     grid-gap: 8px;
     align-items: start;
 }
 
 header, footer {
     background-color: $pri-col;
-    height: 64px;
+    height: $header-height;
 }
 
 .header-content {
@@ -38,9 +40,17 @@ header, footer {
         justify-self: right;
         margin: auto 0;
 
+        &:before {
+            @extend %material-icon;
+            @extend %txt-white;
+
+            cursor: pointer;
+            font-size: 2.5rem;
+            line-height: 2.5rem;
+        }
+
         li {
             display: inline-block;
-
             a {
                 @extend %txt-header-link;
 
@@ -76,6 +86,40 @@ header, footer {
     }
 }
 
+@media screen and (max-width: $small-screen) {
+    .header-content {
+        nav {
+            &:before {
+                content: "clear";
+            }
+
+            ul {
+                position: absolute;
+                top: $header-height;
+                left: 0;
+                display: inline-block;
+                background-color: $pri-col;
+                width: 75%;
+                height: 100%;
+
+                li {
+                    display: block;
+                    margin: 1rem;
+                }
+            }
+        }
+
+        nav.closed {
+            &:before {
+                content: "menu";
+            }
+
+            ul {
+                display: none;
+            }
+        }
+    }
+}
 
 
 .footer-content {

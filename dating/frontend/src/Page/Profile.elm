@@ -17,6 +17,7 @@ import UI.Elements as El
 type alias Model =
     { session : Session
     , title : String
+    , loaded : Bool
     , id : Int
     , user : User
     }
@@ -29,7 +30,7 @@ type Msg
 
 init : Session -> Int -> ( Model, Cmd Msg )
 init session id =
-    ( Model session "Profile" id emptyUser
+    ( Model session "Profile" False id emptyUser
     , sendGetUser HandleGetUser id session
     )
 
@@ -40,7 +41,7 @@ update msg model =
         HandleGetUser result ->
             case result of
                 Ok fetchedUser ->
-                    ( { model | user = fetchedUser }, Cmd.none )
+                    ( { model | user = fetchedUser, loaded = True }, Cmd.none )
 
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }
@@ -61,7 +62,7 @@ view model =
     { title = model.user.userUsername ++ "'s profile"
     , session = model.session
     , kids =
-        El.contentWithHeader model.user.userUsername
+        El.titledContentLoader model.loaded model.user.userUsername
             [ div
                 [ classList
                     [ ( "grid", True )
