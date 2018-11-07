@@ -65,22 +65,23 @@ $txt-weight-bold: 800;
 
 %txt-heading {
     font-size: $txt-size-2;
-    line-height: $txt-lh-2;
+    line-height: $txt-lh-5;
     font-weight: $txt-weight-light;
     color: $txt-col-dark;
 }
 
+
 %txt-subheading {
-    font-size: $txt-size-3;
-    line-height: $txt-lh-3;
-    font-weight: $txt-weight-medium;
-    color: $txt-col-dark;
+    font-size: 1rem;
+    line-height: 1rem;
+    font-weight: $txt-weight-regular;
+    color: $txt-col-light;
 }
 
 %txt-paragraph {
-    font-size: $txt-size-5;
-    line-height: $txt-lh-5;
-    font-weight: $txt-weight-regular;
+    font-size: 0.9rem;
+    line-height: 1.2rem;
+    font-weight: $txt-weight-light;
     color: $txt-col-dark;
 }
 

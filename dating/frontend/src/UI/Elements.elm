@@ -115,28 +115,35 @@ contentWithHeader heading contents =
 userCard : User -> Html msg
 userCard user =
     let
+        id = user.userId
         username = user.userUsername
-        userId = user.userId
+        gender = DatingApi.genderToString user.userGender
+        age = "23"
+        bio = user.userProfileText
     in
         Html.li
             [ classList [ ( "user-card", True )
-                        , ( "l-12", True )
+                        , ( "l-4", True )
                         , ( "s-12", True )
-                        , ( "grid", True )
                         ]
             ]
-            [ Html.a [ Attributes.href (Routing.routeToString (Profile userId)) ]
-                     [ Html.img [ src (avatarUrl user) ] [] ]
-            , Html.span
-                [ classList [ ("l-7", True), ("s-7", True) ] ]
-                [ Html.text (toSentenceCase username) ]
+            [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile id)) ]
+                [ div [ Attributes.style "background-image" ("url(" ++ (avatarUrl user) ++ ")") ] [] ]
+            , div [ class "pri-title" ]
+                [ Html.h2 []
+                    [ Html.text (toSentenceCase username) ]
+                , Html.h3 []
+                    [ Html.text (gender ++ " - " ++ age) ]
+                ]
+            , Html.p []
+                [ Html.text bio ]
             , linkButtonFlat
                 [ classList
                     [ ("l-2", True)
                     , ("s-2", True)
                     ]
                 ]
-                (Routing.routeToString (Profile userId))
+                (Routing.routeToString (Profile id))
                 [ iconText "Profile" "perm_identity" ]
             , linkButtonFlat
                 [ classList
@@ -144,9 +151,10 @@ userCard user =
                     , ("s-2", True)
                     ]
                 ]
-                (Routing.routeToString (Chat userId))
+                (Routing.routeToString (Chat id))
                 [ iconText "Chat" "chat" ]
             ]
+
 
 avatarUrl : User -> String
 avatarUrl user =
