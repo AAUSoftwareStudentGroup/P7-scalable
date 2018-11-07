@@ -50,7 +50,7 @@ library:
   - generic-lens
   - lens
   - mongoDB
-  - cryptohash
+  - cryptonite
 executables:
   dating:
     main: Main.hs

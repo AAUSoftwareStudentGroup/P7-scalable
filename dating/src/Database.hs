@@ -12,7 +12,7 @@ import           Control.Monad.Logger       (LogLevel (..), LoggingT,
                                              MonadLogger, filterLogger,
                                              runStdoutLoggingT)
 import           Control.Monad.Reader       (ReaderT, runReaderT)
-import qualified Crypto.Hash.SHA512         as SHA512
+import           Crypto.Hash
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.Bson                  (Document, Value, fval, typed, val)
 import           Data.ByteString            (ByteString)
@@ -308,4 +308,7 @@ messageToMessageDTO message = messageDTO
 
 
 hashPassword :: Text -> Text -> Text
-hashPassword password salt = decodeUtf8 $ SHA512.hash $ encodeUtf8 (password <> salt)
+hashPassword password salt = T.pack $ show hashed
+  where
+    passPlusSalt = encodeUtf8 (password <> salt)
+    hashed = (hash passPlusSalt :: Digest SHA3_512)
