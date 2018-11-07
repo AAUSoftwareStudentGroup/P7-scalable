@@ -45,6 +45,7 @@ library:
   - servant-elm
   - servant-foreign
   - random
+  - hmatrix
 executables:
   dating:
     main: Main.hs
