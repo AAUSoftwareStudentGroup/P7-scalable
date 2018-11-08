@@ -10,15 +10,19 @@ module FrontendTypes where
 
 import           Data.Aeson
 import           Data.Aeson.Types
-import           Data.Int           (Int64)
-import           Data.Text          (Text)
-import           Data.Time.Calendar (Day)
-import           Data.Time.Clock    (UTCTime (..))
-import           GHC.Generics       (Generic)
+import           Data.Int                       (Int64)
+import           Data.Text.Arbitrary
+import           Data.Time.Calendar             (Day)
+import           Data.Time.Clock                (UTCTime (..))
+import           GHC.Generics                   (Generic)
+import           Test.QuickCheck
+import           Test.QuickCheck.Instances.Time
 
-import           SchemaEnums        (Gender)
+import           SchemaEnums                    (Gender (..))
 
--- Users
+-------------------------------------------------------------------------------
+--                                  USERS                                    --
+-------------------------------------------------------------------------------
 
 data CreateUserDTO = CreateUserDTO
   { email       :: Text
@@ -40,7 +44,9 @@ data UserDTO = UserDTO
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
--- Authentication
+-------------------------------------------------------------------------------
+--                             AUTHENTICATION                                --
+-------------------------------------------------------------------------------
 
 data CredentialDTO = CredentialDTO
   { username :: Text
@@ -52,7 +58,10 @@ data LoggedInDTO = LoggedInDTO
   , authToken :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
--- Messages
+
+-------------------------------------------------------------------------------
+--                              CONVERSATIONS                                --
+-------------------------------------------------------------------------------
 
 data ConversationPreviewDTO = ConversationPreviewDTO
   { convoWithUsername :: Text
@@ -77,3 +86,66 @@ data MessageDTO = MessageDTO
   , timeStamp      :: UTCTime
   , body           :: Text
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+
+
+--------------------------------------------------------------------------------
+--                           ARBITRARY INSTANCES                              --
+--------------------------------------------------------------------------------
+
+instance Arbitrary Gender where
+  arbitrary = frequency [ (2, pure Male)
+                        , (2, pure Female)
+                        , (1, pure Other)
+                        ]
+
+instance Arbitrary CreateUserDTO where
+  arbitrary = CreateUserDTO
+              <$> arbitrary -- email
+              <*> arbitrary -- password
+              <*> arbitrary -- username
+              <*> arbitrary -- gender
+              <*> arbitrary -- birthday
+              <*> arbitrary -- town
+              <*> arbitrary -- profileText
+
+
+instance Arbitrary UserDTO where
+  arbitrary = UserDTO
+              <$> arbitrary -- username
+              <*> arbitrary -- gender
+              <*> arbitrary -- birthday
+              <*> arbitrary -- town
+              <*> arbitrary -- profileText
+
+instance Arbitrary CredentialDTO where
+  arbitrary = CredentialDTO
+              <$> arbitrary -- username
+              <*> arbitrary -- password
+
+instance Arbitrary LoggedInDTO where
+  arbitrary = LoggedInDTO
+              <$> arbitrary -- username
+              <*> arbitrary -- authToken
+
+instance Arbitrary ConversationPreviewDTO where
+  arbitrary = ConversationPreviewDTO
+              <$> arbitrary -- convoWithUsername
+              <*> arbitrary -- isLastAuthor
+              <*> arbitrary -- body
+              <*> arbitrary -- timeStamp
+
+instance Arbitrary CreateMessageDTO where
+  arbitrary = CreateMessageDTO
+              <$> arbitrary -- body
+
+instance Arbitrary ConversationDTO where
+  arbitrary = ConversationDTO
+              <$> arbitrary -- convoWithUsername
+              <*> arbitrary -- messages
+
+instance Arbitrary MessageDTO where
+  arbitrary = MessageDTO
+              <$> arbitrary -- autherUsername
+              <*> arbitrary -- timeStamp
+              <*> arbitrary -- body

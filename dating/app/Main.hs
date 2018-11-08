@@ -13,9 +13,9 @@ main = do
   --putStrLn "DONE"
   -- putStr "Create user"
   -- let userDTO = CreateUserDTO "kasper@bargsteen" "repsak" "bargsteen" Male (fromGregorian 1994 05 06) "Aalborg" "Hej I big butts"
-  -- loggedInDTO <- createUser localMongoConf userDTO
+  -- loggedInDTO <- createUser localMongoInfo userDTO
   -- putStrLn "DONE"
-  -- logIn <- maybeLogin localMongoConf $ CredentialDTO "bargsteen" "repsak"
+  -- logIn <- maybeLogin localMongoInfo $ CredentialDTO "bargsteen" "repsak"
   -- print logIn
   --putStrLn "GENERATING ELM CODE"
   --ElmCodeGen.genUsersApiCode

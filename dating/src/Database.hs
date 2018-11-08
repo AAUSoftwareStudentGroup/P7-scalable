@@ -32,7 +32,7 @@ import           Data.Time.Calendar         (fromGregorian)
 import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
-import           Database.MongoDB.Query     (find, rest, select, project)
+import           Database.MongoDB.Query     (find, project, rest, select)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.TH
@@ -66,8 +66,8 @@ type AuthToken = Text
 type MongoInfo = MongoConf
 
 -- | Should probably be placed in a file instead
-localMongoConf :: MongoInfo
-localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpassword"
+localMongoInfo :: MongoInfo
+localMongoInfo = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpassword"
                       , mgHost = "mongodb"
                       }
   where
@@ -75,7 +75,7 @@ localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpasswo
 
 -- | Has type IO because it should fetch the connection string from a file
 fetchMongoInfo :: IO MongoInfo
-fetchMongoInfo = return localMongoConf
+fetchMongoInfo = return localMongoInfo
 
 type RedisInfo = ConnectInfo
 
@@ -183,8 +183,10 @@ removeAuthToken mongoConf token = runAction mongoConf action
     action = do
       maybeEntUser <- getBy (UniqueAuthToken token)
       case maybeEntUser of
-        Nothing -> return ()
+        Nothing               -> return ()
         Just (Entity id user) -> void $ update id [UserAuthToken =. ""]
+
+
 -------------------------------------------------------------------------------
 --                              CONVERSATIONS                                --
 -------------------------------------------------------------------------------
@@ -226,7 +228,7 @@ fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetc
   where
     fetchAction :: Action IO ConversationDTO
     fetchAction = do
-       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername, 
+       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername,
         ConversationMembers `anyEq` otherUsername] []
        case maybeConvo of
         Nothing -> return emptyConvoDTO
@@ -241,13 +243,13 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
   where
     fetchAction :: Action IO [ConversationPreviewDTO]
     fetchAction = do
-      cursor <- find ( 
-        ( select [ "members" =: (ownUsername::Text) ] "conversations") 
+      cursor <- find (
+        ( select [ "members" =: (ownUsername::Text) ] "conversations")
         { project = [ "messages" =: [ "$slice" =: (-1::Int) ] ] }
         )
       docList <- rest cursor
-      return $ 
-        fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap docToEntityEither 
+      return $
+        fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap docToEntityEither
         $ docList
 
 
