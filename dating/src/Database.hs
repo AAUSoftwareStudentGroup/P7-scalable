@@ -12,7 +12,7 @@ import           Control.Monad.Logger       (LogLevel (..), LoggingT,
                                              MonadLogger, filterLogger,
                                              runStdoutLoggingT)
 import           Control.Monad.Reader       (ReaderT, runReaderT)
-import qualified Crypto.Hash.SHA512         as SHA512
+import           Crypto.Hash
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.Bson                  (Document, Value, fval, typed, val)
 import           Data.ByteString            (ByteString)
@@ -26,13 +26,13 @@ import           Data.Ord                   (comparing)
 import           Data.Semigroup             ((<>))
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T (pack, unpack)
-import           Data.Text.Encoding         (decodeUtf16LE, decodeUtf8,
-                                             encodeUtf16BE, encodeUtf16LE)
+import           Data.Text.Encoding         (decodeUtf8, encodeUtf8)
 import           Data.Time.Calendar         (fromGregorian)
 import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
-import           Database.MongoDB.Query     (find, project, rest, select)
+import           Database.MongoDB.Admin     as Mongo.Admin
+import           Database.MongoDB.Query     (find, rest, select, project)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.TH
@@ -59,11 +59,16 @@ type Username = Text
 type AuthToken = Text
 
 
+type MongoInfo = MongoConf
+type RedisInfo = ConnectInfo
+
+
+userIndex = (Mongo.Admin.index "users" ["username" =: (1::Int)]) {iUnique = True, iDropDups = True}
+
 -------------------------------------------------------------------------------
 --                            CONNECTION INFO                                --
 -------------------------------------------------------------------------------
 
-type MongoInfo = MongoConf
 
 -- | Should probably be placed in a file instead
 localMongoInfo :: MongoInfo
@@ -77,7 +82,6 @@ localMongoInfo = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpasswo
 fetchMongoInfo :: IO MongoInfo
 fetchMongoInfo = return localMongoInfo
 
-type RedisInfo = ConnectInfo
 
 -- | Has IO for same reason as fetchMongoInfo
 fetchRedisInfo :: IO RedisInfo
@@ -89,16 +93,16 @@ fetchRedisInfo = return $ defaultConnectInfo {connectHost = "redis"}
 -------------------------------------------------------------------------------
 
 -- | Create a user if the username is not taken
-createUser :: MongoConf -> CreateUserDTO -> IO LoggedInDTO
+createUser :: MongoConf -> CreateUserDTO -> IO (Maybe LoggedInDTO)
 createUser mongoConf createUserDTO = runAction mongoConf action
   where
-    action :: Action IO LoggedInDTO
+    action :: Action IO (Maybe LoggedInDTO)
     action = do
       authToken <- liftIO mkAuthToken
       salt <- liftIO mkAuthToken
       let newUser = User
             { userEmail       = getField @"email"       createUserDTO
-            , userPassword    = hashPassword (getField @"password"    createUserDTO) salt -- TODO: Hash
+            , userPassword    = hashPassword (getField @"password" createUserDTO) salt
             , userUsername    = getField @"username"    createUserDTO
             , userGender      = getField @"gender"      createUserDTO
             , userBirthday    = getField @"birthday"    createUserDTO
@@ -107,11 +111,16 @@ createUser mongoConf createUserDTO = runAction mongoConf action
             , userAuthToken   = authToken
             , userSalt        = salt
             }
-      userId <- insert newUser
-      return $ LoggedInDTO (getField @"username" createUserDTO) authToken
+      canNotBeInserted <- checkUnique newUser
+      case canNotBeInserted of
+        Just a -> return Nothing
+        Nothing -> do
+          userId <- insert newUser
+          addIndex <- Mongo.Admin.ensureIndex userIndex
+          return $ Just $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
 
-      -- | Generate a random authtoken.
+-- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
   generator <- Random.newStdGen
@@ -149,11 +158,10 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
       maybeEntUser <- selectFirst [UserUsername ==. username] []
       case maybeEntUser of
         Nothing -> return Nothing
-        Just (Entity id user) -> do
-          token <- liftIO mkAuthToken
-            --newUser <- update id [UserAuthToken =. mkAuthToken]
+        Just (Entity id user) ->
           if hashPassword password (getField @"userSalt" user) == getField @"userPassword" user
             then do
+              token <- liftIO mkAuthToken
               temp <- update id [UserAuthToken =. token]
               return $ Just LoggedInDTO
                 { username  = getField @"userUsername"  user
@@ -243,9 +251,9 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
   where
     fetchAction :: Action IO [ConversationPreviewDTO]
     fetchAction = do
-      cursor <- find (
-        ( select [ "members" =: (ownUsername::Text) ] "conversations")
-        { project = [ "messages" =: [ "$slice" =: (-1::Int) ] ] }
+      cursor <- find 
+        ( ( select [ "members" =: (ownUsername::Text) ] "conversations") 
+          { project = [ "messages" =: [ "$slice" =: (-1::Int) ] ] }
         )
       docList <- rest cursor
       return $
@@ -303,15 +311,13 @@ messageToMessageDTO message = messageDTO
   where
     messageDTO = MessageDTO
       { authorUsername = messageAuthorUsername message
-      , body = messageBody message
       , timeStamp = messageTimeStamp message
+      , body = messageBody message
       }
 
 
 hashPassword :: Text -> Text -> Text
-hashPassword password salt = decodeUtf16LE hash
+hashPassword password salt = T.pack $ show hashed
   where
-    hash :: ByteString
-    hash = SHA512.finalize ctx
-    ctx = SHA512.update iCtx $ encodeUtf16LE (password <> salt)
-    iCtx = SHA512.init
+    passPlusSalt = encodeUtf8 (password <> salt)
+    hashed = hash passPlusSalt :: Digest SHA3_512

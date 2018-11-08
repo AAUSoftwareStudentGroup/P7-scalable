@@ -50,10 +50,10 @@ library:
   - generic-lens
   - lens
   - mongoDB
-  - cryptohash
   - QuickCheck
   - quickcheck-text
   - quickcheck-instances
+  - cryptonite
 executables:
   dating:
     main: Main.hs
