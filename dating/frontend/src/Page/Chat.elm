@@ -93,14 +93,14 @@ update msg model =
         HandleFetchedMessages result ->
             case result of
                 Ok conversation ->
-                    ( { model | content = List.reverse conversation.messages }, Cmd.none)
+                    ( { model | content = conversation.messages }, Cmd.none)
                 Err _ ->
                     ( model, Cmd.none )
 
 
 addMessageToList : Model -> List Message
 addMessageToList model =
-    (Message model.usernameSelf (toUtcString model.time model.zone) model.unsentMessage) :: model.content
+    model.content ++ List.singleton (Message model.usernameSelf (toUtcString model.time model.zone) model.unsentMessage)
 
 
 -- SUBSCRIPTIONS
@@ -127,7 +127,7 @@ view model =
                     , ( "l-6", True )
                     ]
                 ]
-                (List.reverse (List.map (viewMessage model) model.content))
+                (List.map (viewMessage model) model.content)
             , Html.form
                 [ Events.onSubmit SendMessage
                 , classList
