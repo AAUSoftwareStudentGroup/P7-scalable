@@ -17,7 +17,8 @@ import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.Bson                  (Document, Value, fval, typed, val)
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.Char8      (pack, unpack)
-import           Data.Either                (rights)
+import qualified Data.ByteString.Lazy.Char8 as LBS
+import           Data.Either                (rights, fromRight)
 import           Data.Generics.Product      (field, getField, super)
 import           Data.Int                   (Int64)
 import           Data.List                  (intersperse, sort, sortBy)
@@ -35,6 +36,7 @@ import           Database.MongoDB.Admin     as Mongo.Admin
 import           Database.MongoDB.Query     (find, rest, select, project)
 import           Database.Persist
 import           Database.Persist.MongoDB
+import           Database.Persist.Types     (unHaskellName)
 import           Database.Persist.TH
 import           Database.Redis             (ConnectInfo, Redis, connect,
                                              connectHost, defaultConnectInfo,
@@ -93,10 +95,10 @@ fetchRedisInfo = return $ defaultConnectInfo {connectHost = "redis"}
 -------------------------------------------------------------------------------
 
 -- | Create a user if the username is not taken
-createUser :: MongoConf -> CreateUserDTO -> IO (Maybe LoggedInDTO)
+createUser :: MongoConf -> CreateUserDTO -> IO (Either LBS.ByteString LoggedInDTO)
 createUser mongoConf createUserDTO = runAction mongoConf action
   where
-    action :: Action IO (Maybe LoggedInDTO)
+    action :: Action IO (Either LBS.ByteString LoggedInDTO)
     action = do
       authToken <- liftIO mkAuthToken
       salt <- liftIO mkAuthToken
@@ -113,11 +115,15 @@ createUser mongoConf createUserDTO = runAction mongoConf action
             }
       canNotBeInserted <- checkUnique newUser
       case canNotBeInserted of
-        Just a -> return Nothing
+        Just a ->
+          if ((unHaskellName $ fst $ head $ persistUniqueToFieldNames a) == "username") then
+            return $ Left $ ("A user named \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"username" createUserDTO)) <> "\" already exists")
+          else
+            return $ Left $ ("A user with email \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"email" createUserDTO)) <> "\" already exists")
         Nothing -> do
           userId <- insert newUser
           addIndex <- Mongo.Admin.ensureIndex userIndex
-          return $ Just $ LoggedInDTO (getField @"username" createUserDTO) authToken
+          return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
 
 -- | Generate a random authtoken.
