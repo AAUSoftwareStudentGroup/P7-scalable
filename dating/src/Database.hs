@@ -226,9 +226,9 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
     mkMessage from body = do
       currentTime <- getCurrentTime
       return  Message
-          { messageAuthorUsername = from
-          , messageTimeStamp = currentTime
-          , messageBody = body
+          { messageAuthor = from
+          , messageTime = currentTime
+          , messageText = body
           }
 
 fetchConversation :: MongoConf -> Username -> Username -> IO ConversationDTO
@@ -276,9 +276,9 @@ conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversat
     message = last $ getField @"conversationMessages" convo
     conversationPreview = ConversationPreviewDTO
       { convoWithUsername = if head members == username then last members else head members
-      , isLastAuthor = username == getField @"messageAuthorUsername" message
-      , body = getField @"messageBody" message
-      , timeStamp = getField @"messageTimeStamp" message
+      , isLastAuthor = username == getField @"messageAuthor" message
+      , body = getField @"messageText" message
+      , timeStamp = getField @"messageTime" message
       }
 
 
@@ -310,9 +310,9 @@ messageToMessageDTO :: Message -> MessageDTO
 messageToMessageDTO message = messageDTO
   where
     messageDTO = MessageDTO
-      { authorUsername = messageAuthorUsername message
-      , timeStamp = messageTimeStamp message
-      , body = messageBody message
+      { authorUsername = messageAuthor message
+      , timeStamp = messageTime message
+      , body = messageText message
       }
 
 
