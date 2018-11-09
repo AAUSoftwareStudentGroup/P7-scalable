@@ -93,7 +93,7 @@ update msg model =
         HandleFetchedMessages result ->
             case result of
                 Ok conversation ->
-                    ( { model | content = conversation.messages }, Cmd.none)
+                    ( { model | content = List.reverse conversation.messages }, Cmd.none)
                 Err _ ->
                     ( model, Cmd.none )
 
