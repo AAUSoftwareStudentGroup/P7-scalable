@@ -71,9 +71,9 @@ update msg model =
 
         FetchMessages newTime ->
             case (model.session) of
-                Session.Guest _ ->
+                Session.Guest _ _->
                     ( { model | time = newTime }, Cmd.none)
-                Session.LoggedIn _ userInfo ->
+                Session.LoggedIn _ _ userInfo ->
                     ( { model | time = newTime }
                     , Http.send HandleFetchedMessages (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend)
                     )
@@ -166,9 +166,9 @@ sendMessage model =
         Cmd.none
     else
         case model.session of
-            Session.LoggedIn _ userInfo ->
+            Session.LoggedIn _ _ userInfo ->
                 Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.usernameFriend)
-            Session.Guest _ ->
+            Session.Guest _ _ ->
                 Cmd.none
 
 

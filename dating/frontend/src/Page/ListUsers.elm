@@ -103,7 +103,7 @@ showUser session user =
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
 sendGetUsers responseMsg session =
     case session of
-        Session.LoggedIn _ userInfo ->
+        Session.LoggedIn _ _ userInfo ->
             Http.send responseMsg (Api.Users.getUsers userInfo)
-        Session.Guest _ ->
+        Session.Guest _ _ ->
             Cmd.none

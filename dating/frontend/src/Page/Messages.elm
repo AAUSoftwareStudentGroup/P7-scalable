@@ -58,9 +58,9 @@ update msg model =
 
         FetchMessages newTime ->
             case (model.session) of
-                Session.Guest _ ->
+                Session.Guest _ _ ->
                     ( { model | time = newTime }, Cmd.none)
-                Session.LoggedIn _ userInfo ->
+                Session.LoggedIn _ _ userInfo ->
                     ( { model | time = (Debug.log "current time: " newTime) }
                     , sendGetMessages HandleGetMessages model.session
                     )
@@ -113,7 +113,7 @@ viewMessage message =
 sendGetMessages : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
-        Session.LoggedIn _ userInfo ->
+        Session.LoggedIn _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
-        Session.Guest _ ->
+        Session.Guest _ _ ->
             Cmd.none

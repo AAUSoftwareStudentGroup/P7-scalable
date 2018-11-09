@@ -7,7 +7,7 @@ import Html.Events as Events
 import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
-import Session exposing (Session)
+import Session exposing (Session, Notification)
 import Api.Types exposing (Gender(..))
 import Api.Users exposing (User)
 
@@ -16,13 +16,24 @@ import Random
 
 site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
 site toMsg children session =
-    [ div [class "main-wrapper" ]
+    [ toasts session
+    , div [ class "main-wrapper" ]
         [ header session
         , content toMsg children
         , footer
         ]
     ]
 
+toasts : Session -> Html msg
+toasts session =
+    div [ class "toasts" ]
+        (List.map toast (Session.getNotifications session))
+
+
+toast : Notification -> Html msg
+toast notification =
+    Html.p [ class "toast" ]
+        [ Html.text notification ]
 
 header : Session -> Html msg
 header session =
@@ -72,14 +83,14 @@ headerNav session =
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
-        Session.LoggedIn _ userInfo ->
+        Session.LoggedIn _ _ userInfo ->
             [ headerNavLink (Routing.routeToString Messages) "Messages"
             , headerNavLink (Routing.routeToString ListUsers) "All users"
             , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
-        Session.Guest _ ->
+        Session.Guest _ _ ->
             [ headerNavLink (Routing.routeToString CreateUser) "Sign up"
             , headerNavLink (Routing.routeToString Login) "Sign in"
             ]

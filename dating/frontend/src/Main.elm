@@ -240,11 +240,11 @@ update message model =
 
         SessionChanged session ->
             case session of
-                Session.Guest key ->
+                Session.Guest key _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.Home)
                     )
-                Session.LoggedIn key _ ->
+                Session.LoggedIn key _ _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
                     )
@@ -345,9 +345,9 @@ stepChat model ( chat, cmds ) =
 sendGetMessages : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
-        Session.LoggedIn _ userInfo ->
+        Session.LoggedIn _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
-        Session.Guest _ ->
+        Session.Guest _ _ ->
             Cmd.none
 
 

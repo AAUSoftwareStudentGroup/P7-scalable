@@ -22,7 +22,6 @@ import Api.Users exposing (NewUser)
 type alias Model =
     { session : Session
     , title : String
-    , response : Maybe String
     , errors : List (Error)
     , attemptedSubmission: Bool
     , email : String
@@ -51,7 +50,7 @@ type FormField
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( updateErrors (Model session "New user" Nothing [] False "" "" "" "" Male "" "" "")
+    ( updateErrors (Model session "New user" [] False "" "" "" "" Male "" "" "")
     , Cmd.none
     )
 
@@ -91,25 +90,24 @@ update msg model =
         HandleUserCreated result ->
             case result of
                 Ok userInfo ->
-                    --( model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login) )
                     ( model, Session.login userInfo)
 
                 Err errResponse ->
                     case errResponse of
                         Http.BadUrl url ->
-                            ( { model | response = Just <| "Bad url: " ++ url }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session ("Bad url: " ++ url) }, Cmd.none )
 
                         Http.BadPayload _ _ ->
-                            ( { model | response = Just "bad payload" }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session "Invalid data sent to server" }, Cmd.none )
 
                         Http.Timeout ->
-                            ( { model | response = Just "timeout" }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
 
                         Http.NetworkError ->
-                            ( { model | response = Just "networkerror (server probably crashed)" }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
 
                         Http.BadStatus statusResponse ->
-                            ( { model | response = Just <| "badstatus" ++ .body statusResponse }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
 
 
 setField : Model -> FormField -> String -> Model
@@ -199,7 +197,6 @@ view model =
                     ]
                 , El.submitButton "Sign up"
                 ]
-            , Html.text (responseToString model.response)
             ]
     }
 

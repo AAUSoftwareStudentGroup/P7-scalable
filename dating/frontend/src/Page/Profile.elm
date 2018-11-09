@@ -91,8 +91,8 @@ chatButton username session =
 sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
 sendGetUser responseMsg username session =
     case session of
-        Session.LoggedIn _ userInfo ->
+        Session.LoggedIn _ _ userInfo ->
             Http.send responseMsg (Api.Users.getUserByUsername username userInfo)
 
-        Session.Guest _ ->
+        Session.Guest _ _ ->
             Cmd.none
