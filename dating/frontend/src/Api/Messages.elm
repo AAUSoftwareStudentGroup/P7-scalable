@@ -15,7 +15,7 @@ import Api.Authentication as Auth
 
 apiLocation : String
 apiLocation =
-    "http://api.dating.local:8002"
+    "http://api.dating.local"
 
 
 type alias Message =
