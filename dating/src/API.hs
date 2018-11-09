@@ -79,8 +79,8 @@ createUserHandler :: MongoInfo -> CreateUserDTO -> Handler LoggedInDTO
 createUserHandler mongoInfo newUser = do
   maybeCreated <- liftIO $ DB.createUser mongoInfo newUser
   case maybeCreated of
-    Just loggedInDTO -> return loggedInDTO
-    Nothing -> Handler $ throwE $ err409 {errBody = "A user named \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"username" newUser)) <> "\" already exists"}
+    Right loggedInDTO -> return loggedInDTO
+    Left text -> Handler $ throwE $ err409 {errBody = text }
 
 -- | Fetches a user by username.
 fetchUserHandler :: MongoInfo -> Username -> Username -> Handler UserDTO
