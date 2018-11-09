@@ -18,17 +18,16 @@ apiLocation =
     "http://api.dating.local:8002"
 
 
-
 type alias Message =
-    { authorName    : String
+    { body          : String
+    , authorName    : String
     , timeStamp     : String
-    , body          : String
     }
 
 type alias ConversationPreviewDTO =
     { convoWithUsername : String
-    , isLastAuthor      : Bool
     , body              : String
+    , isLastAuthor      : Bool
     , timeStamp         : String
     }
 
@@ -46,9 +45,9 @@ encodeMessage x =
 decodeMessage : Decoder Message
 decodeMessage =
     Decode.succeed Message
-        |> Pipeline.required "authorName" Decode.string
-        |> Pipeline.required "timeStamp" Decode.string
         |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "authorUsername" Decode.string
+        |> Pipeline.required "timeStamp" Decode.string
 
 
 decodeConversation : Decoder Conversation
@@ -61,8 +60,8 @@ decodeConvoPreview : Decoder ConversationPreviewDTO
 decodeConvoPreview =
     Decode.succeed ConversationPreviewDTO
         |> Pipeline.required "convoWithUsername" Decode.string
-        |> Pipeline.required "imLastAuthor" Decode.bool
         |> Pipeline.required "body" Decode.string
+        |> Pipeline.required "isLastAuthor" Decode.bool
         |> Pipeline.required "timeStamp" Decode.string
 
 

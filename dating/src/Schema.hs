@@ -55,9 +55,9 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     deriving Show Read Eq Generic
 
   Message json sql=messages
-    authorUsername   Text
-    timeStamp        UTCTime
-    body             Text
+    author   Text
+    time     UTCTime
+    text     Text
     deriving Show Read Eq Generic
 |]
 
