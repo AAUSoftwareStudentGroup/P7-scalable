@@ -4,7 +4,7 @@ services:
         restart: always
         image: postgres:9.6
         ports:
-          - "5432:5432"
+          - "8010:5432"
         environment:
           - POSTGRES_USER=datingdbuser
           - POSTGRES_PASSWORD=datingdbpassword
@@ -16,7 +16,7 @@ services:
         image: 'bitnami/mongodb:latest'
         user: root
         ports:
-            - "27017:27017"
+            - "8020:27017"
         environment:
             - MONGODB_ROOT_PASSWORD=strangerdanger
             - MONGODB_USERNAME=datingdbuser
@@ -27,8 +27,8 @@ services:
 
     redis:
       image: redis:4.0
-      ports:
-        - "6379:6379"
+#      ports:
+#        - "6379:6379"
     dating:
         build: ./
         image: dating
@@ -59,8 +59,6 @@ services:
         image: elm
         volumes:
             - ./frontend/:/opt/app
-        ports:
-            - "8001:8000"
         #command: "bash -c \"ls -lah ./**/*.elm\""
         command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.js --debug\\\"\""
     sass:

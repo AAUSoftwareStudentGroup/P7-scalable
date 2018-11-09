@@ -24,16 +24,16 @@ import UI.Elements as El
 type alias Model =
     { session   : Session
     , title     : String
+    , loaded    : Bool
     , users     : List User
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "List Users" []
+    ( Model session "List Users" False []
     , sendGetUsers UsersFetched session
     )
-
 
 
 -- UPDATE
@@ -49,7 +49,7 @@ update msg model =
         UsersFetched result ->
             case result of
                 Ok newUsers ->
-                    ( { model | users = newUsers }, Cmd.none )
+                    ( { model | users = newUsers, loaded = True }, Cmd.none )
 
                 Err error ->
                     Debug.log (Debug.toString error) ( { model | users = [] }, Cmd.none )
@@ -75,22 +75,28 @@ view model =
         { title = "All users"
         , session = model.session
         , kids =
-            El.contentWithHeader "All users"
-                [ ul    [ classList
+            El.titledContentLoader model.loaded "All users"
+                [ Html.ul
+                    [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )
                             , ( "s-12", True )
                             ]
-                        ]
-                    (List.map (showUser model.session) <| List.filter (\user -> myUsername /= user.username) model.users)
+
+                    ]
+                    (List.map (showUser2 model.session) <| List.filter (\user -> myUsername /= user.username) model.users)
                 ]
         }
+
+showUser2 : Session -> User -> Html Msg
+showUser2 session user =
+    El.userCard user
 
 
 showUser : Session -> User -> (String, Html Msg)
 showUser session user =
     ( user.username
-    , El.userCard user.username
+    , El.userCard user
     )
 
 

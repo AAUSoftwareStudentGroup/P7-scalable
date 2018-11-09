@@ -31,7 +31,13 @@
 .flat-btn {
     @extend %button;
 
+    height: 1rem;
+    line-height: 1rem;
     color: $txt-col-light;
+
+    .material-icons {
+        line-height: 1rem;
+    }
 
     &:hover {
         color: $pri-col;
@@ -71,19 +77,42 @@ button, .btn {
     }
 }
 
-.user-card {
-    height: 5rem;
-    border: 2px solid grey;
-    border-radius: .5rem;
-    box-sizing: content-box;
-    
-    align-items: center;
-    
-    img {
-        height: 4rem;
-        margin: .5rem;
-        border: 2px solid blue;
-        border-radius: 5rem;
+.messages {
+    li {
+        margin-bottom: 1rem;
+    }
+}
 
-    } 
+.property {
+    span {
+        display: block;
+    }
+}
+
+
+.user-card {
+    @extend %shadow-1;
+
+    .profile-image {
+        width: 100%;
+
+        div {
+            width: 100%;
+            height: 160px;
+            background-position: center;
+            background-size: cover;
+        }
+    }
+
+    .pri-title {
+        margin: 1rem;
+    }
+
+    p {
+        margin: 0 1rem;
+    }
+
+    .flat-btn {
+        margin: 0 0 1rem -7px;
+    }
 }

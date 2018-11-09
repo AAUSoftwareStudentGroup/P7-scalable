@@ -2,6 +2,7 @@ module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
 import Html exposing (Html, div)
+import Html.Attributes exposing (classList)
 
 import Http
 import String
@@ -16,6 +17,7 @@ import UI.Elements as El
 type alias Model =
     { session   : Session
     , title     : String
+    , loaded    : Bool
     , user      : User
     }
 
@@ -27,7 +29,7 @@ type Msg
 
 init : Session -> String -> ( Model, Cmd Msg )
 init session username =
-    ( Model session "Profile" Api.Users.emptyUser
+    ( Model session "Profile" False Api.Users.emptyUser
     , sendGetUser HandleGetUser username session
     )
 
@@ -38,7 +40,7 @@ update msg model =
         HandleGetUser result ->
             case result of
                 Ok fetchedUser ->
-                    ( { model | user = fetchedUser }, Cmd.none )
+                    ( { model | user = fetchedUser, loaded = True }, Cmd.none )
 
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( { model | user = Api.Users.emptyUser }
@@ -59,10 +61,15 @@ view model =
     { title = model.user.username ++ "'s profile"
     , session = model.session
     , kids =
-        El.contentWithHeader (model.user.username ++ "'s profile")
-            [ div []
-                [ El.textProperty "Username" model.user.username
-                , El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
+        El.titledContentLoader model.loaded model.user.username
+            [ div
+                [ classList
+                    [ ( "grid", True )
+                    , ( "l-12", True )
+                    , ( "s-6", True )
+                    ]
+                ]
+                [ El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
                 , El.textProperty "Birthday" model.user.birthday
                 , El.textProperty "Town" model.user.town
                 , El.paragraphProperty "Description" model.user.profileText

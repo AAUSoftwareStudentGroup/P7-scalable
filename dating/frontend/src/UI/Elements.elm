@@ -8,6 +8,8 @@ import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
 import Session exposing (Session)
+import Api.Types exposing (Gender(..))
+import Api.Users exposing (User)
 
 import Random
 
@@ -40,7 +42,11 @@ header session =
 
 headerLogo : Html msg
 headerLogo =
-    div [ class "l-6" ]
+    div [ classList
+            [ ( "l-6", True )
+            , ( "s-8", True )
+            ]
+        ]
         [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
             [ Html.i [ class "material-icons" ]
                 [ Html.text "favorite" ]
@@ -53,7 +59,10 @@ headerNav : Session -> Html msg
 headerNav session =
     Html.nav
         [ classList
-            [ ( "l-6", True ) ]
+            [ ( "l-6", True )
+            , ( "s-4", True )
+            , ( "closed", True )
+            ]
         ]
         [ Html.ul []
             (headerNavLinks session)
@@ -104,44 +113,87 @@ content toMsg children =
     )
 
 
-contentWithHeader : String -> List (Html msg) -> List (Html msg)
-contentWithHeader heading contents =
+titledContent : String -> List (Html msg) -> List (Html msg)
+titledContent heading contents =
     [ Html.h1 [ class "l-12"]
         [ Html.text heading ]
     ] ++ contents
 
 
-userCard : String -> Html msg
-userCard username =
-    Html.li 
-        [ classList [ ( "user-card", True )
-                    , ( "l-12", True )
-                    , ( "s-12", True )
-                    , ( "grid", True )
+titledContentLoader : Bool -> String -> List (Html msg) -> List (Html msg)
+titledContentLoader isLoaded heading contents =
+    if isLoaded then
+        titledContent heading contents
+    else
+        titledContent heading
+        [ div [ class "loading-spinner" ] [] ]
+
+
+userCard : User -> Html msg
+userCard user =
+    let
+        username = user.username
+        gender = Api.Types.genderToString user.gender
+        age = "23"
+        bio = user.profileText
+    in
+        Html.li
+            [ classList [ ( "user-card", True )
+                        , ( "l-4", True )
+                        , ( "s-12", True )
+                        ]
+            ]
+            [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile username)) ]
+                [ div [ Attributes.style "background-image" ("url(" ++ (avatarUrl user) ++ ")") ] [] ]
+            , div [ class "pri-title" ]
+                [ Html.h2 []
+                    [ Html.text (toSentenceCase username) ]
+                , Html.h3 []
+                    [ Html.text (gender ++ " - " ++ age) ]
+                ]
+            , Html.p []
+                [ Html.text bio ]
+            , linkButtonFlat
+                [ classList
+                    [ ("l-2", True)
+                    , ("s-2", True)
                     ]
-        ]
-        [ Html.a [ Attributes.href (Routing.routeToString (Profile username)) ]
-                 [ Html.img [ src ("https://randomuser.me/api/portraits/men/"++ username ++".jpg") ] [] ]
-        , Html.span 
-            [ classList [ ("l-7", True), ("s-7", True) ] ] 
-            [ Html.text (toSentenceCase username) ]
-        , linkButtonFlat
-            [ classList
-                [ ("l-2", True)
-                , ("s-2", True)
                 ]
-            ]
-            (Routing.routeToString (Profile username))
-            [ iconText "Profile" "perm_identity" ]
-        , linkButtonFlat
-            [ classList
-                [ ("l-2", True)
-                , ("s-2", True)
+                (Routing.routeToString (Profile username))
+                [ iconText "Profile" "perm_identity" ]
+            , linkButtonFlat
+                [ classList
+                    [ ("l-2", True)
+                    , ("s-2", True)
+                    ]
                 ]
+                (Routing.routeToString (Chat username))
+                [ iconText "Chat" "chat" ]
             ]
-            (Routing.routeToString (Chat username))
-            [ iconText "Chat" "chat" ]
-        ]
+
+
+avatarUrl : User -> String
+avatarUrl user =
+    let
+        genderString =
+            case user.gender of
+                Male ->
+                    "men"
+                Female ->
+                    "women"
+                Other ->
+                    "lego"
+        maxId =
+            case user.gender of
+                Male ->
+                    100
+                Female ->
+                    100
+                Other ->
+                    9
+    in
+        "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ user.username ++ ".jpg"
+
 
 iconText : String -> String -> Html msg
 iconText label iconName =
@@ -153,21 +205,33 @@ iconText label iconName =
 materialIcon : String -> Html msg
 materialIcon iconName = 
     Html.i [ class "material-icons" ]
-        [Html.text iconName ]
+        [ Html.text iconName ]
 
 
 textProperty : String -> String -> Html msg
 textProperty labelText propertyText =
-    div []
-        [ Html.text labelText
-        , Html.text propertyText
+    div
+        [ classList
+            [ ( "property", True )
+            , ( "l-6", True )
+            ]
         ]
-
+        [ Html.span []
+            [ Html.text labelText ]
+        , Html.span []
+            [ Html.text propertyText ]
+        ]
 
 paragraphProperty : String -> String -> Html msg
 paragraphProperty labelText propertyText =
-    div []
-        [ Html.text labelText
+    div
+        [ classList
+            [ ( "property", True )
+            , ( "l-12", True )
+            ]
+        ]
+        [ Html.span []
+            [ Html.text labelText ]
         , Html.p []
             [ Html.text propertyText ]
         ]

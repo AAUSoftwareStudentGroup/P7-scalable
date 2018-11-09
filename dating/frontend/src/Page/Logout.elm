@@ -77,7 +77,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.contentWithHeader "Log out"
+        El.titledContent "Log out"
             []
     }
 

@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Element exposing (..)
 import Html exposing (Html)
 import Url
-import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
+import Url.Parser as Parser exposing ((</>), Parser)
 import Url.Parser.Query as Query
 import Json.Encode as Encode
 import Json.Decode as Decode
@@ -66,7 +66,8 @@ init maybeValue url key =
     stepUrl url
         { key = key
         , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-        , numMessages = 0}
+        , numMessages = 0
+        }
 
 
 
@@ -390,23 +391,23 @@ stepUrl url model =
             { url | path = Maybe.withDefault ("path="++url.path) url.query, query = Nothing}
 
         parser =
-            s "path=" </>
-            oneOf
-                [ route (s "Main.elm")
+            Parser.s "path=" </>
+            Parser.oneOf
+                [ route (Parser.s "Main.elm")
                     (stepLogin model (Login.init session))
-                , route (s "create-user")
+                , route (Parser.s "create-user")
                     (stepCreateUser model (CreateUser.init session))
-                , route (s "login")
+                , route (Parser.s "login")
                     (stepLogin model (Login.init session))
-                , route (s "logout")
+                , route (Parser.s "logout")
                     (stepLogout model (Logout.init session))
-                , route (s "list-users")
+                , route (Parser.s "list-users")
                     ( stepListUsers model (ListUsers.init session))
-                , route (s "user" </> Parser.string)
+                , route (Parser.s "user" </> Parser.string)
                     (\username -> stepProfile model (Profile.init session (Debug.log "usernameParsed" username)))
-                , route (s "messages")
+                , route (Parser.s "messages")
                     (stepMessages model (Messages.init session))
-                , route (s "chat" </> Parser.string)
+                , route (Parser.s "chat" </> Parser.string)
                     (\username -> stepChat model (Chat.init session username))
                 ]
 

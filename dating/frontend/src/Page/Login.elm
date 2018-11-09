@@ -13,6 +13,7 @@ import Api.Authentication exposing (Credentials)
 import Api.Users exposing (User)
 import Api.Types exposing (UserInfo)
 import Session exposing (Session, Details)
+import Common as Common
 import Routing exposing (Route(..))
 import UI.Elements as El
 
@@ -60,6 +61,7 @@ type Msg
     = FormFieldChanged FormField String
     | Submitted
     | HandleUserLogin (Result Http.Error UserInfo)
+    | FuckNotifications String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -88,6 +90,9 @@ update msg model =
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
+
+        FuckNotifications notificationText ->
+            (model, Cmd.none)
 
 
 setField : Model -> FormField -> String -> Model
@@ -165,12 +170,13 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.contentWithHeader "Sign in"
+        El.titledContent "Sign in"
             [ Html.form [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )
                             , ( "s-12", True )
                             ]
+                        --, Events.onSubmit (FuckNotifications "Test")
                         , Events.onSubmit Submitted
                         ]
                 [ El.validatedInput Username "text" "Username" model.username FormFieldChanged model.errors model.attemptedSubmission
