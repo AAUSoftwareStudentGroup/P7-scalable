@@ -60,9 +60,3 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     text     Text
     deriving Show Read Eq Generic
 |]
-
-
--- instance FromJSON ByteString
--- instance ToJSON ByteString
--- instance Generic ByteString
--- deriving instance Rep ByteString

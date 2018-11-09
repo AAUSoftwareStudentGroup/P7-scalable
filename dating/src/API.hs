@@ -34,8 +34,8 @@ import           Servant.Server
 import           Servant.Server.Experimental.Auth
 import           Web.Cookie                       (parseCookies)
 
-import           Database                         (MongoInfo, RedisInfo,
-                                                   Username, AuthToken)
+import           Database                         (AuthToken, MongoInfo,
+                                                   RedisInfo, Username)
 import qualified Database                         as DB
 import           FrontendTypes
 import           Schema
@@ -55,7 +55,7 @@ type UserAPI =
   :<|> "users" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] UserDTO -- Fetch User
   :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [UserDTO]                              -- Fetch Users
 
-type AuthAPI = 
+type AuthAPI =
        "login"  :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO    -- Login
   :<|> "logout" :> ReqBody '[JSON] Text :> Post '[JSON] ()                      -- Logout
 
@@ -112,10 +112,10 @@ loginHandler mongoInfo credentials = do
 
 -- | Logs a user out
 logoutHandler :: MongoInfo -> AuthToken -> Handler ()
-logoutHandler mongoInfo token = 
+logoutHandler mongoInfo token =
   liftIO $ DB.removeAuthToken mongoInfo token
-  
-  
+
+
 
 -- | Specifies the data returned after authentication.
 type instance AuthServerData (AuthProtect "cookie-auth") = Username

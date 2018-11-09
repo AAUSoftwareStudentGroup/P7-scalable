@@ -15,7 +15,7 @@ library:
   - Database
   - Schema
   - SchemaEnums
-  - Authentication
+  - FrontendTypes
   dependencies:
   - base >=4.7 && <5
   - wai
@@ -50,6 +50,9 @@ library:
   - generic-lens
   - lens
   - mongoDB
+  - QuickCheck
+  - quickcheck-text
+  - quickcheck-instances
   - cryptonite
 executables:
   dating:
@@ -73,6 +76,7 @@ tests:
     dependencies:
     - base
     - hspec
+    - QuickCheck
     - http-client
     - http-client-tls
     - monad-logger

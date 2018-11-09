@@ -58,17 +58,21 @@ import           Schema
 type Username = Text
 type AuthToken = Text
 
+
+type MongoInfo = MongoConf
+type RedisInfo = ConnectInfo
+
+
 userIndex = (Mongo.Admin.index "users" ["username" =: (1::Int)]) {iUnique = True, iDropDups = True}
 
 -------------------------------------------------------------------------------
 --                            CONNECTION INFO                                --
 -------------------------------------------------------------------------------
 
-type MongoInfo = MongoConf
 
 -- | Should probably be placed in a file instead
-localMongoConf :: MongoInfo
-localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpassword"
+localMongoInfo :: MongoInfo
+localMongoInfo = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpassword"
                       , mgHost = "mongodb"
                       }
   where
@@ -76,9 +80,8 @@ localMongoConf = conf { mgAuth = Just $ MongoAuth "datingdbuser" "datingdbpasswo
 
 -- | Has type IO because it should fetch the connection string from a file
 fetchMongoInfo :: IO MongoInfo
-fetchMongoInfo = return localMongoConf
+fetchMongoInfo = return localMongoInfo
 
-type RedisInfo = ConnectInfo
 
 -- | Has IO for same reason as fetchMongoInfo
 fetchRedisInfo :: IO RedisInfo
@@ -99,7 +102,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
       salt <- liftIO mkAuthToken
       let newUser = User
             { userEmail       = getField @"email"       createUserDTO
-            , userPassword    = hashPassword (getField @"password"    createUserDTO) salt -- TODO: Hash
+            , userPassword    = hashPassword (getField @"password" createUserDTO) salt
             , userUsername    = getField @"username"    createUserDTO
             , userGender      = getField @"gender"      createUserDTO
             , userBirthday    = getField @"birthday"    createUserDTO
@@ -188,8 +191,10 @@ removeAuthToken mongoConf token = runAction mongoConf action
     action = do
       maybeEntUser <- getBy (UniqueAuthToken token)
       case maybeEntUser of
-        Nothing -> return ()
+        Nothing               -> return ()
         Just (Entity id user) -> void $ update id [UserAuthToken =. ""]
+
+
 -------------------------------------------------------------------------------
 --                              CONVERSATIONS                                --
 -------------------------------------------------------------------------------
@@ -231,7 +236,7 @@ fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetc
   where
     fetchAction :: Action IO ConversationDTO
     fetchAction = do
-       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername, 
+       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername,
         ConversationMembers `anyEq` otherUsername] []
        case maybeConvo of
         Nothing -> return emptyConvoDTO
@@ -251,8 +256,8 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
           { project = [ "messages" =: [ "$slice" =: (-1::Int) ] ] }
         )
       docList <- rest cursor
-      return $ 
-        fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap docToEntityEither 
+      return $
+        fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap docToEntityEither
         $ docList
 
 
@@ -315,4 +320,4 @@ hashPassword :: Text -> Text -> Text
 hashPassword password salt = T.pack $ show hashed
   where
     passPlusSalt = encodeUtf8 (password <> salt)
-    hashed = (hash passPlusSalt :: Digest SHA3_512)
+    hashed = hash passPlusSalt :: Digest SHA3_512
