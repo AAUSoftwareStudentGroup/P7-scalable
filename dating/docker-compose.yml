@@ -1,16 +1,5 @@
 version: '3'
 services:
-    postgres:
-        restart: always
-        image: postgres:9.6
-        ports:
-          - "8010:5432"
-        environment:
-          - POSTGRES_USER=datingdbuser
-          - POSTGRES_PASSWORD=datingdbpassword
-          - POSTGRES_DB=datingdb
-        volumes:
-          - ./docker/postgres/data:/var/lib/postgresql
 
     mongodb:
         image: 'bitnami/mongodb:latest'

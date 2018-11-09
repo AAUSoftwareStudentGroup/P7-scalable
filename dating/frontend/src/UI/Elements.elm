@@ -8,7 +8,8 @@ import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
 import Session exposing (Session)
-import DatingApi exposing (User, Gender(..))
+import Api.Types exposing (Gender(..))
+import Api.Users exposing (User)
 
 import Random
 
@@ -74,7 +75,7 @@ headerNavLinks session =
         Session.LoggedIn _ userInfo ->
             [ headerNavLink (Routing.routeToString Messages) "Messages"
             , headerNavLink (Routing.routeToString ListUsers) "All users"
-            , headerNavLink (Routing.routeToString (Profile userInfo.userId)) "My profile"
+            , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
@@ -127,14 +128,14 @@ titledContentLoader isLoaded heading contents =
         titledContent heading
         [ div [ class "loading-spinner" ] [] ]
 
+
 userCard : User -> Html msg
 userCard user =
     let
-        id = user.userId
-        username = user.userUsername
-        gender = DatingApi.genderToString user.userGender
+        username = user.username
+        gender = Api.Types.genderToString user.gender
         age = "23"
-        bio = user.userProfileText
+        bio = user.profileText
     in
         Html.li
             [ classList [ ( "user-card", True )
@@ -142,7 +143,7 @@ userCard user =
                         , ( "s-12", True )
                         ]
             ]
-            [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile id)) ]
+            [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile username)) ]
                 [ div [ Attributes.style "background-image" ("url(" ++ (avatarUrl user) ++ ")") ] [] ]
             , div [ class "pri-title" ]
                 [ Html.h2 []
@@ -158,7 +159,7 @@ userCard user =
                     , ("s-2", True)
                     ]
                 ]
-                (Routing.routeToString (Profile id))
+                (Routing.routeToString (Profile username))
                 [ iconText "Profile" "perm_identity" ]
             , linkButtonFlat
                 [ classList
@@ -166,7 +167,7 @@ userCard user =
                     , ("s-2", True)
                     ]
                 ]
-                (Routing.routeToString (Chat id))
+                (Routing.routeToString (Chat username))
                 [ iconText "Chat" "chat" ]
             ]
 
@@ -175,7 +176,7 @@ avatarUrl : User -> String
 avatarUrl user =
     let
         genderString =
-            case user.userGender of
+            case user.gender of
                 Male ->
                     "men"
                 Female ->
@@ -183,16 +184,15 @@ avatarUrl user =
                 Other ->
                     "lego"
         maxId =
-            case user.userGender of
+            case user.gender of
                 Male ->
                     100
                 Female ->
                     100
                 Other ->
                     9
-        idString = String.fromInt (remainderBy maxId user.userId )
     in
-        "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ idString ++ ".jpg"
+        "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ user.username ++ ".jpg"
 
 
 iconText : String -> String -> Html msg

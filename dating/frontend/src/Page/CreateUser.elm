@@ -1,6 +1,5 @@
 module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import DatingApi as Api exposing (Gender(..), User)
 import Html exposing (Html, div)
 import Html.Attributes as Attributes exposing (class, classList)
 import Html.Events as Events exposing (onClick)
@@ -12,6 +11,8 @@ import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import Session exposing (Session)
 import UI.Elements as El
+import Api.Types exposing (Gender(..), UserInfo)
+import Api.Users exposing (NewUser)
 
 
 
@@ -28,10 +29,10 @@ type alias Model =
     , username : String
     , password1 : String
     , password2 : String
-    , gender : Gender
-    , birthday : String
-    , city : String
-    , bio : String
+    , gender    : Gender
+    , birthday  : String
+    , city      : String
+    , bio       : String
     }
 
 
@@ -62,7 +63,7 @@ type Msg
     = FormFieldChanged FormField String
     | GenderChanged Gender
     | Submitted
-    | HandleUserCreated (Result Http.Error Int)
+    | HandleUserCreated (Result Http.Error UserInfo)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -89,8 +90,9 @@ update msg model =
 
         HandleUserCreated result ->
             case result of
-                Ok uid ->
-                    ( model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login) )
+                Ok userInfo ->
+                    --( model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login) )
+                    ( model, Session.login userInfo)
 
                 Err errResponse ->
                     case errResponse of
@@ -144,17 +146,19 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
 
-userFromValidForm : Valid Model -> User
+userFromValidForm : Valid Model -> NewUser
 userFromValidForm validForm =
     userFromModel (Validate.fromValid validForm)
 
-userFromModel : Model -> User
-userFromModel { email, password1, username, gender, birthday, city, bio } =
-    User email password1 username gender birthday city 0 bio "token"
 
-sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
+userFromModel : Model -> NewUser
+userFromModel { email, password1, username, gender, birthday, city, bio } =
+    NewUser email password1 username gender birthday city bio
+
+
+sendCreateUser : (Result Http.Error (UserInfo) -> msg) -> NewUser -> Cmd msg
 sendCreateUser responseMsg user =
-    Http.send responseMsg (Api.postUsers user)
+    Http.send responseMsg (Api.Users.postUsers user)
 
 
 responseToString : Maybe String -> String

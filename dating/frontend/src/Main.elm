@@ -22,7 +22,8 @@ import Page.Logout as Logout
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
-import DatingApi as DatingApi exposing (Message, getRecentMessages)
+import Api.Messages exposing (ConversationPreviewDTO)
+--import DatingApi as DatingApi exposing (Message, getConversationPreviewDTOs)
 import Routing as Routing
 import UI.Elements as El
 
@@ -161,7 +162,7 @@ type Msg
   | SessionChanged Session
   | LogOutClicked
   | GetNumMessages Time.Posix
-  | HandleGetMessages (Result Http.Error (List Message))
+  | HandleGetMessages (Result Http.Error (List ConversationPreviewDTO))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -341,11 +342,11 @@ stepChat model ( chat, cmds ) =
     , Cmd.map ChatMsg cmds
     )
 
-sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd msg
+sendGetMessages : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (getRecentMessages userInfo)
+            Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
         Session.Guest _ ->
             Cmd.none
 
@@ -402,12 +403,12 @@ stepUrl url model =
                     (stepLogout model (Logout.init session))
                 , route (Parser.s "list-users")
                     ( stepListUsers model (ListUsers.init session))
-                , route (Parser.s "user" </> Parser.int)
-                    (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
+                , route (Parser.s "user" </> Parser.string)
+                    (\username -> stepProfile model (Profile.init session (Debug.log "usernameParsed" username)))
                 , route (Parser.s "messages")
                     (stepMessages model (Messages.init session))
-                , route (Parser.s "chat" </> Parser.int)
-                    (\idFriend -> stepChat model (Chat.init session idFriend))
+                , route (Parser.s "chat" </> Parser.string)
+                    (\username -> stepChat model (Chat.init session username))
                 ]
 
     in

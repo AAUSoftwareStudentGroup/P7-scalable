@@ -8,7 +8,10 @@ import Validate exposing (Validator, Valid)
 import Http
 import String
 
-import DatingApi as Api exposing (User, Credentials)
+
+import Api.Authentication exposing (Credentials)
+import Api.Users exposing (User)
+import Api.Types exposing (UserInfo)
 import Session exposing (Session, Details)
 import Common as Common
 import Routing exposing (Route(..))
@@ -19,13 +22,13 @@ import UI.Elements as El
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , errors : List (Error)
+    { session   : Session
+    , title     : String
+    , errors    : List (Error)
     , attemptedSubmission: Bool
-    , username : String
-    , password : String
-    , response : Maybe String
+    , username  : String
+    , password  : String
+    , response  : Maybe String
     }
 
 type alias Error =
@@ -57,8 +60,8 @@ init session =
 type Msg
     = FormFieldChanged FormField String
     | Submitted
+    | HandleUserLogin (Result Http.Error UserInfo)
     | FuckNotifications String
-    | HandleUserLogin (Result Http.Error User)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -82,8 +85,8 @@ update msg model =
 
         HandleUserLogin result ->
             case result of
-                Ok user ->
-                    ( model, Session.login user )
+                Ok userInfo ->
+                    ( model, Session.login userInfo )
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
@@ -118,9 +121,9 @@ credsFromValidForm validForm =
         Credentials model.username model.password
 
 
-sendLogin : (Result Http.Error User -> msg) -> Credentials -> Cmd msg
+sendLogin : (Result Http.Error UserInfo -> msg) -> Credentials -> Cmd msg
 sendLogin responseMsg creds =
-    Http.send responseMsg (Api.postLogin creds)
+    Http.send responseMsg (Api.Users.postLogin creds)
 
 
 handleErrorResponse : Model -> Http.Error -> Model

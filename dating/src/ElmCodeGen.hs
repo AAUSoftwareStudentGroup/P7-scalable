@@ -25,7 +25,6 @@ import           Servant.Elm                      (ElmOptions (..), ElmType,
 import           Elm.Export.Persist.Ent
 import           GHC.TypeLits                     (KnownSymbol)
 import           Schema
-import           Database                         (Credentials)
 import           Servant
 import           Servant.Elm                      (ElmOptions, ElmType,
                                                    Proxy (Proxy),

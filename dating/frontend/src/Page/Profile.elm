@@ -1,25 +1,24 @@
 module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
-import DatingApi as Api exposing (Gender(..), User, emptyUser, genderToString)
 import Html exposing (Html, div)
 import Html.Attributes exposing (classList)
 
 import Http
 import String
 
-import DatingApi as Api exposing (Gender(..), User)
+import Api.Users exposing (User)
+import Api.Types exposing (Gender(..))
 import Routing exposing (Route(..))
 import Session exposing (Session, Details)
 import UI.Elements as El
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , loaded : Bool
-    , id : Int
-    , user : User
+    { session   : Session
+    , title     : String
+    , loaded    : Bool
+    , user      : User
     }
 
 
@@ -28,10 +27,10 @@ type Msg
     | LogoutClicked
 
 
-init : Session -> Int -> ( Model, Cmd Msg )
-init session id =
-    ( Model session "Profile" False id emptyUser
-    , sendGetUser HandleGetUser id session
+init : Session -> String -> ( Model, Cmd Msg )
+init session username =
+    ( Model session "Profile" False Api.Users.emptyUser
+    , sendGetUser HandleGetUser username session
     )
 
 
@@ -44,7 +43,7 @@ update msg model =
                     ( { model | user = fetchedUser, loaded = True }, Cmd.none )
 
                 Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( { model | user = emptyUser }
+                    Debug.log (Debug.toString errResponse) ( { model | user = Api.Users.emptyUser }
                     , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home ) )
 
         LogoutClicked ->
@@ -59,10 +58,10 @@ subscriptions model =
 
 view : Model -> Session.Details Msg
 view model =
-    { title = model.user.userUsername ++ "'s profile"
+    { title = model.user.username ++ "'s profile"
     , session = model.session
     , kids =
-        El.titledContentLoader model.loaded model.user.userUsername
+        El.titledContentLoader model.loaded model.user.username
             [ div
                 [ classList
                     [ ( "grid", True )
@@ -70,31 +69,30 @@ view model =
                     , ( "s-6", True )
                     ]
                 ]
-                [ El.textProperty "Email" model.user.userEmail
-                , El.textProperty "Gender" (genderToString model.user.userGender)
-                , El.textProperty "Birthday" model.user.userBirthday
-                , El.textProperty "Town" model.user.userTown
-                , El.paragraphProperty "Description" model.user.userProfileText
-                , chatButton model.user.userId model.session
+                [ El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
+                , El.textProperty "Birthday" model.user.birthday
+                , El.textProperty "Town" model.user.town
+                , El.paragraphProperty "Description" model.user.profileText
+                , chatButton model.user.username model.session
                 ]
             ]
     }
 
 
-chatButton : Int -> Session -> Html msg
-chatButton friendId session =
+chatButton : String -> Session -> Html msg
+chatButton username session =
     El.linkButton
         []
-        (Routing.routeToString <| (Chat friendId))
+        (Routing.routeToString <| (Chat username))
         [ Html.text "chat" ]
 
 
 
-sendGetUser : (Result Http.Error User -> msg) -> Int -> Session -> Cmd msg
-sendGetUser responseMsg userId session =
+sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
+sendGetUser responseMsg username session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (Api.getUserById userId userInfo)
+            Http.send responseMsg (Api.Users.getUserByUsername username userInfo)
 
         Session.Guest _ ->
             Cmd.none

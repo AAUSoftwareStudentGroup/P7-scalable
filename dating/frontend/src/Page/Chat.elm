@@ -9,38 +9,40 @@ import String as String
 import Task as Task
 import Time as Time
 
-import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
+--import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
+import Api.Messages exposing (Message, Conversation)
+import Api.Users
+
 import Routing exposing (Route(..))
 import Session as Session exposing (Session, Details)
 import UI.Elements as El
 
 -- MODEL
 type alias Model =
-    { session : Session
-    , title : String
-    , loaded : Bool
-    , content : List ChatMessage
-    , idYou : Int
-    , idFriend : Int
-    , username : String
-    , unsentMessage: String
-    , zone : Time.Zone
-    , time : Time.Posix
+    { session           : Session
+    , title             : String
+    , loaded            : Bool
+    , content           : List Message
+    , usernameFriend    : String
+    , usernameSelf      : String
+    , unsentMessage     : String
+    , zone              : Time.Zone
+    , time              : Time.Posix
     }
 
-init : Session -> Int -> ( Model, Cmd Msg )
-init session idFriend =
+
+init : Session -> String -> ( Model, Cmd Msg )
+init session usernameFriend =
     let
-        idYou = Maybe.withDefault -1 (Session.getUserId session)
         username = Maybe.withDefault "" (Session.getUsername session)
     in
-        ( Model session "Messages" False [] idYou idFriend username "" Time.utc (Time.millisToPosix 0)
-        , getMessagesOrRedirect session idYou idFriend
+        ( Model session "Messages" False [] usernameFriend username "" Time.utc (Time.millisToPosix 0)
+        , getMessagesOrRedirect session username usernameFriend
         )
 
-getMessagesOrRedirect : Session -> Int -> Int -> Cmd Msg
-getMessagesOrRedirect session idYou idFriend =
-    if idYou == idFriend then
+getMessagesOrRedirect : Session -> String -> String -> Cmd Msg
+getMessagesOrRedirect session usernameSelf usernameFriend =
+    if usernameSelf == usernameFriend then
         Routing.replaceUrl (Session.getNavKey session) (Routing.routeToString Home)
     else
         Cmd.batch
@@ -53,11 +55,10 @@ type Msg
     = NoOp
     | AdjustTimeZone Time.Zone
     | FetchMessages Time.Posix
-    | HandleFetchedMessages (Result Http.Error (List ChatMessage))
+    | HandleFetchedMessages (Result Http.Error Conversation)
     | UnsentMessageChanged String
     | SendMessage
     | HandleMessageSent (Result Http.Error (String.String))
-
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -74,7 +75,7 @@ update msg model =
                     ( { model | time = newTime }, Cmd.none)
                 Session.LoggedIn _ userInfo ->
                     ( { model | time = newTime }
-                    , Http.send HandleFetchedMessages (Api.getMessagesFromId userInfo model.idFriend)
+                    , Http.send HandleFetchedMessages (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend)
                     )
 
         HandleMessageSent result ->
@@ -92,15 +93,15 @@ update msg model =
 
         HandleFetchedMessages result ->
             case result of
-                Ok messages ->
-                    ( { model | content = messages, loaded = True }, Cmd.none)
+                Ok conversation ->
+                    ( { model | content = conversation.messages, loaded = True }, Cmd.none)
                 Err _ ->
                     ( model, Cmd.none )
 
 
-addMessageToList : Model -> List (ChatMessage)
+addMessageToList : Model -> List Message
 addMessageToList model =
-    (ChatMessage model.unsentMessage model.idYou 0 model.username (toUtcString model.time model.zone)) :: model.content
+    model.content ++ List.singleton (Message model.usernameSelf (toUtcString model.time model.zone) model.unsentMessage)
 
 
 -- SUBSCRIPTIONS
@@ -119,7 +120,7 @@ view model =
     { title = model.title
     , session = model.session
     , kids =
-        El.titledContentLoader model.loaded ("Chatting with " ++ model.username)
+        El.titledContentLoader model.loaded ("Chatting with " ++ model.usernameFriend)
             [ ul
                 [ classList
                     [ ( "grid", True )
@@ -127,7 +128,7 @@ view model =
                     , ( "l-6", True )
                     ]
                 ]
-                (List.reverse (List.map (viewMessage model) model.content))
+                (List.map (viewMessage model) model.content)
             , Html.form
                 [ Events.onSubmit SendMessage
                 , classList
@@ -142,11 +143,10 @@ view model =
             ]
     }
 
-
-viewMessage : Model -> ChatMessage -> (String, Html Msg)
+viewMessage : Model -> Message -> (String, Html Msg)
 viewMessage model message =
     let
-        myMessage = model.idYou == message.authorId
+        myMessage = model.usernameSelf == message.authorName
     in
         ( message.timeStamp
         , Html.li [ classList
@@ -167,14 +167,9 @@ sendMessage model =
     else
         case model.session of
             Session.LoggedIn _ userInfo ->
-                Http.send HandleMessageSent (Api.postMessage userInfo (createMessage model) model.idFriend)
+                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.usernameFriend)
             Session.Guest _ ->
                 Cmd.none
-
-
-createMessage : Model -> PostMessage
-createMessage { idYou, username, time, zone, unsentMessage} =
-    PostMessage 0 idYou username (toUtcString time zone) unsentMessage
 
 
 toUtcString : Time.Posix -> Time.Zone -> String

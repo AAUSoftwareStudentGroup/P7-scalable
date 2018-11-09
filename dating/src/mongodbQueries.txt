@@ -1,0 +1,92 @@
+----USERS----
+
+---Create
+--For CreateUserDTO
+user = { email: 'email@dating.com'
+       , password:'aProperPassword'
+       , username:'name'
+       , gender:'Gender'
+       , birthday:'Day'
+       , town:'aalborg'
+       , profileText:'I am old' 
+       , token:'LongTokenForAuthentication'
+       }
+db.users.insertOne(user)
+
+---Receive
+--Find All
+db.users.find({}, { username:1
+                  , gender:1
+                  , birthday:1
+                  , profileText:1
+                  , town:1
+                  }
+             )
+
+--Find One given ObjectId
+db.users.findOne({_id: ObjectId('TheStringId')}
+                , { username:1
+                  , gender:1
+                  , birthday:1
+                  , profileText:1
+                  , town:1
+                  }
+                )
+
+
+
+
+----Authentication----
+---LogIn
+db.users.update( db.users.findOne({$and:[{username:'name'}, {password:'aProperPassword'}]})
+               , {$set:{token:'TokenValue'}}
+               )
+
+---LogOut
+db.users.update( db.users.findOne({token:'TokenValue'})
+               , $unset:{token:1}
+               )
+
+
+
+
+----MESSAGE----
+--Need to add the message to a conversation as well as fetch messages from a conversation
+--If the conversation doesn't exist, add one
+db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
+
+if null do
+db.conversations.insertOne(
+    { members: [ { id:2
+                 , username:"name1"
+                 }
+               , { id:3
+                 , username:"name2"
+                 }
+               ]
+    , messages: [ { _id: new ObjectId()
+                  , authorId:2
+                  , timeStamp:'date'
+                  , body:'test message'
+                  }
+                ]
+    }
+)
+
+
+---Create
+db.conversations.update( db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
+                       , { $push:{messages:{_id: new ObjectId(), username:'creatorName', timeStamp:'Date', body: "LastMessage"}}}
+                       )
+
+
+---Get messages / conversations
+db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
+
+
+
+---Get Conversations
+--Get a list of objects each containing a message array with the last message as their only entry
+db.conversations.find( {'members.id':2}, {messages: {$slice: -1 }, _id:0, members:0})
+
+

@@ -11,8 +11,7 @@ import String.Extra exposing (toSentenceCase)
 import List exposing (map)
 import Url
 
-
-import DatingApi as Api exposing (User)
+import Api.Users exposing (User)
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
@@ -23,10 +22,10 @@ import UI.Elements as El
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , loaded: Bool
-    , users : List User
+    { session   : Session
+    , title     : String
+    , loaded    : Bool
+    , users     : List User
     }
 
 
@@ -71,7 +70,7 @@ subscriptions model =
 view : Model -> Session.Details Msg
 view model =
     let
-        myId = Maybe.withDefault -1 (Session.getUserId model.session)
+        myUsername = Maybe.withDefault "" (Session.getUsername model.session)
     in
         { title = "All users"
         , session = model.session
@@ -83,8 +82,9 @@ view model =
                             , ( "l-12", True )
                             , ( "s-12", True )
                             ]
+
                     ]
-                    (List.map (showUser2 model.session) <| List.filter (\user -> myId /= user.userId) model.users)
+                    (List.map (showUser2 model.session) <| List.filter (\user -> myUsername /= user.username) model.users)
                 ]
         }
 
@@ -95,7 +95,7 @@ showUser2 session user =
 
 showUser : Session -> User -> (String, Html Msg)
 showUser session user =
-    ( user.userUsername
+    ( user.username
     , El.userCard user
     )
 
@@ -104,6 +104,6 @@ sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
 sendGetUsers responseMsg session =
     case session of
         Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (Api.getUsers userInfo)
+            Http.send responseMsg (Api.Users.getUsers userInfo)
         Session.Guest _ ->
             Cmd.none

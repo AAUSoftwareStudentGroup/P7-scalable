@@ -15,16 +15,17 @@ library:
   - Database
   - Schema
   - SchemaEnums
-  - Authentication
+  - FrontendTypes
   dependencies:
   - base >=4.7 && <5
   - wai
   - aeson
   - monad-logger
+  - bson
   - mtl
   - persistent
-  - persistent-postgresql
   - persistent-template
+  - persistent-mongoDB
   - servant
   - servant-client
   - servant-elm
@@ -40,11 +41,19 @@ library:
   - cookie
   - containers
   - http-client
-  - esqueleto
   - elm-export-persistent
   - servant-elm
   - servant-foreign
   - random
+  - network
+  - template-haskell
+  - generic-lens
+  - lens
+  - mongoDB
+  - QuickCheck
+  - quickcheck-text
+  - quickcheck-instances
+  - cryptonite
 executables:
   dating:
     main: Main.hs
@@ -67,6 +76,7 @@ tests:
     dependencies:
     - base
     - hspec
+    - QuickCheck
     - http-client
     - http-client-tls
     - monad-logger
