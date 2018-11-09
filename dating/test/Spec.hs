@@ -1,8 +1,10 @@
-import qualified Database as DB
-import FrontendTypes
-import Test.Hspec
-import Test.QuickCheck
-import Data.Maybe (isJust)
+module Main where
+
+import           Data.Maybe      (isJust)
+import qualified Database        as DB
+import           FrontendTypes
+import           Test.Hspec
+import           Test.QuickCheck
 
 main :: IO ()
 main = hspec $ do
