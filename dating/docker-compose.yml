@@ -1,5 +1,36 @@
 version: '3'
 services:
+    dating:
+        build: ./
+        image: dating
+        command: bash -c "ghcid --command=\"stack --allow-different-user ghci\" --test=\"Main.main\"" 
+        volumes:
+          - ./:/app/user
+        ports:
+           - "1234:1234"
+
+    elm:
+        build: ./docker/elm
+        image: elm
+        volumes:
+            - ./frontend/:/opt/app
+        command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.js --debug\\\"\""
+
+    caddy:
+      image: abiosoft/caddy
+      ports:
+        - "80:80"
+      volumes:
+        - "./frontend:/srv/elm-frontend"
+        - "./docker/caddy/Caddyfile:/etc/Caddyfile"
+
+    sass:
+      image: larryprice/sass
+      volumes:
+        - ./frontend/style:/src
+
+    redis:
+      image: redis:4.0
 
     mongodb:
         image: 'bitnami/mongodb:latest'
@@ -13,45 +44,5 @@ services:
             - MONGODB_DATABASE=datingdb
         volumes:
             - ./docker/mongodb/data:/bitnami
-
-    redis:
-      image: redis:4.0
-#      ports:
-#        - "6379:6379"
-    dating:
-        build: ./
-        image: dating
-        command: bash -c "ghcid --command=\"stack --allow-different-user ghci\" --test=\"Main.main\"" 
-        volumes:
-          - ./:/app/user
-        ports:
-           - "1234:1234"
-
-    nginx:
-        build: ./docker/nginx
-        image: nginx
-        ports:
-          - "8002:80"
-
-
-    caddy:
-      image: abiosoft/caddy
-      ports:
-        - "80:80"
-#        - "443:443"
-      volumes:
-        - "./frontend:/srv/elm-frontend"
-        - "./docker/caddy/Caddyfile:/etc/Caddyfile"
-
-    elm:
-        build: ./docker/elm
-        image: elm
-        volumes:
-            - ./frontend/:/opt/app
-        #command: "bash -c \"ls -lah ./**/*.elm\""
-        command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.js --debug\\\"\""
-    sass:
-      image: larryprice/sass
-      volumes:
-        - ./frontend/style:/src
-
+        logging:
+            driver: "none"
