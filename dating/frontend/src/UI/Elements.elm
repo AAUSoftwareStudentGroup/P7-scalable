@@ -155,7 +155,7 @@ userCard user =
                         ]
             ]
             [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile username)) ]
-                [ div [ Attributes.style "background-image" ("url(" ++ (avatarUrl user) ++ ")") ] [] ]
+                [ div [ Attributes.style "background-image" ("url(" ++ user.image ++ ")") ] [] ]
             , div [ class "pri-title" ]
                 [ Html.h2 []
                     [ Html.text (toSentenceCase username) ]

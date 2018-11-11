@@ -63,7 +63,7 @@ type AuthAPI =
 type MessageAPI =
        "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> ReqBody '[JSON] CreateMessageDTO :> Post '[JSON] () -- Create Msg
   :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewDTO]                                         -- Fetch previews
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] ConversationDTO                   -- Fetch Convo
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Capture "offset" Int :> Get '[JSON] ConversationDTO                   -- Fetch Convo
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -159,9 +159,9 @@ createMessageHandler mongoInfo ownUsername otherUsername msgDTO =
   liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
 
 -- | Fetches all messages between two users.
-fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Handler ConversationDTO
-fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername =
-  liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername
+fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Int -> Handler ConversationDTO
+fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername offset =
+  liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername offset
 
 -- | Fetches an overview of conversations for one user.
 fetchConversationPreviewsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]

@@ -6,22 +6,27 @@
 module Database where
 
 import           Control.Lens
-import           Control.Monad              (void)
+import           Control.Monad              (void, sequence, foldM)
 import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import           Control.Monad.Logger       (LogLevel (..), LoggingT,
                                              MonadLogger, filterLogger,
                                              runStdoutLoggingT)
 import           Control.Monad.Reader       (ReaderT, runReaderT)
 import           Crypto.Hash
+import           Codec.Picture              (saveJpgImage, readJpeg)
+import           Codec.Picture.Jpg          (encodeJpeg, decodeJpeg)
+import           Codec.Picture.Types
+import           Codec.Picture.Saving
 import           Data.Aeson.Types           (FromJSON, ToJSON)
 import           Data.Bson                  (Document, Value, fval, typed, val)
 import           Data.ByteString            (ByteString)
+import           Data.ByteString.Base64     as Base64
 import           Data.ByteString.Char8      (pack, unpack)
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import           Data.Either                (rights, fromRight)
 import           Data.Generics.Product      (field, getField, super)
 import           Data.Int                   (Int64)
-import           Data.List                  (intersperse, sort, sortBy)
+import           Data.List                  (intersperse, sort, sortBy, zip)
 import           Data.Maybe                 (listToMaybe)
 import           Data.Ord                   (comparing)
 import           Data.Semigroup             ((<>))
@@ -33,7 +38,7 @@ import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
 import           Database.MongoDB.Admin     as Mongo.Admin
-import           Database.MongoDB.Query     (find, rest, select, project)
+import           Database.MongoDB.Query     (find, findOne, rest, select, project)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.Types     (unHaskellName)
@@ -102,6 +107,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
     action = do
       authToken <- liftIO mkAuthToken
       salt <- liftIO mkAuthToken
+      imageUrl <- liftIO $ urlFromBase64EncodedImage (getField @"imageData" createUserDTO) (getField @"username" createUserDTO)
       let newUser = User
             { userEmail       = getField @"email"       createUserDTO
             , userPassword    = hashPassword (getField @"password" createUserDTO) salt
@@ -110,6 +116,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
             , userBirthday    = getField @"birthday"    createUserDTO
             , userTown        = getField @"town"        createUserDTO
             , userProfileText = getField @"profileText" createUserDTO
+            , userImage       = "/app/user/userImages/" <> (getField @"username" createUserDTO)
             , userAuthToken   = authToken
             , userSalt        = salt
             }
@@ -126,6 +133,16 @@ createUser mongoConf createUserDTO = runAction mongoConf action
           return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
 
+urlFromBase64EncodedImage :: Text -> Text -> IO ()
+urlFromBase64EncodedImage img username = imageUrl
+  where
+    imageUrl = saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) (fromRight emptyImage $ decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img)--fromRight 
+    --decodeJpeg $ fromRight Base64.decode $ encodeUtf8 img
+
+
+emptyImage :: DynamicImage
+emptyImage = undefined
+
 -- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
@@ -138,15 +155,26 @@ fetchUser :: MongoConf -> Username -> IO (Maybe UserDTO)
 fetchUser mongoConf username = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Maybe UserDTO)
-    fetchAction = fmap userEntityToUserDTO <$> getBy (UniqueUsername username)
+    fetchAction = do
+      mUser <- getBy (UniqueUsername username)
+      case mUser of
+        Just a -> do
+          imgUrl <- liftIO $ extractUrlFromEntity a
+          return $ Just $ userEntityToUserDTO a imgUrl
+        Nothing -> return Nothing
 
 
--- | Fetch a list of users
 fetchAllUsers :: MongoConf -> IO [UserDTO]
 fetchAllUsers mongoConf = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [UserDTO]
-    fetchAction = fmap userEntityToUserDTO <$> selectList [] []
+    fetchAction = do
+      users <- selectList [] []
+      urls <- liftIO $ sequence (fmap extractUrlFromEntity users)
+      return $ map userEntityToUserDTOHelper $ zip users urls
+      
+    userEntityToUserDTOHelper :: (Entity User, Text) -> UserDTO
+    userEntityToUserDTOHelper (user, url) = userEntityToUserDTO user url
 
 
 -------------------------------------------------------------------------------
@@ -237,16 +265,22 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
           , messageText = body
           }
 
-fetchConversation :: MongoConf -> Username -> Username -> IO ConversationDTO
-fetchConversation mongoConf ownUsername otherUsername = runAction mongoConf fetchAction
+fetchConversation :: MongoConf -> Username -> Username -> Int -> IO ConversationDTO
+fetchConversation mongoConf ownUsername otherUsername offset = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO ConversationDTO
     fetchAction = do
-       maybeConvo <- selectFirst [ConversationMembers `anyEq` ownUsername,
-        ConversationMembers `anyEq` otherUsername] []
-       case maybeConvo of
+      maybeDoc <- findOne 
+        ( ( select [ "members" =: (ownUsername::Text)] "conversations") 
+          { project = [ "messages" =: [ "$slice" =: [ (offset::Int) , 10 ] ] ] }
+        )
+      case maybeDoc of
+        Just doc -> do
+          case docToEntityEither doc of
+            Left _ -> return emptyConvoDTO
+            Right convo -> return $ convoEntityToConversationDTO convo otherUsername
         Nothing -> return emptyConvoDTO
-        Just convo -> return $ convoEntityToConversationDTO convo otherUsername
+      
 
     emptyConvoDTO :: ConversationDTO
     emptyConvoDTO = ConversationDTO otherUsername mempty
@@ -275,6 +309,16 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
 runAction mongoConf action = withConnection mongoConf $
   \pool -> runMongoDBPoolDef action pool
 
+extractUrlFromEntity :: Entity User -> IO Text
+extractUrlFromEntity (Entity _ user) = base64
+  where
+    base64 = do
+      mImg <- readJpeg $ T.unpack $ (getField @"userImage" user)
+      case mImg of
+        Left _ -> return ""
+        Right img -> return $ T.pack $ unpack $ Base64.encode $ LBS.toStrict $ imageToJpg 90 img
+
+        
 conversationEntityToConversationPreviewDTO :: Text -> Entity Conversation -> ConversationPreviewDTO
 conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversationPreview
   where
@@ -287,17 +331,28 @@ conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversat
       , timeStamp = getField @"messageTime" message
       }
 
-
+{-
 userEntityToUserDTO :: Entity User -> UserDTO
-userEntityToUserDTO (Entity _ user) = userDTO
-  where
-    userDTO = UserDTO
-      { username    = userUsername user
-      , gender      = userGender user
-      , birthday    = userBirthday user
-      , town        = userTown user
-      , profileText = userProfileText user
-      }
+userEntityToUserDTO (Entity _ user) = UserDTO
+  { username    = userUsername user
+  , gender      = userGender user
+  , birthday    = userBirthday user
+  , town        = userTown user
+  , profileText = userProfileText user
+  , base64      = userImage user
+  }
+-}
+
+userEntityToUserDTO :: Entity User -> Text -> UserDTO
+userEntityToUserDTO (Entity _ user) img = UserDTO
+  { username    = userUsername user
+  , gender      = userGender user
+  , birthday    = userBirthday user
+  , town        = userTown user
+  , profileText = userProfileText user
+  , base64      = "data:image/jpeg;base64," <> img
+  }
+
 
 userEntityToLoggedInDTO :: Entity User -> LoggedInDTO
 userEntityToLoggedInDTO (Entity _ user) = LoggedInDTO
