@@ -111,7 +111,7 @@ decodeUser =
         |> Pipeline.required "birthday" Decode.string
         |> Pipeline.required "town" Decode.string
         |> Pipeline.required "profileText" Decode.string
-        |> Pipeline.required "base64" Decode.string
+        |> Pipeline.required "imageUrl" Decode.string
 
 
 decodeUserInfo : Decoder UserInfo

@@ -115,7 +115,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
             , userBirthday    = getField @"birthday"    createUserDTO
             , userTown        = getField @"town"        createUserDTO
             , userProfileText = getField @"profileText" createUserDTO
-            , userImage       = "/app/user/userImages/" <> (getField @"username" createUserDTO)
+            , userImage       = ("userImages/" <> (getField @"username" createUserDTO) <> ".jpg")
             , userAuthToken   = authToken
             , userSalt        = salt
             }
@@ -140,7 +140,7 @@ urlFromBase64EncodedImage :: Text -> Text -> Either LBS.ByteString (IO())
 urlFromBase64EncodedImage img username =
     case (decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img) of
       Left _ -> Left ("Invalid image, must be a Jpg") --fromRight 
-      Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) image
+      Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username <> ".jpg")) image
     --imageUrl = saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) (fromRight emptyImage $ decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img)--fromRight 
     --decodeJpeg $ fromRight Base64.decode $ encodeUtf8 img
 
@@ -160,26 +160,15 @@ fetchUser :: MongoConf -> Username -> IO (Maybe UserDTO)
 fetchUser mongoConf username = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Maybe UserDTO)
-    fetchAction = do
-      mUser <- getBy (UniqueUsername username)
-      case mUser of
-        Just a -> do
-          imgUrl <- liftIO $ extractUrlFromEntity a
-          return $ Just $ userEntityToUserDTO a imgUrl
-        Nothing -> return Nothing
+    fetchAction = fmap userEntityToUserDTO <$> getBy (UniqueUsername username)
 
 
+-- | Fetch all users
 fetchAllUsers :: MongoConf -> IO [UserDTO]
 fetchAllUsers mongoConf = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [UserDTO]
-    fetchAction = do
-      users <- selectList [] []
-      urls <- liftIO $ sequence (fmap extractUrlFromEntity users)
-      return $ map userEntityToUserDTOHelper $ zip users urls
-      
-    userEntityToUserDTOHelper :: (Entity User, Text) -> UserDTO
-    userEntityToUserDTOHelper (user, url) = userEntityToUserDTO user url
+    fetchAction = fmap userEntityToUserDTO <$> selectList [] []
 
 
 -------------------------------------------------------------------------------
@@ -314,15 +303,6 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
 runAction mongoConf action = withConnection mongoConf $
   \pool -> runMongoDBPoolDef action pool
 
-extractUrlFromEntity :: Entity User -> IO Text
-extractUrlFromEntity (Entity _ user) = base64
-  where
-    base64 = do
-      mImg <- readJpeg $ T.unpack $ (getField @"userImage" user)
-      case mImg of
-        Left _ -> return ""
-        Right img -> return $ T.pack $ unpack $ Base64.encode $ LBS.toStrict $ imageToJpg 90 img
-
         
 conversationEntityToConversationPreviewDTO :: Text -> Entity Conversation -> ConversationPreviewDTO
 conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversationPreview
@@ -336,7 +316,7 @@ conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversat
       , timeStamp = getField @"messageTime" message
       }
 
-{-
+
 userEntityToUserDTO :: Entity User -> UserDTO
 userEntityToUserDTO (Entity _ user) = UserDTO
   { username    = userUsername user
@@ -344,18 +324,7 @@ userEntityToUserDTO (Entity _ user) = UserDTO
   , birthday    = userBirthday user
   , town        = userTown user
   , profileText = userProfileText user
-  , base64      = userImage user
-  }
--}
-
-userEntityToUserDTO :: Entity User -> Text -> UserDTO
-userEntityToUserDTO (Entity _ user) img = UserDTO
-  { username    = userUsername user
-  , gender      = userGender user
-  , birthday    = userBirthday user
-  , town        = userTown user
-  , profileText = userProfileText user
-  , base64      = "data:image/jpeg;base64," <> img
+  , imageUrl    = userImage user
   }
 
 
