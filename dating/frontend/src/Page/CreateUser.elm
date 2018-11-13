@@ -124,19 +124,19 @@ update msg model =
 
 
         ImageSelected ->
-          ( model
-          , fileSelected model.imageName
-          )
-        ImageRead data ->
-          let
-            newImage =
-              { contents = data.contents
-              , filename = data.filename
-              }
-          in
-            ( { model | mImage = Just newImage }
-            , Cmd.none
+            ( model
+            , fileSelected model.imageName
             )
+        ImageRead data ->
+            let
+                newImage =
+                    { contents = data.contents
+                    , filename = data.filename
+                    }
+            in
+                ( { model | mImage = Just newImage }
+                , Cmd.none
+                )
 
 setField : Model -> FormField -> String -> Model
 setField model field value =
@@ -234,22 +234,29 @@ view model =
                     ]
                 , let
                     imagePreview =
-                      case Debug.log "image:"model.mImage of
-                        Just i ->
-                          viewImagePreview i
-                        Nothing ->
-                          Html.text ""
-                  in
-                    div [ class "imageWrapper" ]
-                      [ Html.input
+                        case Debug.log "image:" model.mImage of
+                            Just i ->
+                                viewImagePreview i
+                            Nothing ->
+                                Html.text ""
+                in
+                    div
+                    [
+                        classList
+                            [ ( "imageWrapper", True )
+                            , ( "l-6", True )
+                            , ("l-12", True )
+                            ]
+                    ]
+                    [ Html.input
                         [ Attributes.type_ "file"
                         , Attributes.id model.imageName
                         , Events.on "change"
-                          (Decode.succeed ImageSelected)
+                        (Decode.succeed ImageSelected)
                         ]
                         []
-                      , imagePreview
-                      ]
+                    , imagePreview
+                    ]
                 , El.submitButton "Sign up"
                 ]
             ]

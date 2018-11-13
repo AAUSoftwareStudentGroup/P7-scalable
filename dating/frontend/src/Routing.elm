@@ -1,4 +1,4 @@
-module Routing exposing (Route(..), fromUrl, href, replaceUrl, pushUrl, routeToString)
+module Routing exposing (Route(..), fromUrl, href, replaceUrl, goHome, pushUrl, routeToString)
 
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string, int)
@@ -42,10 +42,13 @@ href : Route -> Attribute msg
 href targetRoute =
     Attr.href (routeToString targetRoute)
 
-
 replaceUrl : Nav.Key -> String -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key route
+
+goHome : Nav.Key -> Cmd msg
+goHome key =
+    replaceUrl key (routeToString Home)
 
 pushUrl : Nav.Key -> String -> Cmd msg
 pushUrl key route =
@@ -58,7 +61,6 @@ fromUrl url =
     -- with parsing as if it had been a normal path all along.
     { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
         |> Parser.parse parser
-
 
 
 -- INTERNAL

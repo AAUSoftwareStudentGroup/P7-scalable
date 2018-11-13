@@ -7,7 +7,7 @@ import Html.Attributes exposing (classList, src, title, style)
 import Http
 import String
 
-import Api.Users exposing (User)
+import Api.Users exposing (User, emptyUser)
 import Api.Types exposing (Gender(..))
 import Routing exposing (Route(..))
 import Session exposing (Session, Details)
@@ -21,6 +21,10 @@ type alias Model =
     , user      : User
     }
 
+emptyModel : Session -> Model
+emptyModel session =
+    Model session "" False emptyUser
+
 
 type Msg
     = HandleGetUser (Result Http.Error User)
@@ -29,9 +33,13 @@ type Msg
 
 init : Session -> String -> ( Model, Cmd Msg )
 init session username =
-    ( Model session "Profile" False Api.Users.emptyUser
-    , sendGetUser HandleGetUser username session
-    )
+    case session of
+        Session.Guest _ _ ->
+            ( emptyModel session, Routing.goHome (Session.getNavKey session) )
+        Session.LoggedIn _ _ _ ->
+            ( Model session "Profile" False emptyUser
+            , sendGetUser HandleGetUser username session
+            )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
