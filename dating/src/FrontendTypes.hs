@@ -10,6 +10,7 @@ module FrontendTypes where
 
 import           Data.Aeson
 import           Data.Aeson.Types
+import           Data.ByteString
 import           Data.Int                       (Int64)
 import           Data.Text.Arbitrary
 import           Data.Time.Calendar             (Day)
@@ -32,6 +33,7 @@ data CreateUserDTO = CreateUserDTO
   , birthday    :: Day
   , town        :: Text
   , profileText :: Text
+  , imageData   :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
@@ -41,6 +43,7 @@ data UserDTO = UserDTO
   , birthday    :: Day
   , town        :: Text
   , profileText :: Text
+  , base64      :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
@@ -108,6 +111,7 @@ instance Arbitrary CreateUserDTO where
               <*> arbitrary -- birthday
               <*> arbitrary -- town
               <*> arbitrary -- profileText
+              <*> arbitrary -- image
 
 
 instance Arbitrary UserDTO where
@@ -117,6 +121,7 @@ instance Arbitrary UserDTO where
               <*> arbitrary -- birthday
               <*> arbitrary -- town
               <*> arbitrary -- profileText
+              <*> arbitrary -- base64
 
 instance Arbitrary CredentialDTO where
   arbitrary = CredentialDTO

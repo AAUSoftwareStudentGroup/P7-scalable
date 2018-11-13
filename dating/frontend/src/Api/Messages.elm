@@ -15,7 +15,7 @@ import Api.Authentication as Auth
 
 apiLocation : String
 apiLocation =
-    "http://api.dating.local:8002"
+    "http://api.dating.local"
 
 
 type alias Message =
@@ -89,8 +89,8 @@ postMessage userInfo message to =
             False
         }
 
-getMessagesFromUsername : UserInfo -> String -> Http.Request Conversation
-getMessagesFromUsername userInfo username =
+getMessagesFromUsername : UserInfo -> String -> Int -> Http.Request Conversation
+getMessagesFromUsername userInfo username offset =
     Http.request
         { method =
             "GET"
@@ -101,6 +101,7 @@ getMessagesFromUsername userInfo username =
                 [ apiLocation
                 , "messages"
                 , username
+                , String.fromInt offset
                 ]
         , body =
             Http.emptyBody

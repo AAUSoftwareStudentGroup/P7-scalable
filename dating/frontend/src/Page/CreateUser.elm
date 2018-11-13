@@ -1,15 +1,17 @@
 module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Html exposing (Html, div)
-import Html.Attributes as Attributes exposing (class, classList)
+import Html.Attributes as Attributes exposing (class, classList, style, attribute)
 import Html.Events as Events exposing (onClick)
 import Validate exposing (Validator, Valid)
+import Json.Decode as Decode
 import String
 import Http
 
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import Session exposing (Session)
+import Page.ImgPort exposing (ImagePortData, fileSelected, fileContentRead)
 import UI.Elements as El
 import Api.Types exposing (Gender(..), UserInfo)
 import Api.Users exposing (NewUser)
@@ -32,11 +34,20 @@ type alias Model =
     , birthday  : String
     , city      : String
     , bio       : String
+    , imageName : String
+    , mImage    : Maybe Image
     }
 
 
 type alias Error =
     ( FormField, String )
+
+
+type alias Image =
+  { contents : String
+  , filename : String
+  }
+
 
 type FormField
     = Email
@@ -50,7 +61,7 @@ type FormField
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( updateErrors (Model session "New user" [] False "" "" "" "" Male "" "" "")
+    ( updateErrors (Model session "New user" [] False "" "" "" "" Male "" "" "" "ImageInput" Nothing)
     , Cmd.none
     )
 
@@ -63,6 +74,8 @@ type Msg
     | GenderChanged Gender
     | Submitted
     | HandleUserCreated (Result Http.Error UserInfo)
+    | ImageSelected
+    | ImageRead ImagePortData
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -110,6 +123,21 @@ update msg model =
                             ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
 
 
+        ImageSelected ->
+          ( model
+          , fileSelected model.imageName
+          )
+        ImageRead data ->
+          let
+            newImage =
+              { contents = data.contents
+              , filename = data.filename
+              }
+          in
+            ( { model | mImage = Just newImage }
+            , Cmd.none
+            )
+
 setField : Model -> FormField -> String -> Model
 setField model field value =
     case field of
@@ -142,7 +170,7 @@ updateErrors model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    fileContentRead ImageRead
 
 userFromValidForm : Valid Model -> NewUser
 userFromValidForm validForm =
@@ -150,8 +178,17 @@ userFromValidForm validForm =
 
 
 userFromModel : Model -> NewUser
-userFromModel { email, password1, username, gender, birthday, city, bio } =
-    NewUser email password1 username gender birthday city bio
+userFromModel { email, password1, username, gender, birthday, city, bio, mImage } =
+    Debug.log "newUser" (NewUser email password1 username gender birthday city bio <| encodedImg mImage)
+
+encodedImg : Maybe Image -> String
+encodedImg mImg =
+    case mImg of
+        Just img ->
+         case List.head <| List.drop 1 (String.split "base64," img.contents) of
+             Just a -> a
+             Nothing -> ""
+        Nothing -> ""
 
 
 sendCreateUser : (Result Http.Error (UserInfo) -> msg) -> NewUser -> Cmd msg
@@ -195,12 +232,38 @@ view model =
                     , ( "Female", Female )
                     , ( "Other", Other )
                     ]
+                , let
+                    imagePreview =
+                      case Debug.log "image:"model.mImage of
+                        Just i ->
+                          viewImagePreview i
+                        Nothing ->
+                          Html.text ""
+                  in
+                    div [ class "imageWrapper" ]
+                      [ Html.input
+                        [ Attributes.type_ "file"
+                        , Attributes.id model.imageName
+                        , Events.on "change"
+                          (Decode.succeed ImageSelected)
+                        ]
+                        []
+                      , imagePreview
+                      ]
                 , El.submitButton "Sign up"
                 ]
             ]
     }
 
-
+viewImagePreview : Image -> Html Msg
+viewImagePreview image =
+  Html.img
+    [ Attributes.src image.contents
+    , Attributes.title image.filename
+    , style "width" "100px"
+    , style "height" "100px"
+    ]
+    []
 
 -- VALIDATION
 
@@ -224,6 +287,7 @@ modelValidator =
         , Validate.ifBlank .city ( City, "Please enter your city" )
 
         , Validate.ifBlank .bio ( Bio, "Please write a short description" )
+
         ]
 
 
@@ -268,3 +332,4 @@ isDateValid model =
         day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
     in
         year <= 2000
+

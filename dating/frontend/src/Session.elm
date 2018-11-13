@@ -123,4 +123,3 @@ decodeLocalStorageSession val =
     Decode.decodeValue Decode.string val
       |> Result.andThen(\str -> Decode.decodeString Api.Users.decodeUserInfo str)
 
-

@@ -54,6 +54,9 @@ library:
   - quickcheck-text
   - quickcheck-instances
   - cryptonite
+  - JuicyPixels
+  - base64-bytestring
+  - strict
 executables:
   dating:
     main: Main.hs

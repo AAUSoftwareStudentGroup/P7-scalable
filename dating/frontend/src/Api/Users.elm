@@ -13,7 +13,7 @@ import Api.Authentication as Auth exposing (Credentials)
 
 apiLocation : String
 apiLocation =
-    "http://api.dating.local:8002"
+    "http://api.dating.local"
 
 
 type alias NewUser =
@@ -24,6 +24,7 @@ type alias NewUser =
     , birthday      : String
     , town          : String
     , profileText   : String
+    , image         : String
     }
 
 type alias User =
@@ -32,12 +33,13 @@ type alias User =
     , birthday      : String
     , town          : String
     , profileText   : String
+    , image         : String
     }
 
 
 emptyUser : User
 emptyUser =
-    User "" Other "" "" ""
+    User "" Other "" "" "" ""
 
 
 encodeGender : Gender -> Encode.Value
@@ -91,6 +93,7 @@ encodeUser user =
         , ( "birthday", Encode.string user.birthday )
         , ( "town", Encode.string user.town )
         , ( "profileText", Encode.string user.profileText )
+        , ( "imageData", Encode.string user.image )
         ]
 
 encodeUserInfo : UserInfo -> Encode.Value
@@ -108,6 +111,7 @@ decodeUser =
         |> Pipeline.required "birthday" Decode.string
         |> Pipeline.required "town" Decode.string
         |> Pipeline.required "profileText" Decode.string
+        |> Pipeline.required "base64" Decode.string
 
 
 decodeUserInfo : Decoder UserInfo

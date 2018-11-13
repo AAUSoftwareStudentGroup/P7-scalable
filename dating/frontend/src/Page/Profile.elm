@@ -2,7 +2,7 @@ module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
 import Html exposing (Html, div)
-import Html.Attributes exposing (classList)
+import Html.Attributes exposing (classList, src, title, style)
 
 import Http
 import String
@@ -69,7 +69,8 @@ view model =
                     , ( "s-6", True )
                     ]
                 ]
-                [ El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
+                [ showImg model.user
+                , El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
                 , El.textProperty "Birthday" model.user.birthday
                 , El.textProperty "Town" model.user.town
                 , El.paragraphProperty "Description" model.user.profileText
@@ -77,6 +78,16 @@ view model =
                 ]
             ]
     }
+
+
+showImg : User -> Html msg
+showImg user =
+  Html.img
+    [ src user.image
+    , style "width" "100px"
+    , style "height" "100px"
+    ]
+    []
 
 
 chatButton : String -> Session -> Html msg
