@@ -130,6 +130,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
           case (urlFromBase64EncodedImage (getField @"imageData" createUserDTO) (getField @"username" createUserDTO)) of
             Left a -> return $ Left a
             Right img -> do
+              getImg <- liftIO img
               userId <- insert newUser
               addIndex <- Mongo.Admin.ensureIndex userIndex
               return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken
