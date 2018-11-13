@@ -28,3 +28,6 @@ dating.cabal
 
 # VS CODE
 .vscode
+
+#Where images are stored
+userImages
