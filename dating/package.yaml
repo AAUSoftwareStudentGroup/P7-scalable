@@ -57,6 +57,7 @@ library:
   - JuicyPixels
   - base64-bytestring
   - strict
+  - hmatrix
 executables:
   dating:
     main: Main.hs
