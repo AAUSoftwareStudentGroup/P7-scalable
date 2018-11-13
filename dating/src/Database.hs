@@ -107,7 +107,6 @@ createUser mongoConf createUserDTO = runAction mongoConf action
     action = do
       authToken <- liftIO mkAuthToken
       salt <- liftIO mkAuthToken
-      imageUrl <- liftIO $ urlFromBase64EncodedImage (getField @"imageData" createUserDTO) (getField @"username" createUserDTO)
       let newUser = User
             { userEmail       = getField @"email"       createUserDTO
             , userPassword    = hashPassword (getField @"password" createUserDTO) salt
@@ -128,20 +127,25 @@ createUser mongoConf createUserDTO = runAction mongoConf action
           else
             return $ Left $ ("A user with email \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"email" createUserDTO)) <> "\" already exists")
         Nothing -> do
-          userId <- insert newUser
-          addIndex <- Mongo.Admin.ensureIndex userIndex
-          return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken
+          case (urlFromBase64EncodedImage (getField @"imageData" createUserDTO) (getField @"username" createUserDTO)) of
+            Left a -> return $ Left a
+            Right img -> do
+              userId <- insert newUser
+              addIndex <- Mongo.Admin.ensureIndex userIndex
+              return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken
 
 
-urlFromBase64EncodedImage :: Text -> Text -> IO ()
-urlFromBase64EncodedImage img username = imageUrl
-  where
-    imageUrl = saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) (fromRight emptyImage $ decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img)--fromRight 
+urlFromBase64EncodedImage :: Text -> Text -> Either LBS.ByteString (IO())
+urlFromBase64EncodedImage img username =
+    case (decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img) of
+      Left _ -> Left ("Invalid image, must be a Jpg") --fromRight 
+      Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) image
+    --imageUrl = saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) (fromRight emptyImage $ decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img)--fromRight 
     --decodeJpeg $ fromRight Base64.decode $ encodeUtf8 img
 
 
-emptyImage :: DynamicImage
-emptyImage = undefined
+--emptyImage :: DynamicImage
+--emptyImage = undefined
 
 -- | Generate a random authtoken.
 mkAuthToken :: IO Text
