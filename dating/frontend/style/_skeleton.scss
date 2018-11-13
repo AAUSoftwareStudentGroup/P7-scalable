@@ -101,6 +101,7 @@ header, footer {
                 background-color: $pri-col;
                 width: 75%;
                 height: 100%;
+                z-index: 1;
 
                 li {
                     display: block;

@@ -25,7 +25,7 @@ parser =
     oneOf
         [ Parser.map Home Parser.top
         , Parser.map Login (s "login")
-        , Parser.map Login (s "logout")
+        , Parser.map Logout (s "logout")
         , Parser.map CreateUser (s "create-user")
         , Parser.map ListUsers (s "list-users")  
         , Parser.map Messages (s "messages")
