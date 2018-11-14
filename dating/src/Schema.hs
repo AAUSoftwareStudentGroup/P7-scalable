@@ -23,9 +23,6 @@ import           Data.Time.Clock               (UTCTime)
 import           Database.Persist              (Entity (..), Key)
 import           Database.Persist.MongoDB
 import qualified Database.Persist.TH           as PTH
-import           Elm                           (ElmType)
-import           Elm.Export.Persist
-import           Elm.Export.Persist.BackendKey ()
 import           GHC.Generics                  (Generic, Rep)
 import           Language.Haskell.TH.Syntax
 
