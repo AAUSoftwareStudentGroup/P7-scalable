@@ -35,14 +35,11 @@ library:
   - warp
   - hedis
   - bytestring
-  - elm-export
   - wai-cors
   - time
   - cookie
   - containers
   - http-client
-  - elm-export-persistent
-  - servant-elm
   - servant-foreign
   - random
   - network
@@ -57,6 +54,7 @@ library:
   - JuicyPixels
   - base64-bytestring
   - strict
+  - hmatrix
 executables:
   dating:
     main: Main.hs

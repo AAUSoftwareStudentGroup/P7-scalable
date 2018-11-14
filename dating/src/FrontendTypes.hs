@@ -43,7 +43,7 @@ data UserDTO = UserDTO
   , birthday    :: Day
   , town        :: Text
   , profileText :: Text
-  , base64      :: Text
+  , imageUrl    :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 

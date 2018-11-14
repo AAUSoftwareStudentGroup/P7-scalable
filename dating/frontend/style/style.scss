@@ -67,6 +67,22 @@ button, .btn {
     }
 }
 
+.toasts {
+    position: fixed;
+    right: 1rem;
+    top: 1rem;
+
+    .toast {
+        background-color: white;
+        padding: .3rem 1rem;
+        margin-bottom: 0.5rem;
+        border: 1px dotted #852929;
+        display: block;
+        border-radius: 0.2rem;
+    }
+}
+
+
 .message {
     &.author-me {
         justify-self: right;
