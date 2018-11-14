@@ -3,7 +3,6 @@
 {-# LANGUAGE DeriveAnyClass             #-}
 module SchemaEnums where
 
-import           Elm (ElmType)
 import           GHC.Generics
 import qualified Database.Persist.TH as PTH
 import           Data.Aeson (ToJSON, toJSON, object, (.=), FromJSON, parseJSON, (.:), withObject
@@ -13,5 +12,5 @@ data Gender =
     Male
   | Female
   | Other
-  deriving (Show, Read, Eq, Generic, ElmType, ToJSON, FromJSON)
+  deriving (Show, Read, Eq, Generic, ToJSON, FromJSON)
 PTH.derivePersistField "Gender"

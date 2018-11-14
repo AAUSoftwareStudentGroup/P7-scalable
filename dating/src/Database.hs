@@ -47,7 +47,6 @@ import           Database.Redis             (ConnectInfo, Redis, connect,
                                              connectHost, defaultConnectInfo,
                                              del, runRedis, setex)
 import qualified Database.Redis             as Redis
-import           Elm                        (ElmType)
 import           GHC.Generics               (Generic)
 import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
