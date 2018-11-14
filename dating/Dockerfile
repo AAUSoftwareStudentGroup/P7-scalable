@@ -1,7 +1,7 @@
 FROM haskell:8.4.3
 
 RUN apt-get update && apt-get install -y \
-  libpq-dev
+  libpq-dev libgsl0-dev liblapack-dev gnuplot imagemagick
 
 RUN mkdir -p /app/user/userImages
 WORKDIR /app/user
