@@ -33,14 +33,22 @@ type alias Model =
     }
 
 
+emptyModel : Session -> Model
+emptyModel session =
+    Model session "" False [] [] "" "" 0 "" Time.utc (Time.millisToPosix 0)
+
 init : Session -> String -> ( Model, Cmd Msg )
 init session usernameFriend =
-    let
-        username = Maybe.withDefault "" (Session.getUsername session)
-    in
-        ( Model session "Messages" False [] [] usernameFriend username 0 "" Time.utc (Time.millisToPosix 0)
-        , getMessagesOrRedirect session username usernameFriend
-        )
+    case session of
+        Session.Guest _ _ ->
+            ( emptyModel session, Routing.goHome (Session.getNavKey session) )
+        Session.LoggedIn _ _ _ ->
+            let
+                username = Maybe.withDefault "" (Session.getUsername session)
+            in
+                ( Model session "Messages" False [] [] usernameFriend username 0 "" Time.utc (Time.millisToPosix 0)
+                , getMessagesOrRedirect session username usernameFriend
+                )
 
 getMessagesOrRedirect : Session -> String -> String -> Cmd Msg
 getMessagesOrRedirect session usernameSelf usernameFriend =
@@ -49,7 +57,7 @@ getMessagesOrRedirect session usernameSelf usernameFriend =
     else
         Cmd.batch
             [ Task.perform AdjustTimeZone Time.here
-            , Task.perform FetchLocalMessages Time.now
+            , Task.perform FetchMessages Time.now
             ]
 
 -- UPDATE
@@ -57,11 +65,11 @@ type Msg
     = NoOp
     | AdjustTimeZone Time.Zone
     | FetchMessages Time.Posix
-    | FetchLocalMessages Time.Posix
     | HandleFetchedMessages (Result Http.Error Conversation)
     | UnsentMessageChanged String
     | SendMessage
     | HandleMessageSent (Result Http.Error (String.String))
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -81,17 +89,6 @@ update msg model =
                     , Http.send HandleFetchedMessages
                         (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend model.numMsgs)
                     )
-
-        FetchLocalMessages newTime ->
-            case (model.session) of
-                Session.Guest _ _ ->
-                    ( { model | time = newTime }, Cmd.none )
-                Session.LoggedIn _ _ userInfo ->
-                    ( { model | time = newTime }
-                    , Http.send HandleFetchedMessages (Api.Messages.getMessagesFromUsername
-                        userInfo model.usernameFriend model.numMsgs)
-                    )
-
 
         HandleMessageSent result ->
             case result of
@@ -128,9 +125,7 @@ addMessageToList model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-    [ Time.every 3000 FetchMessages
-    ]
+    Sub.batch [ Time.every 3000 FetchMessages ]
 
 -- VIEW
 

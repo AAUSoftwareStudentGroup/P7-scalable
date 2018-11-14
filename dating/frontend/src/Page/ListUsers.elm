@@ -29,11 +29,19 @@ type alias Model =
     }
 
 
+emptyModel : Session -> Model
+emptyModel sesssion
+    = Model sesssion "" False []
+
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "List Users" False []
-    , sendGetUsers UsersFetched session
-    )
+    case session of
+        Session.Guest _ _ ->
+            ( emptyModel session, Routing.goHome (Session.getNavKey session) )
+        Session.LoggedIn _ _ _ ->
+            ( Model session "List Users" False []
+            , sendGetUsers UsersFetched session
+            )
 
 
 -- UPDATE

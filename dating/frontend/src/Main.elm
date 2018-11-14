@@ -50,6 +50,7 @@ type alias Model =
     , numMessages : Int
     }
 
+
 type Page
     = NotFound NotFound.Model
     | CreateUser CreateUser.Model
@@ -68,7 +69,6 @@ init maybeValue url key =
         , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
         , numMessages = 0
         }
-
 
 
 -- VIEW

@@ -100,7 +100,7 @@ header, footer {
                 display: inline-block;
                 background-color: $pri-col;
                 width: 75%;
-                height: 100%;
+                height: calc(100% - 64px);
                 z-index: 1;
 
                 li {
