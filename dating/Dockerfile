@@ -3,7 +3,7 @@ FROM haskell:8.4.3
 RUN apt-get update && apt-get install -y \
   libpq-dev libgsl0-dev liblapack-dev gnuplot imagemagick
 
-RUN mkdir -p /app/user/userImages
+RUN mkdir -p /app/user
 WORKDIR /app/user
 COPY ./stack.yaml ./package.yaml ./*.cabal ./
 
