@@ -79,9 +79,9 @@ $txt-weight-bold: 800;
 }
 
 %txt-paragraph {
-    font-size: 0.9rem;
-    line-height: 1.2rem;
-    font-weight: $txt-weight-light;
+    font-size: $txt-size-5;
+    line-height: $txt-lh-5;
+    font-weight: $txt-weight-regular;
     color: $txt-col-dark;
 }
 

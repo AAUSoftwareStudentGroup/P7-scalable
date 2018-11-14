@@ -17,9 +17,9 @@
     </head>
     <body>
         <script>
-            var storageKey = "session";
-            var flags = localStorage.getItem(storageKey);
-            var app = Elm.Main.init({flags: flags});
+            const storageKey = "session";
+            const flags = localStorage.getItem(storageKey);
+            const app = Elm.Main.init({flags: flags});
 
             app.ports.storeLocally.subscribe(function(val) {
                 if (val === null) {
@@ -34,49 +34,60 @@
                 }, 0);
             });
 
-            // Whenever localStorage changes in another tab, report it if necessary.
+            // Whenever localStorage changes in another tab, report it
             window.addEventListener("storage", function(event) {
                 console.log(event);
                 if (event.storageArea === localStorage) {
                     console.log('Calling onStoreChange!');
                     app.ports.onStoreChange.send(event.newValue);
                 }
-            }, false);
+            });
 
 
-            // Handle file
-            app.ports.fileSelected.subscribe(function (id) {
-              var node = document.getElementById(id);
-              if (node === null) {
-                return;
-              }
-              console.log(id);
-              // If your file upload field allows multiple files, you might
-              // want to consider turning this into a `for` loop.
-              var file = node.files[0];
-              var reader = new FileReader();
+            app.ports.fileSelected.subscribe(function () {
+                const node = $('input[type="file"]')[0];
+                    if (!node) {
+                        return;
+                    }
 
-              // FileReader API is event based. Once a file is selected
-              // it fires events. We hook into the `onload` event for our reader.
-              reader.onload = (function(event) {
-                // The event carries the `target`. The `target` is the file
-                // that was selected. The result is base64 encoded contents of the file.
-                var base64encoded = event.target.result;
-                // We build up the `ImagePortData` object here that will be passed to our Elm
-                // runtime through the `fileContentRead` subscription.
-                var portData = {
-                  contents: base64encoded,
-                  filename: file.name
-                };
+                const file = node.files[0];
 
-                // We call the `fileContentRead` port with the file data
-                // which will be sent to our Elm runtime via Subscriptions.
-                app.ports.fileContentRead.send(portData);
-              });
+                // If something other than an image is selected
+                if (file.type.split('/')[0] !== 'image') {
+                    // Remove it
+                    node.value = '';
 
-              // Connect our FileReader with the file that was selected in our `input` node.
-              reader.readAsDataURL(file);
-});
+                    // And send an error to Elm
+                    app.ports.fileContentRead.send({
+                        error: 'Unsupported file type',
+                        contents: '',
+                        fileName: ''
+                    });
+
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                // Connect our FileReader with the file that was selected in our `input` node.
+                reader.readAsDataURL(file);
+
+                // FileReader API is event based. Once a file is selected
+                // it fires events. We hook into the `onload` event for our reader.
+                reader.onload = (function(event) {
+                    // The event carries the `target`. The `target` is the file
+                    // that was selected. The result is base64 encoded contents of the file.
+                    const base64encoded = event.target.result;
+
+                    // We call the `fileContentRead` port with the file data
+                    // which will be sent to our Elm runtime via Subscriptions.
+                    app.ports.fileContentRead.send({
+                        error: '',
+                        contents: base64encoded,
+                        fileName: file.name
+                    });
+                });
+            });
         </script>
 
         <script>

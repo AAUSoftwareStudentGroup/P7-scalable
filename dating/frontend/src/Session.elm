@@ -6,8 +6,8 @@ import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
 
-import Api.Types exposing (UserInfo, Token)
 import Api.Users
+import Api.Authentication exposing (Token, UserInfo)
 
 -- TYPES
 type Session
@@ -122,4 +122,3 @@ decodeLocalStorageSession : Encode.Value -> Result Decode.Error UserInfo
 decodeLocalStorageSession val =
     Decode.decodeValue Decode.string val
       |> Result.andThen(\str -> Decode.decodeString Api.Users.decodeUserInfo str)
-

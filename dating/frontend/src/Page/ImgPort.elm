@@ -1,10 +1,11 @@
 port module Page.ImgPort exposing (..)
 
 type alias ImagePortData =
-  { contents : String
-  , filename : String
-  }
+    { error    : String
+    , contents : String
+    , fileName : String
+    }
 
-port fileSelected : String -> Cmd msg
+port fileSelected : (() -> Cmd msg)
 
 port fileContentRead : (ImagePortData -> msg) -> Sub msg

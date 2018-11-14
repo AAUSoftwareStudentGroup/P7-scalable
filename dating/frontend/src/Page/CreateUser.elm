@@ -4,7 +4,6 @@ import Html exposing (Html, div)
 import Html.Attributes as Attributes exposing (class, classList, style, attribute)
 import Html.Events as Events exposing (onClick)
 import Validate exposing (Validator, Valid)
-import Json.Decode as Decode
 import String
 import Http
 
@@ -13,7 +12,9 @@ import Routing exposing (Route(..))
 import Session exposing (Session)
 import Page.ImgPort exposing (ImagePortData, fileSelected, fileContentRead)
 import UI.Elements as El
-import Api.Types exposing (Gender(..), UserInfo)
+
+import Api.Types exposing (Gender(..), Image)
+import Api.Authentication exposing (UserInfo)
 import Api.Users exposing (NewUser)
 
 
@@ -34,19 +35,12 @@ type alias Model =
     , birthday  : String
     , city      : String
     , bio       : String
-    , imageName : String
     , mImage    : Maybe Image
     }
 
 
 type alias Error =
     ( FormField, String )
-
-
-type alias Image =
-  { contents : String
-  , filename : String
-  }
 
 
 type FormField
@@ -61,7 +55,7 @@ type FormField
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( updateErrors (Model session "New user" [] False "" "" "" "" Male "" "" "" "ImageInput" Nothing)
+    ( updateErrors (Model session "New user" [] False "" "" "" "" Male "" "" "" Nothing)
     , Cmd.none
     )
 
@@ -74,8 +68,8 @@ type Msg
     | GenderChanged Gender
     | Submitted
     | HandleUserCreated (Result Http.Error UserInfo)
-    | ImageSelected
-    | ImageRead ImagePortData
+    | FileSelected
+    | FileRead ImagePortData
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -122,21 +116,25 @@ update msg model =
                         Http.BadStatus statusResponse ->
                             ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
 
-
-        ImageSelected ->
+        FileSelected ->
             ( model
-            , fileSelected model.imageName
+            , fileSelected ()
             )
-        ImageRead data ->
+
+        FileRead portData ->
             let
-                newImage =
-                    { contents = data.contents
-                    , filename = data.filename
-                    }
+                image = Just (Image portData.contents portData.fileName)
             in
-                ( { model | mImage = Just newImage }
-                , Cmd.none
-                )
+                if portData.error == "" then
+                    ( { model | mImage = image }
+                    , Cmd.none
+                    )
+                else
+                    ( { model | mImage = Nothing, session = Session.addNotification model.session portData.error }
+                    , Cmd.none
+                    )
+
+
 
 setField : Model -> FormField -> String -> Model
 setField model field value =
@@ -170,7 +168,7 @@ updateErrors model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    fileContentRead ImageRead
+    fileContentRead FileRead
 
 userFromValidForm : Valid Model -> NewUser
 userFromValidForm validForm =
@@ -232,45 +230,11 @@ view model =
                     , ( "Female", Female )
                     , ( "Other", Other )
                     ]
-                , let
-                    imagePreview =
-                        case Debug.log "image:" model.mImage of
-                            Just i ->
-                                viewImagePreview i
-                            Nothing ->
-                                Html.text ""
-                in
-                    div
-                    [
-                        classList
-                            [ ( "imageWrapper", True )
-                            , ( "l-6", True )
-                            , ("l-12", True )
-                            ]
-                    ]
-                    [ Html.input
-                        [ Attributes.type_ "file"
-                        , Attributes.id model.imageName
-                        , Events.on "change"
-                        (Decode.succeed ImageSelected)
-                        ]
-                        []
-                    , imagePreview
-                    ]
+                , El.imageInput "Profile picture" FileSelected model.mImage
                 , El.submitButton "Sign up"
                 ]
             ]
     }
-
-viewImagePreview : Image -> Html Msg
-viewImagePreview image =
-  Html.img
-    [ Attributes.src image.contents
-    , Attributes.title image.filename
-    , style "width" "100px"
-    , style "height" "100px"
-    ]
-    []
 
 -- VALIDATION
 
