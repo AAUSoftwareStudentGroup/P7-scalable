@@ -70,13 +70,15 @@ button, .btn {
 .toasts {
     position: fixed;
     right: 1rem;
-    top: 1rem;
+    top: $header-height;
+    z-index: 1;
 
     .toast {
+        margin-top: 1rem;
         background-color: white;
         padding: .3rem 1rem;
         margin-bottom: 0.5rem;
-        border: 1px dotted #852929;
+        border: 1px solid #852929;
         display: block;
         border-radius: 0.2rem;
     }

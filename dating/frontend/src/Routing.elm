@@ -1,7 +1,7 @@
 module Routing exposing (Route(..), fromUrl, href, replaceUrl, goHome, pushUrl, routeToString)
 
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string, int)
+import Url.Parser as Parser exposing ((</>), (<?>), Parser, oneOf, s)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
@@ -27,10 +27,10 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map Logout (s "logout")
         , Parser.map CreateUser (s "create-user")
-        , Parser.map ListUsers (s "list-users")  
+        , Parser.map ListUsers (s "list-users")
         , Parser.map Messages (s "messages")
-        , Parser.map Profile (s "user" </> string)
-        , Parser.map Chat (s "chat" </> string)
+        , Parser.map Profile (s "user" </> Parser.string)
+        , Parser.map Chat (s "chat" </> Parser.string)
         ]
 
 
@@ -95,4 +95,17 @@ routeToString page =
                     [ "chat", username ]
 
     in
-    "/" ++ String.join "/" pieces
+        "/" ++ String.join "/" pieces
+
+
+
+
+
+
+
+
+
+
+
+
+

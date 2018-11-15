@@ -218,8 +218,8 @@ getUserByUsername username userInfo =
             False
         }
 
-getUsers : UserInfo -> Http.Request (List (User))
-getUsers userInfo =
+getUsers : Int -> Int -> UserInfo -> Http.Request (List (User))
+getUsers pageNum pageSize userInfo =
     Http.request
         { method =
             "GET"
@@ -229,6 +229,8 @@ getUsers userInfo =
             String.join "/"
                 [ apiLocation
                 , "users"
+                , String.fromInt (pageNum * pageSize)
+                , String.fromInt pageSize
                 ]
         , body =
             Http.emptyBody

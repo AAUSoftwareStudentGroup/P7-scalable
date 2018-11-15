@@ -138,8 +138,11 @@ titledContentLoader isLoaded heading contents =
         titledContent heading contents
     else
         titledContent heading
-        [ div [ class "loading-spinner" ] [] ]
+        loader
 
+loader : List (Html msg)
+loader =
+    [ div [ class "loading-spinner" ] [] ]
 
 userCard : User -> Html msg
 userCard user =
