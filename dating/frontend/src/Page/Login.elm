@@ -61,7 +61,6 @@ type Msg
     = FormFieldChanged FormField String
     | Submitted
     | HandleUserLogin (Result Http.Error UserInfo)
-    | FuckNotifications String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -90,10 +89,6 @@ update msg model =
 
                 Err errResponse ->
                     ( handleErrorResponse model errResponse, Cmd.none )
-
-        FuckNotifications notificationText ->
-            (model, Cmd.none)
-
 
 setField : Model -> FormField -> String -> Model
 setField model field value =
