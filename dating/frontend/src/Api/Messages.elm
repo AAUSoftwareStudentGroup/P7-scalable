@@ -100,6 +100,7 @@ getMessagesFromUsername userInfo username offset =
                 , "messages"
                 , username
                 , String.fromInt offset
+
                 ]
         , body =
             Http.emptyBody

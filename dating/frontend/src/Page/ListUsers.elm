@@ -29,6 +29,7 @@ onScroll message =
 
 -- MODEL
 
+startPage = 0
 usersPerPage = 12
 
 type alias Model =
@@ -43,7 +44,7 @@ type alias Model =
 
 initModel : Session -> Model
 initModel session
-    = Model session "All users" False True 1 []
+    = Model session "All users" False True (startPage + 1) []
 
 init : Session -> ( Model, Cmd Msg )
 init session =
@@ -54,7 +55,7 @@ init session =
             )
         Session.LoggedIn _ _ _ ->
             ( initModel session
-            , sendGetUsers UsersFetched 1 session
+            , sendGetUsers UsersFetched startPage session
             )
 
 
