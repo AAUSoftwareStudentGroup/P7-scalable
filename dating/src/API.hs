@@ -53,7 +53,7 @@ type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI
 type UserAPI =
        "users" :> ReqBody '[JSON] CreateUserDTO :> Post '[JSON] LoggedInDTO                       -- Create User
   :<|> "users" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] UserDTO -- Fetch User
-  :<|> "users" :> AuthProtect "cookie-auth" :> Get '[JSON] [UserDTO]                              -- Fetch Users
+  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "offset" Int :> Capture "limit" Int :> Get '[JSON] [UserDTO]                              -- Fetch Users
 
 type AuthAPI =
        "login"  :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO    -- Login
@@ -63,7 +63,7 @@ type AuthAPI =
 type MessageAPI =
        "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> ReqBody '[JSON] CreateMessageDTO :> Post '[JSON] () -- Create Msg
   :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewDTO]                                         -- Fetch previews
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Capture "offset" Int :> Get '[JSON] ConversationDTO                   -- Fetch Convo
+  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Capture "offset" Int :> Capture "limit" Int :> Get '[JSON] ConversationDTO                   -- Fetch Convo
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -92,8 +92,8 @@ fetchUserHandler mongoInfo _ username = do
     Nothing -> Handler $ throwE $ err401 { errBody = "The user does not exist."}
 
 -- | Fetches all users from db.
-fetchAllUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
-fetchAllUsersHandler mongoInfo _ = liftIO $ DB.fetchAllUsers mongoInfo
+fetchAllUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
+fetchAllUsersHandler mongoInfo _ offset limit = liftIO $ DB.fetchAllUsers mongoInfo offset limit
 
 
 -------------------------------------------------------------------------------
@@ -159,9 +159,9 @@ createMessageHandler mongoInfo ownUsername otherUsername msgDTO =
   liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
 
 -- | Fetches all messages between two users.
-fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Int -> Handler ConversationDTO
-fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername offset =
-  liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername offset
+fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Int -> Int -> Handler ConversationDTO
+fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername offset limit =
+  liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername offset limit
 
 -- | Fetches an overview of conversations for one user.
 fetchConversationPreviewsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]

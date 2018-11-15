@@ -163,11 +163,11 @@ fetchUser mongoConf username = runAction mongoConf fetchAction
 
 
 -- | Fetch all users
-fetchAllUsers :: MongoConf -> IO [UserDTO]
-fetchAllUsers mongoConf = runAction mongoConf fetchAction
+fetchAllUsers :: MongoConf -> Int -> Int -> IO [UserDTO]
+fetchAllUsers mongoConf offset limit = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [UserDTO]
-    fetchAction = fmap userEntityToUserDTO <$> selectList [] []
+    fetchAction = fmap userEntityToUserDTO <$> selectList [] [OffsetBy offset, LimitTo limit]
 
 
 -------------------------------------------------------------------------------
@@ -258,14 +258,14 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
           , messageText = body
           }
 
-fetchConversation :: MongoConf -> Username -> Username -> Int -> IO ConversationDTO
-fetchConversation mongoConf ownUsername otherUsername offset = runAction mongoConf fetchAction
+fetchConversation :: MongoConf -> Username -> Username -> Int -> Int -> IO ConversationDTO
+fetchConversation mongoConf ownUsername otherUsername offset limit = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO ConversationDTO
     fetchAction = do
       maybeDoc <- findOne 
         ( ( select [ "members" =: (ownUsername::Text)] "conversations") 
-          { project = [ "messages" =: [ "$slice" =: [ (offset::Int) , 10 ] ] ] }
+          { project = [ "messages" =: [ "$slice" =: [ (offset::Int) , (limit::Int) ] ] ] }
         )
       case maybeDoc of
         Just doc -> do
