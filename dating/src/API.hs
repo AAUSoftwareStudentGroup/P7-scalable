@@ -51,19 +51,42 @@ import           Schema
 type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI
 
 type UserAPI =
-       "users" :> ReqBody '[JSON] CreateUserDTO :> Post '[JSON] LoggedInDTO                       -- Create User
-  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Get '[JSON] UserDTO -- Fetch User
-  :<|> "users" :> AuthProtect "cookie-auth" :> Capture "offset" Int :> Capture "limit" Int :> Get '[JSON] [UserDTO]                              -- Fetch Users
+        -- Create User
+  "users" :> ReqBody '[JSON] CreateUserDTO 
+               :> Post '[JSON] LoggedInDTO
+  :<|>  -- Fetch User
+  "users" :> AuthProtect "cookie-auth" 
+          :> Capture "username" Username 
+          :> Get '[JSON] UserDTO
+  :<|>  -- Fetch Users
+  "users" :> AuthProtect "cookie-auth" 
+          :> Capture "offset" Int 
+          :> Capture "limit" Int 
+          :> Get '[JSON] [UserDTO]
 
 type AuthAPI =
-       "login"  :> ReqBody '[JSON] CredentialDTO :> Post '[JSON] LoggedInDTO    -- Login
-  :<|> "logout" :> ReqBody '[JSON] Text :> Post '[JSON] ()                      -- Logout
-
+        -- Login
+  "login"  :> ReqBody '[JSON] CredentialDTO 
+           :> Post '[JSON] LoggedInDTO
+  :<|>  --Logout
+  "logout" :> ReqBody '[JSON] Text 
+           :> Post '[JSON] ()
 
 type MessageAPI =
-       "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> ReqBody '[JSON] CreateMessageDTO :> Post '[JSON] () -- Create Msg
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Get '[JSON] [ConversationPreviewDTO]                                         -- Fetch previews
-  :<|> "messages" :> AuthProtect "cookie-auth" :> Capture "username" Username :> Capture "offset" Int :> Capture "limit" Int :> Get '[JSON] ConversationDTO                   -- Fetch Convo
+        -- Create Message
+  "messages" :> AuthProtect "cookie-auth" 
+             :> Capture "username" Username 
+             :> ReqBody '[JSON] CreateMessageDTO 
+             :> Post '[JSON] ()
+  :<|>  -- Fetch Message Previews 
+  "messages" :> AuthProtect "cookie-auth" 
+             :> Get '[JSON] [ConversationPreviewDTO]
+  :<|>  -- Fetch Conversation and some messages
+  "messages" :> AuthProtect "cookie-auth" 
+             :> Capture "username" Username 
+             :> Capture "offset" Int 
+             :> Capture "limit" Int 
+             :> Get '[JSON] ConversationDTO
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -80,7 +103,7 @@ createUserHandler mongoInfo newUser = do
   maybeCreated <- liftIO $ DB.createUser mongoInfo newUser
   case maybeCreated of
     Right loggedInDTO -> return loggedInDTO
-    Left text -> Handler $ throwE $ err409 {errBody = text }
+    Left text -> Handler $ throwE $ text
 
 -- | Fetches a user by username.
 fetchUserHandler :: MongoInfo -> Username -> Username -> Handler UserDTO
@@ -89,7 +112,7 @@ fetchUserHandler mongoInfo _ username = do
   case maybeUser of
     Just user -> return user
 
-    Nothing -> Handler $ throwE $ err401 { errBody = "The user does not exist."}
+    Nothing -> Handler $ throwE $ err404 { errBody = "The user does not exist"}
 
 -- | Fetches all users from db.
 fetchAllUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
@@ -107,7 +130,7 @@ loginHandler mongoInfo credentials = do
   maybeUser <- liftIO $ DB.fetchUserByCredentials mongoInfo credentials
   case maybeUser of
     Just user -> return user
-    Nothing   -> throwError (err403 {errBody = "Invalid credentials."})
+    Nothing   -> throwError (err401 {errBody = "Invalid credentials"})
 
 
 -- | Logs a user out
@@ -142,7 +165,7 @@ lookupByAuthToken :: MongoInfo -> Text -> Handler Username
 lookupByAuthToken mongoInfo authToken = do
   maybeUsername <- liftIO $ DB.fetchUsernameByAuthToken mongoInfo authToken
   case maybeUsername of
-    Nothing -> throwError (err403 { errBody = "Invalid authentication token." })
+    Nothing -> throwError (err403 { errBody = "Invalid authentication token" })
     Just username -> return username
 
 maybeToEither :: a -> Maybe b -> Either a b

@@ -52,7 +52,7 @@ import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
 import           System.IO.Unsafe           (unsafePerformIO)
 import qualified System.Random              as Random
-
+import           Servant.Server.Internal.ServantErr
 import           FrontendTypes
 import           Schema
 
@@ -99,10 +99,10 @@ fetchRedisInfo = return $ defaultConnectInfo {connectHost = "redis"}
 -------------------------------------------------------------------------------
 
 -- | Create a user if the username is not taken
-createUser :: MongoConf -> CreateUserDTO -> IO (Either LBS.ByteString LoggedInDTO)
+createUser :: MongoConf -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
 createUser mongoConf createUserDTO = runAction mongoConf action
   where
-    action :: Action IO (Either LBS.ByteString LoggedInDTO)
+    action :: Action IO (Either ServantErr LoggedInDTO)
     action = do
       authToken <- liftIO mkAuthToken
       salt <- liftIO mkAuthToken
@@ -122,12 +122,12 @@ createUser mongoConf createUserDTO = runAction mongoConf action
       case canNotBeInserted of
         Just a ->
           if ((unHaskellName $ fst $ head $ persistUniqueToFieldNames a) == "username") then
-            return $ Left $ ("A user named \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"username" createUserDTO)) <> "\" already exists")
+            return $ Left $ err409 { errBody = ("A user named \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"username" createUserDTO)) <> "\" already exists") }
           else
-            return $ Left $ ("A user with email \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"email" createUserDTO)) <> "\" already exists")
+            return $ Left $ err409 { errBody = ("A user with email \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"email" createUserDTO)) <> "\" already exists") }
         Nothing -> do
           case (urlFromBase64EncodedImage (getField @"imageData" createUserDTO) salt) of
-            Left a -> return $ Left a
+            Left a -> return $ Left $ err415 { errBody = a }
             Right img -> do
               getImg <- liftIO img
               userId <- insert newUser
@@ -140,13 +140,8 @@ urlFromBase64EncodedImage img salt =
     case (decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img) of
       Left _ -> Left ("Invalid image, must be a Jpg") --fromRight 
       Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/frontend/img/users/" <> salt <> ".jpg")) image
-    --imageUrl = saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) (fromRight emptyImage $ decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img)--fromRight 
-    --decodeJpeg $ fromRight Base64.decode $ encodeUtf8 img
 
-
---emptyImage :: DynamicImage
---emptyImage = undefined
-
+      
 -- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
