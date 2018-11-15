@@ -264,12 +264,12 @@ linkButtonFlat attributes url children =
 
 msgButton : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
 msgButton attributes msg children =
-    Html.a ([ class "btn", Events.onClick msg ] ++ attributes)
+    Html.div ([ class "btn", Events.onClick msg ] ++ attributes)
         children
 
 msgButtonFlat : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
 msgButtonFlat attributes msg children =
-    Html.a ([ class "flat-btn", Events.onClick msg ] ++ attributes)
+    Html.div ([ class "flat-btn", Events.onClick msg ] ++ attributes)
         children
 
 link : String -> String -> Html msg

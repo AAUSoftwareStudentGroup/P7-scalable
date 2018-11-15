@@ -22,10 +22,6 @@ import UI.Elements as El
 import Ports.LoadMorePort exposing (LoadMoreData, loadMore)
 
 
-onScroll : msg -> Html.Attribute msg
-onScroll message =
-  Events.on "scroll" (Decode.succeed message)
-
 
 -- MODEL
 

@@ -87,8 +87,8 @@ postMessage userInfo message to =
             False
         }
 
-getMessagesFromUsername : UserInfo -> String -> Int -> Http.Request Conversation
-getMessagesFromUsername userInfo username offset =
+getMessagesFromUsername : UserInfo -> String -> Int -> Int -> Http.Request Conversation
+getMessagesFromUsername userInfo username offset pageSize =
     Http.request
         { method =
             "GET"
@@ -100,7 +100,7 @@ getMessagesFromUsername userInfo username offset =
                 , "messages"
                 , username
                 , String.fromInt offset
-
+                , String.fromInt pageSize
                 ]
         , body =
             Http.emptyBody

@@ -17,6 +17,10 @@ import Session as Session exposing (Session, Details)
 import UI.Elements as El
 
 -- MODEL
+
+startPage = 0
+messagesPerPage = 100
+
 type alias Model =
     { session           : Session
     , title             : String
@@ -82,7 +86,7 @@ update msg model =
                 Session.LoggedIn _ _ userInfo ->
                     ( { model | time = newTime }
                     , Http.send HandleFetchedMessages
-                        (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend model.numMsgs)
+                        (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend model.numMsgs messagesPerPage)
                     )
 
         HandleFetchedMessages result ->
@@ -104,14 +108,10 @@ update msg model =
         HandleMessageSent result ->
             case result of
                 Ok responseString ->
-                    ( { model | content = addMessageToList model, numMsgs = model.numMsgs + 1, unsentMessage = "" }, Cmd.none )
+                    ( { model | unsentMessage = "" }, Task.perform FetchMessages Time.now )
                 Err _ ->
                     ( model , Cmd.none  )
 
-
-addMessageToList : Model -> List Message
-addMessageToList model =
-    model.content ++ [(Message model.unsentMessage model.usernameSelf (toUtcString model.time model.zone))]
 
 
 -- SUBSCRIPTIONS
@@ -181,53 +181,3 @@ sendMessage model =
                 Cmd.none
 
 
-toUtcString : Time.Posix -> Time.Zone -> String
-toUtcString time zone =
-    String.fromInt (Time.toYear zone time)
-    ++ "-" ++
-    (case (Time.toMonth zone time) of
-        Time.Jan -> "01"
-        Time.Feb -> "02"
-        Time.Mar -> "03"
-        Time.Apr -> "04"
-        Time.May -> "05"
-        Time.Jun -> "06"
-        Time.Jul -> "07"
-        Time.Aug -> "08"
-        Time.Sep -> "09"
-        Time.Oct -> "10"
-        Time.Nov -> "11"
-        Time.Dec -> "12"
-    )
-    ++ "-" ++
-    (case (Time.toDay zone time) < 10 of
-        True ->
-            "0" ++ String.fromInt (Time.toDay zone time)
-        False ->
-            String.fromInt (Time.toDay zone time)
-    )
-    ++ "T" ++
-
-    (case (Time.toHour zone time) < 10 of
-        True ->
-            "0" ++ String.fromInt (Time.toHour zone time)
-        False ->
-            String.fromInt (Time.toHour zone time)
-    )
-    ++ ":" ++
-
-    (case (Time.toMinute zone time) < 10 of
-        True ->
-            "0" ++ String.fromInt (Time.toMinute zone time)
-        False ->
-            String.fromInt (Time.toMinute zone time)
-    )
-    ++ ":" ++
-
-    (case (Time.toSecond zone time) < 10 of
-        True ->
-            "0" ++ String.fromInt (Time.toSecond zone time)
-        False ->
-            String.fromInt (Time.toSecond zone time)
-    )
-    ++ "Z"
