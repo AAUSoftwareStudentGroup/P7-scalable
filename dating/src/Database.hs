@@ -141,7 +141,7 @@ urlFromBase64EncodedImage img salt =
       Left _ -> Left ("Invalid image, must be a Jpg") --fromRight 
       Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/frontend/img/users/" <> salt <> ".jpg")) image
 
-      
+
 -- | Generate a random authtoken.
 mkAuthToken :: IO Text
 mkAuthToken = do
@@ -163,6 +163,18 @@ fetchAllUsers mongoConf offset limit = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [UserDTO]
     fetchAction = fmap userEntityToUserDTO <$> selectList [] [OffsetBy offset, LimitTo limit]
+
+
+-- | Return "True" or "False" if user exists
+fetchUserExists :: MongoConf -> Username -> IO Text
+fetchUserExists mongoConf username = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO Text
+    fetchAction = do
+      mUser <- getBy (UniqueUsername username)
+      case mUser of
+        Just _ -> return  "True"
+        Nothing -> return "False"
 
 
 -------------------------------------------------------------------------------

@@ -53,7 +53,7 @@ type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI
 type UserAPI =
         -- Create User
   "users" :> ReqBody '[JSON] CreateUserDTO 
-               :> Post '[JSON] LoggedInDTO
+          :> Post '[JSON] LoggedInDTO
   :<|>  -- Fetch User
   "users" :> AuthProtect "cookie-auth" 
           :> Capture "username" Username 
@@ -63,6 +63,10 @@ type UserAPI =
           :> Capture "offset" Int 
           :> Capture "limit" Int 
           :> Get '[JSON] [UserDTO]
+  :<|>  -- Does Username Exist?
+  "users" :> "exists"
+          :> Capture "username" Username
+          :> Get '[JSON] Text
 
 type AuthAPI =
         -- Login
@@ -118,6 +122,10 @@ fetchUserHandler mongoInfo _ username = do
 fetchAllUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
 fetchAllUsersHandler mongoInfo _ offset limit = liftIO $ DB.fetchAllUsers mongoInfo offset limit
 
+
+-- | Ask if username exists.
+fetchUserExists :: MongoInfo -> Username -> Handler Text
+fetchUserExists mongoInfo username = liftIO $ DB.fetchUserExists mongoInfo username
 
 -------------------------------------------------------------------------------
 --                             AUTHENTICATION                                --
@@ -208,6 +216,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
     userHandlers =       createUserHandler mongoInfo
                     :<|> fetchUserHandler mongoInfo
                     :<|> fetchAllUsersHandler mongoInfo
+                    :<|> fetchUserExists mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo
                     :<|> fetchConversationPreviewsHandler mongoInfo
