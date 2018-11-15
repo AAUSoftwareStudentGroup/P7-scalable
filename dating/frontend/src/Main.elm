@@ -386,8 +386,12 @@ stepUrl url model =
         session =
             getSession model
 
+        urlPath = Maybe.withDefault "" (Url.percentDecode ("path="++url.path))
+        urlQuery = Maybe.withDefault "" (Url.percentDecode (Maybe.withDefault urlPath url.query))
         queryToPathUrl =
-            { url | path = Maybe.withDefault ("path="++url.path) (Url.percentDecode (Maybe.withDefault "" url.query)), query = Nothing}
+            { url | path = urlQuery, query = Nothing}
+        --queryToPathUrl =
+            --{ url | path = Maybe.withDefault ("path="++url.path) (Url.percentDecode (Maybe.withDefault "" url.query)), query = Nothing}
 
         parser =
             Parser.s "path=" </>
