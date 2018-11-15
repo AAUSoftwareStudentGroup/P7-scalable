@@ -29,17 +29,19 @@ type alias Model =
     }
 
 
-emptyModel : Session -> Model
-emptyModel sesssion
-    = Model sesssion "" False []
+initModel : Session -> Model
+initModel sesssion
+    = Model sesssion "All users" False []
 
 init : Session -> ( Model, Cmd Msg )
 init session =
     case session of
         Session.Guest _ _ ->
-            ( emptyModel session, Routing.goHome (Session.getNavKey session) )
+            ( initModel session
+            , Routing.goHome (Session.getNavKey session)
+            )
         Session.LoggedIn _ _ _ ->
-            ( Model session "List Users" False []
+            ( initModel session
             , sendGetUsers UsersFetched session
             )
 

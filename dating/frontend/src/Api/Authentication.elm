@@ -1,4 +1,4 @@
-module Api.Authentication exposing (createAuthHeader, Credentials, credentialsEncoder, credentialsDecoder)
+module Api.Authentication exposing (Token, UserInfo, Credentials, createAuthHeader, credentialsEncoder, credentialsDecoder)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -7,8 +7,13 @@ import Http
 import String
 import Url
 
-import Api.Types exposing (UserInfo)
 
+type alias Token = String
+
+type alias UserInfo =
+    { authToken   : Token
+    , username    : String
+    }
 
 type alias Credentials =
     { username : String

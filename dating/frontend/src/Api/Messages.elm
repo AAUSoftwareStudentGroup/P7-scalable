@@ -8,9 +8,7 @@ import String
 import Url
 import Time as Time
 
-import Api.Types exposing (UserInfo)
-import Api.Authentication as Auth
-
+import Api.Authentication as Auth exposing (UserInfo)
 
 
 apiLocation : String

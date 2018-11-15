@@ -4,11 +4,12 @@ module UI.Elements exposing (..)
 import Html exposing (Html, Attribute, div)
 import Html.Attributes as Attributes exposing (class, classList, src)
 import Html.Events as Events
+import Json.Decode as Decode
 import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
 import Session exposing (Session, Notification)
-import Api.Types exposing (Gender(..))
+import Api.Types exposing (Gender(..), Image)
 import Api.Users exposing (User)
 
 import Random
@@ -344,6 +345,40 @@ simpleInput typ placeholder value toMsg =
         Html.textarea [ Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
     else
         Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
+
+
+imageInput : String -> msg -> Maybe Image -> Html msg
+imageInput caption imageSelectedMsg maybeImage =
+    let
+        imagePreview =
+            case maybeImage of
+                Just image ->
+                    imageElement image
+                Nothing ->
+                    Html.text ""
+    in
+        div
+        [ classList
+            [ ( "imageWrapper", True )
+            , ( "l-6", True )
+            , ("l-12", True )
+            ]
+        ]
+        [ Html.input
+            [ Attributes.type_ "file"
+            , Events.on "change" (Decode.succeed imageSelectedMsg)
+            ]
+            []
+        , imagePreview
+        ]
+
+imageElement : Image -> Html msg
+imageElement image =
+  Html.img
+    [ Attributes.src image.contents
+    , Attributes.title image.filename
+    ]
+    []
 
 
 submitButton : String -> Html msg

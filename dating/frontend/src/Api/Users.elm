@@ -7,8 +7,8 @@ import Http
 import String
 import Url
 
-import Api.Types exposing (Gender(..), UserInfo, Token)
-import Api.Authentication as Auth exposing (Credentials)
+import Api.Types exposing (Gender(..))
+import Api.Authentication as Auth exposing (UserInfo, Token, Credentials)
 
 
 apiLocation : String

@@ -23,17 +23,19 @@ type alias Model =
     , time      : Time.Posix
     }
 
-emptyModel : Session -> Model
-emptyModel session =
-    Model session "" False [] Time.utc (Time.millisToPosix 0)
+initModel : Session -> Model
+initModel session =
+    Model session "Messages" False [] Time.utc (Time.millisToPosix 0)
 
 init : Session -> ( Model, Cmd Msg )
 init session =
         case session of
             Session.Guest _ _ ->
-                ( emptyModel session, Routing.goHome (Session.getNavKey session) )
+                ( initModel session,
+                Routing.goHome (Session.getNavKey session)
+                )
             Session.LoggedIn _ _ _ ->
-                ( Model (Debug.log "messages session:" session) "Messages" False [] Time.utc (Time.millisToPosix 0)
+                ( initModel session
                 , Cmd.batch
                     [ Task.perform AdjustTimeZone Time.here
                     , (sendGetMessages HandleGetMessages session)

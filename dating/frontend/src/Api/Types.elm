@@ -1,4 +1,4 @@
-module Api.Types exposing (Gender(..), UserInfo, Token, genderToString)
+module Api.Types exposing (Gender(..), Image, genderToString)
 
 
 type Gender
@@ -6,14 +6,10 @@ type Gender
     | Female
     | Other
 
-
-type alias Token = String
-
-type alias UserInfo =
-    { authToken   : Token
-    , username    : String
+type alias Image =
+    { contents : String
+    , filename : String
     }
-
 
 genderToString : Gender -> String
 genderToString gender =

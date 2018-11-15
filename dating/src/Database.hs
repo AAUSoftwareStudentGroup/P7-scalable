@@ -114,7 +114,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
             , userBirthday    = getField @"birthday"    createUserDTO
             , userTown        = getField @"town"        createUserDTO
             , userProfileText = getField @"profileText" createUserDTO
-            , userImage       = ("userImages/" <> (getField @"username" createUserDTO) <> ".jpg")
+            , userImage       = ("/img/users/" <> salt <> ".jpg")
             , userAuthToken   = authToken
             , userSalt        = salt
             }
@@ -126,7 +126,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
           else
             return $ Left $ ("A user with email \"" <> (LBS.fromStrict $ encodeUtf8 (getField @"email" createUserDTO)) <> "\" already exists")
         Nothing -> do
-          case (urlFromBase64EncodedImage (getField @"imageData" createUserDTO) (getField @"username" createUserDTO)) of
+          case (urlFromBase64EncodedImage (getField @"imageData" createUserDTO) salt) of
             Left a -> return $ Left a
             Right img -> do
               getImg <- liftIO img
@@ -136,10 +136,10 @@ createUser mongoConf createUserDTO = runAction mongoConf action
 
 
 urlFromBase64EncodedImage :: Text -> Text -> Either LBS.ByteString (IO())
-urlFromBase64EncodedImage img username =
+urlFromBase64EncodedImage img salt =
     case (decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img) of
       Left _ -> Left ("Invalid image, must be a Jpg") --fromRight 
-      Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username <> ".jpg")) image
+      Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/frontend/img/users/" <> salt <> ".jpg")) image
     --imageUrl = saveJpgImage 90 (T.unpack ("/app/user/userImages/" <> username)) (fromRight emptyImage $ decodeJpeg $ fromRight "" $ Base64.decode $ encodeUtf8 img)--fromRight 
     --decodeJpeg $ fromRight Base64.decode $ encodeUtf8 img
 

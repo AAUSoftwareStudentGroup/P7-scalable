@@ -9,7 +9,6 @@ import String as String
 import Task as Task
 import Time as Time
 
---import DatingApi as Api exposing (User, Gender(..), ChatMessage, PostMessage)
 import Api.Messages exposing (Message, Conversation)
 import Api.Users
 
@@ -23,7 +22,6 @@ type alias Model =
     , title             : String
     , loaded            : Bool
     , content           : List Message
-    , localContent      : List Message
     , usernameFriend    : String
     , usernameSelf      : String
     , numMsgs           : Int
@@ -35,20 +33,20 @@ type alias Model =
 
 emptyModel : Session -> Model
 emptyModel session =
-    Model session "" False [] [] "" "" 0 "" Time.utc (Time.millisToPosix 0)
+    Model session "Messages" False [] "" "" 0 "" Time.utc (Time.millisToPosix 0)
+
 
 init : Session -> String -> ( Model, Cmd Msg )
 init session usernameFriend =
     case session of
         Session.Guest _ _ ->
-            ( emptyModel session, Routing.goHome (Session.getNavKey session) )
-        Session.LoggedIn _ _ _ ->
-            let
-                username = Maybe.withDefault "" (Session.getUsername session)
-            in
-                ( Model session "Messages" False [] [] usernameFriend username 0 "" Time.utc (Time.millisToPosix 0)
-                , getMessagesOrRedirect session username usernameFriend
-                )
+            ( emptyModel session
+            , Routing.goHome (Session.getNavKey session)
+            )
+        Session.LoggedIn _ _ userInfo ->
+            ( Model session "Messages" False [] usernameFriend userInfo.username 0 "" Time.utc (Time.millisToPosix 0)
+            , getMessagesOrRedirect session userInfo.username usernameFriend
+            )
 
 getMessagesOrRedirect : Session -> String -> String -> Cmd Msg
 getMessagesOrRedirect session usernameSelf usernameFriend =
@@ -61,9 +59,9 @@ getMessagesOrRedirect session usernameSelf usernameFriend =
             ]
 
 -- UPDATE
+
 type Msg
-    = NoOp
-    | AdjustTimeZone Time.Zone
+    = AdjustTimeZone Time.Zone
     | FetchMessages Time.Posix
     | HandleFetchedMessages (Result Http.Error Conversation)
     | UnsentMessageChanged String
@@ -74,9 +72,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
         AdjustTimeZone newZone ->
             ( { model | zone = newZone }, Cmd.none )
 
@@ -90,12 +85,15 @@ update msg model =
                         (Api.Messages.getMessagesFromUsername userInfo model.usernameFriend model.numMsgs)
                     )
 
-        HandleMessageSent result ->
+        HandleFetchedMessages result ->
             case result of
-                Ok responseString ->
-                    ( { model | localContent = addMessageToList model, unsentMessage = "" }, Cmd.none )
+                Ok conversation ->
+                    ( { model | content = List.append model.content conversation.messages
+                      , loaded = True
+                      , numMsgs = model.numMsgs + List.length conversation.messages
+                      }, Cmd.none)
                 Err _ ->
-                    ( model , Cmd.none  )
+                    ( model, Cmd.none )
 
         UnsentMessageChanged new ->
             ( { model | unsentMessage = new }, Cmd.none )
@@ -103,21 +101,17 @@ update msg model =
         SendMessage ->
             ( model, sendMessage model )
 
-        HandleFetchedMessages result ->
+        HandleMessageSent result ->
             case result of
-                Ok conversation ->
-                    ( { model | content = List.append model.content conversation.messages
-                      , loaded = True
-                      , numMsgs = model.numMsgs + List.length conversation.messages
-                      , localContent = []
-                      }, Cmd.none)
+                Ok responseString ->
+                    ( { model | content = addMessageToList model, numMsgs = model.numMsgs + 1, unsentMessage = "" }, Cmd.none )
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( model , Cmd.none  )
 
 
 addMessageToList : Model -> List Message
 addMessageToList model =
-    model.localContent ++ List.singleton (Message model.unsentMessage (toUtcString model.time model.zone) model.usernameSelf)
+    model.content ++ [(Message model.unsentMessage model.usernameSelf (toUtcString model.time model.zone))]
 
 
 -- SUBSCRIPTIONS
@@ -143,7 +137,7 @@ view model =
                     , ( "l-6", True )
                     ]
                 ]
-                (List.map (viewMessage model) (List.append model.content model.localContent))
+                (List.map (viewMessage model) model.content)
             , Html.form
                 [ Events.onSubmit SendMessage
                 , classList
@@ -185,17 +179,6 @@ sendMessage model =
                 Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.usernameFriend)
             Session.Guest _ _ ->
                 Cmd.none
-
-
-
-
-
-
-
-
-
-
-
 
 
 toUtcString : Time.Posix -> Time.Zone -> String

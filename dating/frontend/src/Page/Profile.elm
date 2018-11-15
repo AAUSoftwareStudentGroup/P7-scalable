@@ -21,23 +21,25 @@ type alias Model =
     , user      : User
     }
 
+
 emptyModel : Session -> Model
 emptyModel session =
-    Model session "" False emptyUser
+    Model session "Profile" False emptyUser
 
 
 type Msg
     = HandleGetUser (Result Http.Error User)
-    | LogoutClicked
 
 
 init : Session -> String -> ( Model, Cmd Msg )
 init session username =
     case session of
         Session.Guest _ _ ->
-            ( emptyModel session, Routing.goHome (Session.getNavKey session) )
+            ( emptyModel session
+            , Routing.goHome (Session.getNavKey session)
+            )
         Session.LoggedIn _ _ _ ->
-            ( Model session "Profile" False emptyUser
+            ( emptyModel session
             , sendGetUser HandleGetUser username session
             )
 
@@ -49,13 +51,10 @@ update msg model =
             case result of
                 Ok fetchedUser ->
                     ( { model | user = fetchedUser, loaded = True }, Cmd.none )
-
                 Err errResponse ->
                     Debug.log (Debug.toString errResponse) ( { model | user = Api.Users.emptyUser }
                     , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home ) )
 
-        LogoutClicked ->
-            ( model, Session.logout )
 
 -- SUBSCRIPTIONS
 
@@ -64,9 +63,10 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
 
+
 view : Model -> Session.Details Msg
 view model =
-    { title = model.user.username ++ "'s profile"
+    { title = model.title
     , session = model.session
     , kids =
         El.titledContentLoader model.loaded model.user.username
@@ -102,9 +102,8 @@ chatButton : String -> Session -> Html msg
 chatButton username session =
     El.linkButton
         []
-        (Routing.routeToString <| (Chat username))
+        (Routing.routeToString (Chat username))
         [ Html.text "chat" ]
-
 
 
 sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg

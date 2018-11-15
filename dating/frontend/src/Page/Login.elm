@@ -9,9 +9,8 @@ import Http
 import String
 
 
-import Api.Authentication exposing (Credentials)
+import Api.Authentication exposing (UserInfo, Credentials)
 import Api.Users exposing (User)
-import Api.Types exposing (UserInfo)
 import Session exposing (Session, Details)
 import Common as Common
 import Routing exposing (Route(..))

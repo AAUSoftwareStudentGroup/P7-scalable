@@ -125,6 +125,11 @@ button, .btn {
     }
 
     p {
+        font-size: 0.9rem;
+        line-height: 1.2rem;
+        font-weight: $txt-weight-light;
+        color: $txt-col-dark;
+
         margin: 0 1rem 1rem 1rem;
         height: 3.6rem;
         overflow: hidden;
