@@ -23,7 +23,6 @@ import Page.Chat as Chat
 import Url
 import Session exposing (Session)
 import Api.Messages exposing (ConversationPreviewDTO)
---import DatingApi as DatingApi exposing (Message, getConversationPreviewDTOs)
 import Routing as Routing
 import UI.Elements as El
 
@@ -402,7 +401,7 @@ stepUrl url model =
                 , route (Parser.s "logout")
                     (stepLogout model (Logout.init session))
                 , route (Parser.s "list-users")
-                    ( stepListUsers model (ListUsers.init session))
+                    (stepListUsers model (ListUsers.init session))
                 , route (Parser.s "user" </> Parser.string)
                     (\username -> stepProfile model (Profile.init session (Debug.log "usernameParsed" username)))
                 , route (Parser.s "messages")

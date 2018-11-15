@@ -10,7 +10,7 @@ import Http
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import Session exposing (Session)
-import Page.ImgPort exposing (ImagePortData, fileSelected, fileContentRead)
+import Ports.FileUploadPort exposing (FilePortData, fileSelected, fileContentRead)
 import UI.Elements as El
 
 import Api.Types exposing (Gender(..), Image)
@@ -69,7 +69,7 @@ type Msg
     | Submitted
     | HandleUserCreated (Result Http.Error UserInfo)
     | FileSelected
-    | FileRead ImagePortData
+    | FileRead FilePortData
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

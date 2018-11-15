@@ -1,8 +1,12 @@
 module Page.ListUsers exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Browser.Navigation as Nav
+import Browser.Dom as Dom exposing (Viewport)
+import Time as Time
+import Task as Task
 import Html exposing (Html)
 import Html.Attributes as Attributes exposing (classList)
+import Html.Events as Events
 import Html.Keyed exposing (ul)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, int, list, string)
@@ -15,23 +19,31 @@ import Api.Users exposing (User)
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
+import Ports.LoadMorePort exposing (LoadMoreData, loadMore)
 
+
+onScroll : msg -> Html.Attribute msg
+onScroll message =
+  Events.on "scroll" (Decode.succeed message)
 
 
 -- MODEL
 
+usersPerPage = 12
 
 type alias Model =
     { session   : Session
     , title     : String
     , loaded    : Bool
+    , moreUsers : Bool
+    , pageNum   : Int
     , users     : List User
     }
 
 
 initModel : Session -> Model
-initModel sesssion
-    = Model sesssion "All users" False []
+initModel session
+    = Model session "All users" False True 1 []
 
 init : Session -> ( Model, Cmd Msg )
 init session =
@@ -42,7 +54,7 @@ init session =
             )
         Session.LoggedIn _ _ _ ->
             ( initModel session
-            , sendGetUsers UsersFetched session
+            , sendGetUsers UsersFetched 1 session
             )
 
 
@@ -51,6 +63,7 @@ init session =
 
 type Msg
     = UsersFetched (Result Http.Error (List User))
+    | LoadMore LoadMoreData
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -59,19 +72,22 @@ update msg model =
         UsersFetched result ->
             case result of
                 Ok newUsers ->
-                    ( { model | users = newUsers, loaded = True }, Cmd.none )
+                    ( { model | users = model.users ++ newUsers, loaded = True, moreUsers = (newUsers /= []) }, Cmd.none )
 
                 Err error ->
-                    Debug.log (Debug.toString error) ( { model | users = [] }, Cmd.none )
+                    ( { model | users = [] }, Cmd.none )
 
+        LoadMore _ ->
+            ( { model | pageNum = model.pageNum + 1, loaded = False }
+            , sendGetUsers UsersFetched model.pageNum model.session
+            )
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
-
+    loadMore LoadMore
 
 
 -- VIEW
@@ -81,39 +97,53 @@ view : Model -> Session.Details Msg
 view model =
     let
         myUsername = Maybe.withDefault "" (Session.getUsername model.session)
+        allOtherUsers = List.filter (\user -> myUsername /= user.username) model.users
+        bottomElement =
+            if model.loaded then
+                if model.moreUsers then
+                    [ El.msgButtonFlat
+                        []
+                        (LoadMore True)
+                        [ El.iconText "Load more" "keyboard_arrow_down" ]
+                    ]
+                else
+                    [ Html.text "No more users" ]
+            else
+                El.loader
+
     in
         { title = "All users"
         , session = model.session
         , kids =
-            El.titledContentLoader model.loaded "All users"
+            El.titledContent "All users"
                 [ Html.ul
                     [ classList
-                            [ ( "grid", True )
-                            , ( "l-12", True )
-                            , ( "s-12", True )
-                            ]
-
+                        [ ( "grid", True )
+                        , ( "l-12", True )
+                        , ( "s-12", True )
+                        ]
                     ]
-                    (List.map (showUser2 model.session) <| List.filter (\user -> myUsername /= user.username) model.users)
+                    (List.map (showUser model.session) allOtherUsers)
+                , Html.div
+                    [ classList
+                        [ ( "l-12", True )
+                        , ( "s-12", True )
+                        , ( "centered", True )
+                        ]
+                    ]
+                    bottomElement
                 ]
         }
 
-showUser2 : Session -> User -> Html Msg
-showUser2 session user =
+showUser : Session -> User -> Html Msg
+showUser session user =
     El.userCard user
 
 
-showUser : Session -> User -> (String, Html Msg)
-showUser session user =
-    ( user.username
-    , El.userCard user
-    )
-
-
-sendGetUsers : (Result Http.Error (List User) -> msg) -> Session -> Cmd msg
-sendGetUsers responseMsg session =
+sendGetUsers : (Result Http.Error (List User) -> msg) -> Int -> Session -> Cmd msg
+sendGetUsers responseMsg pageNum session =
     case session of
         Session.LoggedIn _ _ userInfo ->
-            Http.send responseMsg (Api.Users.getUsers userInfo)
+            Http.send responseMsg (Api.Users.getUsers pageNum usersPerPage userInfo)
         Session.Guest _ _ ->
             Cmd.none
