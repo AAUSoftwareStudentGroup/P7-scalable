@@ -90,27 +90,32 @@
             });
 
             const offset = 350;
+            let timeout;
             let loading = false;
             let lastHeight = 0;
 
             // Listen for scroll events
-            window.addEventListener("scroll", function() {
-                const triggerHeight = $(document).height() - $(window).height() - offset;
+            window.addEventListener("scroll", function(e) {
+                clearTimeout(timeout);
 
-                if (loading) {
-                    if (triggerHeight > lastHeight) {
-                        loading = false;
-                    } else {
-                        return;
+                timeout = setTimeout(function() {
+                    const triggerHeight = $(document).height() - $(window).height() - offset;
+
+                    if (loading) {
+                        if (triggerHeight > lastHeight) {
+                            loading = false;
+                        } else {
+                            return;
+                        }
                     }
-                }
 
-                if (window.scrollY >= triggerHeight) {
-                    loading = true;
-                    app.ports.loadMore.send(true);
-                }
+                    if (window.scrollY >= triggerHeight) {
+                        loading = true;
+                        //app.ports.loadMore.send(true);
+                    }
 
-                lastHeight = triggerHeight;
+                    lastHeight = triggerHeight;
+                }, 50);
             });
         </script>
 

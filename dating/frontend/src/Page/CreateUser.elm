@@ -177,10 +177,10 @@ userFromValidForm validForm =
 
 userFromModel : Model -> NewUser
 userFromModel { email, password1, username, gender, birthday, city, bio, mImage } =
-    Debug.log "newUser" (NewUser email password1 username gender birthday city bio <| encodedImg mImage)
+    NewUser email password1 username gender birthday city bio (encodeMaybeImage mImage)
 
-encodedImg : Maybe Image -> String
-encodedImg mImg =
+encodeMaybeImage : Maybe Image -> String
+encodeMaybeImage mImg =
     case mImg of
         Just img ->
          case List.head <| List.drop 1 (String.split "base64," img.contents) of
