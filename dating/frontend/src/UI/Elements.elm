@@ -277,8 +277,8 @@ link url caption =
     Html.a [ Attributes.href url ]
         [ Html.text caption ]
 
-validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
-validatedInput field typ caption value toMsg errors showErrors =
+validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Html msg
+validatedInput field typ caption value toMsg required errors showErrors =
     let
         relevantErrors = List.filter (\( f, _ ) -> f == field) errors
     in
@@ -290,7 +290,7 @@ validatedInput field typ caption value toMsg errors showErrors =
                 ]
             ]
             [ Html.label []
-                [ simpleInput typ caption value (toMsg field)
+                [ simpleInput typ caption value (toMsg field) required
                 , Html.span [ class "label" ]
                     [ Html.text caption ]
                 , Html.span [ class "border" ] []
@@ -342,12 +342,12 @@ radio caption toMsg model value =
         ]
 
 
-simpleInput : String -> String -> String -> (String -> msg) -> Html msg
-simpleInput typ placeholder value toMsg =
+simpleInput : String -> String -> String -> (String -> msg) -> Bool -> Html msg
+simpleInput typ placeholder value toMsg required =
     if typ == "multiline" then
         Html.textarea [ Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
     else
-        Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
+        Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Attributes.required required, Events.onInput toMsg ] []
 
 
 imageInput : String -> msg -> Maybe Image -> Html msg
@@ -369,6 +369,7 @@ imageInput caption imageSelectedMsg maybeImage =
         ]
         [ Html.input
             [ Attributes.type_ "file"
+            , Attributes.accept "image/*"
             , Events.on "change" (Decode.succeed imageSelectedMsg)
             ]
             []

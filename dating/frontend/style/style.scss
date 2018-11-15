@@ -85,13 +85,30 @@ button, .btn {
 }
 
 
+.messages {
+    height: 70vh;
+    overflow-y: auto;
+}
+
 .message {
-    &.author-me {
-        justify-self: right;
+    width: 100%;
+    clear: both;
+
+    div {
+        max-width: 40%;
+        margin-bottom: 0.4rem;
+        padding: 0.6rem;
+        border-radius: 0.8rem;
     }
 
-    &.author-friend {
-        justify-self: left;
+    .author-me {
+        float: right;
+        background-color: #6699cc;
+    }
+
+    .author-friend {
+        float: left;
+        background-color: #f1f0ef;
     }
 }
 

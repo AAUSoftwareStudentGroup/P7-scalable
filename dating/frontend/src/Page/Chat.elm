@@ -132,7 +132,7 @@ view model =
         El.titledContentLoader model.loaded ("Chatting with " ++ model.usernameFriend)
             [ ul
                 [ classList
-                    [ ( "grid", True )
+                    [ ( "messages", True )
                     , ( "l-12", True )
                     , ( "l-6", True )
                     ]
@@ -145,7 +145,7 @@ view model =
                       , ( "l-6", True )
                       ]
                 ]
-                [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged
+                [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged False
                 , El.submitButtonHtml
                     [ El.iconText "Send" "send" ]
                 ]
@@ -158,14 +158,18 @@ viewMessage model message =
         myMessage = model.usernameSelf == message.authorName
     in
         ( message.timeStamp
-        , Html.li [ classList
-                    [ ( "message", True )
-                    , ( "l-12", True )
-                    , ( "author-me", myMessage)
+        , Html.li
+            [ classList
+                [ ( "message", True ) ]
+            ]
+            [ div
+                [ classList
+                    [ ( "author-me", myMessage)
                     , ( "author-friend", not myMessage)
                     ]
-                  ]
-            [Html.text message.body]
+                ]
+                [ Html.text message.body ]
+            ]
         )
 
 
