@@ -103,7 +103,6 @@ update msg model =
                             ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
 
 
-
 setField : Model -> FormField -> String -> Model
 setField model field value =
     case field of
