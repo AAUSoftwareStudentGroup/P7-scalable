@@ -68,7 +68,7 @@ init session =
 type Msg
     = FormFieldChanged FormField String
     | GenderChanged Gender
-    | UsernameChecked (Result Http.Error String)
+    | UsernameChecked (Result Http.Error Bool)
     | FileSelected
     | FileRead FilePortData
     | Submitted
@@ -100,7 +100,7 @@ update msg model =
         UsernameChecked result ->
             case result of
                 Ok alreadyExists ->
-                    ( updateErrors <| { model | checkingUsername = False, usernameOk = alreadyExists == "False" }
+                    ( updateErrors <| { model | checkingUsername = False, usernameOk = not alreadyExists }
                     , Cmd.none
                     )
                 Err _ ->
@@ -214,7 +214,7 @@ encodeMaybeImage mImg =
         Nothing -> ""
 
 
-sendCheckUsername : (Result Http.Error (String) -> msg) -> String -> Cmd msg
+sendCheckUsername : (Result Http.Error (Bool) -> msg) -> String -> Cmd msg
 sendCheckUsername responseMsg username =
     Http.send responseMsg (Api.Users.getUserAlreadyExists username)
 
