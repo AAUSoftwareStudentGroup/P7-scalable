@@ -217,7 +217,7 @@ getUserByUsername username userInfo =
             False
         }
 
-getUserAlreadyExists : String -> Http.Request (String)
+getUserAlreadyExists : String -> Http.Request (Bool)
 getUserAlreadyExists username =
     Http.request
         { method =
@@ -234,7 +234,7 @@ getUserAlreadyExists username =
         , body =
             Http.emptyBody
         , expect =
-            Http.expectJson Decode.string
+            Http.expectJson Decode.bool
         , timeout =
             Nothing
         , withCredentials =
