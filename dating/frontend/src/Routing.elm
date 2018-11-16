@@ -54,7 +54,6 @@ pushUrl : Nav.Key -> String -> Cmd msg
 pushUrl key route =
     Nav.pushUrl key route
 
-
 -- INTERNAL
 
 

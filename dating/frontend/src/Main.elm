@@ -63,11 +63,20 @@ type Page
 
 init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeValue url key =
-    stepUrl url
-        { key = key
-        , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-        , numMessages = 0
-        }
+    if String.startsWith "path=" (Maybe.withDefault "" url.query) then
+        (
+            { key = key
+            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
+            , numMessages = 0
+            },
+            Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
+        )
+    else
+        stepUrl url
+            { key = key
+            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
+            , numMessages = 0
+            }
 
 
 -- VIEW
@@ -379,22 +388,13 @@ getSession model =
         Chat m ->
             m.session
 
-
 stepUrl : Url.Url -> Model -> ( Model, Cmd Msg )
 stepUrl url model =
     let
         session =
             getSession model
 
-        urlPath = Maybe.withDefault "" (Url.percentDecode ("path="++url.path))
-        urlQuery = Maybe.withDefault "" (Url.percentDecode (Maybe.withDefault urlPath url.query))
-        queryToPathUrl =
-            { url | path = urlQuery, query = Nothing}
-        --queryToPathUrl =
-            --{ url | path = Maybe.withDefault ("path="++url.path) (Url.percentDecode (Maybe.withDefault "" url.query)), query = Nothing}
-
         parser =
-            Parser.s "path=" </>
             Parser.oneOf
                 [ route (Parser.s "Main.elm")
                     (stepLogin model (Login.init session))
@@ -407,7 +407,7 @@ stepUrl url model =
                 , route (Parser.s "list-users")
                     (stepListUsers model (ListUsers.init session))
                 , route (Parser.s "user" </> Parser.string)
-                    (\username -> stepProfile model (Profile.init session (Debug.log "usernameParsed" username)))
+                    (\username -> stepProfile model (Profile.init session username))
                 , route (Parser.s "messages")
                     (stepMessages model (Messages.init session))
                 , route (Parser.s "chat" </> Parser.string)
@@ -415,7 +415,7 @@ stepUrl url model =
                 ]
 
     in
-        case Parser.parse parser (Debug.log "queryToPathUrl:" queryToPathUrl) of
+        case Parser.parse parser {url | path = Maybe.withDefault url.path (Url.percentDecode url.path)} of
             Just answer ->
                 answer
 
