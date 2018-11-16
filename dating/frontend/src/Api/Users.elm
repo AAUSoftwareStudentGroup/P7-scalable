@@ -1,4 +1,4 @@
-module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserByUsername, getUsers, emptyUser, encodeUserInfo, decodeUserInfo)
+module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, emptyUser, encodeUserInfo, decodeUserInfo)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -121,7 +121,6 @@ decodeUserInfo =
         |> Pipeline.required "username" Decode.string
 
 
-
 encodeToken : Token -> Encode.Value
 encodeToken token =
     Encode.string token
@@ -212,6 +211,30 @@ getUserByUsername username userInfo =
             Http.emptyBody
         , expect =
             Http.expectJson decodeUser
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+getUserAlreadyExists : String -> Http.Request (String)
+getUserAlreadyExists username =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            []
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "users"
+                , "exists"
+                , username
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson Decode.string
         , timeout =
             Nothing
         , withCredentials =

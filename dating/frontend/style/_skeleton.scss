@@ -1,5 +1,13 @@
 $header-height: 64px;
 
+
+.disableScroll {
+    margin: 0;
+    height: 100%;
+    overflow: hidden
+}
+
+
 %max-width-container {
     width: 100%;
     max-width: 1200px;
@@ -93,14 +101,25 @@ header, footer {
                 content: "clear";
             }
 
+            &:after {
+                position: absolute;
+                top: $header-height;
+                right: 0;
+                content: '';
+                width: 25%;
+                height: calc(100% - #{$header-height});
+                background: rgba(0, 0, 0, 0.6);
+                z-index: 1;
+            }
+
             ul {
                 position: absolute;
                 top: $header-height;
                 left: 0;
+                width: 75%;
+                height: calc(100% - #{$header-height});
                 display: inline-block;
                 background-color: $pri-col;
-                width: 75%;
-                height: calc(100% - 64px);
                 z-index: 1;
 
                 li {
@@ -113,6 +132,10 @@ header, footer {
         nav.closed {
             &:before {
                 content: "menu";
+            }
+
+            &:after {
+                display: none;
             }
 
             ul {

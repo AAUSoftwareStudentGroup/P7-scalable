@@ -271,7 +271,7 @@ fetchConversation mongoConf ownUsername otherUsername offset limit = runAction m
     fetchAction :: Action IO ConversationDTO
     fetchAction = do
       maybeDoc <- findOne 
-        ( ( select [ "members" =: (ownUsername::Text)] "conversations") 
+        ( ( select [ "members" =: (ownUsername::Text), "members" =: (otherUsername::Text) ] "conversations") 
           { project = [ "messages" =: [ "$slice" =: [ (offset::Int) , (limit::Int) ] ] ] }
         )
       case maybeDoc of

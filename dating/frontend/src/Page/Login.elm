@@ -60,8 +60,6 @@ type Msg
     = FormFieldChanged FormField String
     | Submitted
     | HandleUserLogin (Result Http.Error UserInfo)
-    | FuckNotifications String
-
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -88,10 +86,21 @@ update msg model =
                     ( model, Session.login userInfo )
 
                 Err errResponse ->
-                    ( handleErrorResponse model errResponse, Cmd.none )
+                    case errResponse of
+                        Http.BadUrl url ->
+                            ( { model | session = Session.addNotification model.session ("Bad url: " ++ url) }, Cmd.none )
 
-        FuckNotifications notificationText ->
-            (model, Cmd.none)
+                        Http.BadPayload _ _ ->
+                            ( { model | session = Session.addNotification model.session "Invalid data sent to server" }, Cmd.none )
+
+                        Http.Timeout ->
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
+
+                        Http.NetworkError ->
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
+
+                        Http.BadStatus statusResponse ->
+                            ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
 
 
 setField : Model -> FormField -> String -> Model
@@ -125,35 +134,6 @@ sendLogin responseMsg creds =
     Http.send responseMsg (Api.Users.postLogin creds)
 
 
-handleErrorResponse : Model -> Http.Error -> Model
-handleErrorResponse model errResponse =
-    case errResponse of
-        Http.BadUrl url ->
-            { model | response = Just <| "Bad url: " ++ url }
-
-        Http.BadPayload _ _ ->
-            { model | response = Just "Bad payload" }
-
-        Http.Timeout ->
-            { model | response = Just "Timeout" }
-
-        Http.NetworkError ->
-            { model | response = Just "Networkerror" }
-
-        Http.BadStatus statusResponse ->
-            { model | response = Just <| "Badstatus" ++ .body statusResponse }
-
-
-responseToString : Maybe String -> String
-responseToString r =
-    case r of
-        Just msg ->
-            msg
-
-        Nothing ->
-            ""
-
-
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -178,11 +158,10 @@ view model =
                         --, Events.onSubmit (FuckNotifications "Test")
                         , Events.onSubmit Submitted
                         ]
-                [ El.validatedInput Username "text" "Username" model.username FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Password "password" "Password" model.password FormFieldChanged model.errors model.attemptedSubmission
+                [ El.validatedInput Username "text" "Username" model.username FormFieldChanged True model.errors model.attemptedSubmission
+                , El.validatedInput Password "password" "Password" model.password FormFieldChanged True model.errors model.attemptedSubmission
                 , El.submitButton "Sign in"
                 ]
-            , Html.text (responseToString model.response)
             ]
     }
 

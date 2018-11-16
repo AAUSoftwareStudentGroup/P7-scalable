@@ -277,20 +277,24 @@ link url caption =
     Html.a [ Attributes.href url ]
         [ Html.text caption ]
 
-validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
-validatedInput field typ caption value toMsg errors showErrors =
+validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Html msg
+validatedInput field typ caption value toMsg required errors showErrors =
     let
         relevantErrors = List.filter (\( f, _ ) -> f == field) errors
+        empty = value == ""
+        valid = relevantErrors == []
     in
         div [ classList
                 [ ( "input-group", True )
                 , ( "l-6", True )
                 , ( "s-12", True )
+                , ( "empty", empty )
+                , ( "valid", valid )
                 , ( "valid", relevantErrors == [] )
                 ]
             ]
             [ Html.label []
-                [ simpleInput typ caption value (toMsg field)
+                [ simpleInput typ caption value (toMsg field) required
                 , Html.span [ class "label" ]
                     [ Html.text caption ]
                 , Html.span [ class "border" ] []
@@ -303,6 +307,38 @@ validatedInput field typ caption value toMsg errors showErrors =
                 ]
                 [ severestFieldError relevantErrors ]
             ]
+
+asyncValidatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Bool -> Html msg
+asyncValidatedInput field typ caption value toMsg required errors showErrors pending =
+    let
+        relevantErrors = List.filter (\( f, _ ) -> f == field) errors
+        empty = value == ""
+        valid = relevantErrors == []
+    in
+        div [ classList
+                [ ( "input-group", True )
+                , ( "l-6", True )
+                , ( "s-12", True )
+                , ( "empty", empty )
+                , ( "valid", valid )
+                , ( "pending", pending )
+                ]
+            ]
+            [ Html.label []
+                [ simpleInput typ caption value (toMsg field) required
+                , Html.span [ class "label" ]
+                    [ Html.text caption ]
+                , Html.span [ class "border" ] []
+                ]
+            , Html.span
+                [ classList
+                    [ ( "errors", True )
+                    , ( "hidden", not showErrors )
+                    ]
+                ]
+                [ severestFieldError relevantErrors ]
+            ]
+
 
 
 severestFieldError : List ((fieldtype, String)) -> Html msg
@@ -342,12 +378,12 @@ radio caption toMsg model value =
         ]
 
 
-simpleInput : String -> String -> String -> (String -> msg) -> Html msg
-simpleInput typ placeholder value toMsg =
+simpleInput : String -> String -> String -> (String -> msg) -> Bool -> Html msg
+simpleInput typ placeholder value toMsg required =
     if typ == "multiline" then
         Html.textarea [ Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
     else
-        Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
+        Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Attributes.required required, Events.onInput toMsg ] []
 
 
 imageInput : String -> msg -> Maybe Image -> Html msg
@@ -362,13 +398,14 @@ imageInput caption imageSelectedMsg maybeImage =
     in
         div
         [ classList
-            [ ( "imageWrapper", True )
+            [ ( "image-input-group", True )
             , ( "l-6", True )
-            , ("l-12", True )
+            , ( "l-12", True )
             ]
         ]
         [ Html.input
             [ Attributes.type_ "file"
+            , Attributes.accept "image/*"
             , Events.on "change" (Decode.succeed imageSelectedMsg)
             ]
             []
