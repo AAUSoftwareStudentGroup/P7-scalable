@@ -23,12 +23,14 @@ import Api.Users exposing (NewUser)
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , errors : List (Error)
-    , attemptedSubmission: Bool
-    , email : String
-    , username : String
+    { session   : Session
+    , title     : String
+    , errors    : List (Error)
+    , attemptedSubmission : Bool
+    , checkingUsername : Bool
+    , usernameOk : Bool
+    , email     : String
+    , username  : String
     , password1 : String
     , password2 : String
     , gender    : Gender
@@ -55,7 +57,7 @@ type FormField
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( updateErrors (Model session "New user" [] False "" "" "" "" Male "" "" "" Nothing)
+    ( updateErrors (Model session "New user" [] False False False "" "" "" "" Male "" "" "" Nothing)
     , Cmd.none
     )
 
@@ -66,22 +68,63 @@ init session =
 type Msg
     = FormFieldChanged FormField String
     | GenderChanged Gender
-    | Submitted
-    | HandleUserCreated (Result Http.Error UserInfo)
+    | UsernameChecked (Result Http.Error String)
     | FileSelected
     | FileRead FilePortData
+    | Submitted
+    | HandleUserCreated (Result Http.Error UserInfo)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FormFieldChanged field value ->
-            ( updateErrors <| setField model field value
-            , Cmd.none
-            )
+            case field of
+                Username ->
+                    if value == "" then
+                        ( updateErrors <| setField model field value
+                        , Cmd.none
+                        )
+                    else
+                        ( updateErrors <| setField { model | checkingUsername = True } field value
+                        , sendCheckUsername UsernameChecked value
+                        )
+                _ ->
+                    ( updateErrors <| setField model field value
+                    , Cmd.none
+                    )
 
         GenderChanged newGender ->
             ( { model | gender = newGender }, Cmd.none )
+
+        UsernameChecked result ->
+            case result of
+                Ok alreadyExists ->
+                    ( updateErrors <| { model | checkingUsername = False, usernameOk = alreadyExists == "False" }
+                    , Cmd.none
+                    )
+                Err _ ->
+                    ( { model | checkingUsername = False }
+                    , Cmd.none
+                    )
+
+        FileSelected ->
+            ( model
+            , fileSelected ()
+            )
+
+        FileRead portData ->
+            let
+                image = Just (Image portData.contents portData.fileName)
+            in
+                if portData.error == "" then
+                    ( { model | mImage = image }
+                    , Cmd.none
+                    )
+                else
+                    ( { model | mImage = Nothing, session = Session.addNotification model.session portData.error }
+                    , Cmd.none
+                    )
 
         Submitted ->
             case Validate.validate modelValidator model of
@@ -115,24 +158,6 @@ update msg model =
 
                         Http.BadStatus statusResponse ->
                             ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
-
-        FileSelected ->
-            ( model
-            , fileSelected ()
-            )
-
-        FileRead portData ->
-            let
-                image = Just (Image portData.contents portData.fileName)
-            in
-                if portData.error == "" then
-                    ( { model | mImage = image }
-                    , Cmd.none
-                    )
-                else
-                    ( { model | mImage = Nothing, session = Session.addNotification model.session portData.error }
-                    , Cmd.none
-                    )
 
 
 
@@ -189,6 +214,11 @@ encodeMaybeImage mImg =
         Nothing -> ""
 
 
+sendCheckUsername : (Result Http.Error (String) -> msg) -> String -> Cmd msg
+sendCheckUsername responseMsg username =
+    Http.send responseMsg (Api.Users.getUserAlreadyExists username)
+
+
 sendCreateUser : (Result Http.Error (UserInfo) -> msg) -> NewUser -> Cmd msg
 sendCreateUser responseMsg user =
     Http.send responseMsg (Api.Users.postUsers user)
@@ -219,7 +249,7 @@ view model =
                         , Events.onSubmit Submitted
                         ]
                 [ El.validatedInput Email "email" "Email" model.email FormFieldChanged True model.errors model.attemptedSubmission
-                , El.validatedInput Username "text" "Username"  model.username FormFieldChanged True model.errors model.attemptedSubmission
+                , El.asyncValidatedInput Username "text" "Username"  model.username FormFieldChanged True model.errors model.attemptedSubmission model.checkingUsername
                 , El.validatedInput Password1 "password" "Password" model.password1 FormFieldChanged True model.errors model.attemptedSubmission
                 , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged True model.errors model.attemptedSubmission
                 , El.validatedInput City "text" "City" model.city FormFieldChanged True model.errors model.attemptedSubmission
@@ -245,7 +275,7 @@ modelValidator =
         , Validate.ifInvalidEmail .email (\_ -> ( Email, "Please enter a valid email" ))
 
         , Validate.ifBlank .username ( Username, "Please enter a username" )
-        , Validate.ifFalse (\model -> isUsernameValid model) ( Username, "Username already in use" )
+        , Validate.ifFalse (\model -> model.usernameOk) ( Username, "Username already in use" )
 
         , Validate.ifBlank .password1 ( Password1, "Please enter a password" )
         , Validate.ifBlank .password2 ( Password2, "Please repeat your password" )
@@ -258,16 +288,7 @@ modelValidator =
         , Validate.ifBlank .city ( City, "Please enter your city" )
 
         , Validate.ifBlank .bio ( Bio, "Please write a short description" )
-
         ]
-
-
-isUsernameValid : Model -> Bool
-isUsernameValid model =
-    if model.username == "Bargsteen2" then
-        False
-    else
-        True
 
 
 doPasswordsMatch : Model -> Bool

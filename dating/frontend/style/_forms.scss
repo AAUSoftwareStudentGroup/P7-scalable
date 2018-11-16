@@ -79,16 +79,23 @@
         &:after {
             @extend %material-icon;
 
-            content: "";
+            content: "clear";
             line-height: 1.4rem;
         }
     }
 
-
+    &.empty .label:after {
+        content: "";
+    }
 
     &.valid .label:after {
         content: "done";
     }
+
+    &.pending .label:after {
+        content: "more_horiz";
+    }
+
 
     .border {
         top: calc(2rem - 2px);
@@ -191,5 +198,10 @@
     }
 }
 
+.image-input-group {
 
+    input {
+        width: 100%;
+    }
+}
 

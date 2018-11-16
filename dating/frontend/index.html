@@ -120,7 +120,12 @@
         </script>
 
         <script>
-            $('body').on('click', 'header nav', () => $('header nav').toggleClass('closed'));
+            $('body').on('click', 'header nav', function (e) {
+                if (!$(e.target).is('ul')) {
+                    $('html, body').toggleClass('disableScroll');
+                    $('header nav').toggleClass('closed')
+                }
+            });
         </script>
     </body>
 </html>

@@ -281,11 +281,15 @@ validatedInput : fieldType -> String -> String -> String -> (fieldType -> String
 validatedInput field typ caption value toMsg required errors showErrors =
     let
         relevantErrors = List.filter (\( f, _ ) -> f == field) errors
+        empty = value == ""
+        valid = relevantErrors == []
     in
         div [ classList
                 [ ( "input-group", True )
                 , ( "l-6", True )
                 , ( "s-12", True )
+                , ( "empty", empty )
+                , ( "valid", valid )
                 , ( "valid", relevantErrors == [] )
                 ]
             ]
@@ -303,6 +307,38 @@ validatedInput field typ caption value toMsg required errors showErrors =
                 ]
                 [ severestFieldError relevantErrors ]
             ]
+
+asyncValidatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Bool -> Html msg
+asyncValidatedInput field typ caption value toMsg required errors showErrors pending =
+    let
+        relevantErrors = List.filter (\( f, _ ) -> f == field) errors
+        empty = value == ""
+        valid = relevantErrors == []
+    in
+        div [ classList
+                [ ( "input-group", True )
+                , ( "l-6", True )
+                , ( "s-12", True )
+                , ( "empty", empty )
+                , ( "valid", valid )
+                , ( "pending", pending )
+                ]
+            ]
+            [ Html.label []
+                [ simpleInput typ caption value (toMsg field) required
+                , Html.span [ class "label" ]
+                    [ Html.text caption ]
+                , Html.span [ class "border" ] []
+                ]
+            , Html.span
+                [ classList
+                    [ ( "errors", True )
+                    , ( "hidden", not showErrors )
+                    ]
+                ]
+                [ severestFieldError relevantErrors ]
+            ]
+
 
 
 severestFieldError : List ((fieldtype, String)) -> Html msg
@@ -362,9 +398,9 @@ imageInput caption imageSelectedMsg maybeImage =
     in
         div
         [ classList
-            [ ( "imageWrapper", True )
+            [ ( "image-input-group", True )
             , ( "l-6", True )
-            , ("l-12", True )
+            , ( "l-12", True )
             ]
         ]
         [ Html.input
