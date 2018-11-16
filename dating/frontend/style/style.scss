@@ -84,6 +84,18 @@ button, .btn {
     }
 }
 
+.conversation-with {
+    @extend %txt-heading;
+}
+
+.conversation-last-message {
+    @extend %txt-subheading;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 
 .messages {
     height: 70vh;
@@ -99,16 +111,19 @@ button, .btn {
         margin-bottom: 0.4rem;
         padding: 0.6rem;
         border-radius: 0.8rem;
+        overflow-wrap: break-word;
     }
 
     .author-me {
+        @extend %txt-white;
+
         float: right;
-        background-color: #6699cc;
+        background-color: $pri-col-light;
     }
 
     .author-friend {
         float: left;
-        background-color: #f1f0ef;
+        background-color: $bg-col-light;
     }
 }
 

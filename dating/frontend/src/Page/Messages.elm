@@ -111,11 +111,17 @@ viewMessage message =
             [ div [ class "conversation-with" ]
                 [ Html.text message.convoWithUsername ]
             , div [ class "conversation-last-message" ]
-                [ Html.text message.body ]
+                [ Html.text (lastMessage message) ]
             ]
         ]
     )
 
+lastMessage : ConversationPreviewDTO -> String
+lastMessage conversation =
+    if conversation.isLastAuthor then
+         "You: " ++ conversation.body
+    else
+        conversation.body
 
 sendGetMessages : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =

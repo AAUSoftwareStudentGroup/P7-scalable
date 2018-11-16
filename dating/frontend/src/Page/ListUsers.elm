@@ -69,7 +69,7 @@ update msg model =
         UsersFetched result ->
             case result of
                 Ok newUsers ->
-                    ( { model | users = model.users ++ newUsers, loaded = True, moreUsers = (newUsers /= []) }, Cmd.none )
+                    ( { model | users = model.users ++ newUsers, loaded = True, moreUsers = (List.length newUsers == usersPerPage) }, Cmd.none )
 
                 Err error ->
                     ( { model | users = [] }, Cmd.none )
