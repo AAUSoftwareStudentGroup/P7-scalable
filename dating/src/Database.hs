@@ -166,15 +166,15 @@ fetchAllUsers mongoConf offset limit = runAction mongoConf fetchAction
 
 
 -- | Return "True" or "False" if user exists
-fetchUserExists :: MongoConf -> Username -> IO Text
+fetchUserExists :: MongoConf -> Username -> IO Bool
 fetchUserExists mongoConf username = runAction mongoConf fetchAction
   where
-    fetchAction :: Action IO Text
+    fetchAction :: Action IO Bool
     fetchAction = do
       mUser <- getBy (UniqueUsername username)
       case mUser of
-        Just _ -> return  "True"
-        Nothing -> return "False"
+        Just _ -> return  True
+        Nothing -> return False
 
 
 -------------------------------------------------------------------------------

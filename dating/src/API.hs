@@ -66,7 +66,7 @@ type UserAPI =
   :<|>  -- Does Username Exist?
   "users" :> "exists"
           :> Capture "username" Username
-          :> Get '[JSON] Text
+          :> Get '[JSON] Bool
 
 type AuthAPI =
         -- Login
@@ -124,7 +124,7 @@ fetchAllUsersHandler mongoInfo _ offset limit = liftIO $ DB.fetchAllUsers mongoI
 
 
 -- | Ask if username exists.
-fetchUserExists :: MongoInfo -> Username -> Handler Text
+fetchUserExists :: MongoInfo -> Username -> Handler Bool
 fetchUserExists mongoInfo username = liftIO $ DB.fetchUserExists mongoInfo username
 
 -------------------------------------------------------------------------------
