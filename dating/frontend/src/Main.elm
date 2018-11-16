@@ -415,7 +415,7 @@ stepUrl url model =
                 ]
 
     in
-        case Parser.parse parser url of
+        case Parser.parse parser {url | path = Maybe.withDefault url.path (Url.percentDecode url.path)} of
             Just answer ->
                 answer
 
