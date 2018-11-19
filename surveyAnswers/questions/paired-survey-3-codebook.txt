@@ -1,0 +1,130 @@
+F3Q1	I make jokes about autism.
+F3Q2	I give to charity.
+F3Q3	I think that children should not be exposed to violent video games.
+F3Q4	I think fat people should pay more for seats on airplanes.
+F3Q5	I think criminal convicts should be forced to work.
+F3Q6	I would not like my child to marry someone of a different race.
+F3Q7	I think false accusations of rape are very rare.
+F3Q8	I have never used a racist slur.
+F3Q9	I think the internet needs to be regulated.
+F3Q10	I believe that soldiers are heroes.
+F3Q11	I think this current generation is soft.
+F3Q12	I think hunting is immoral.
+F3Q13	I tend to vote for liberal political candidates.
+F3Q14	I do not trust the integrity of the police.
+F3Q15	I like sarcastic people.
+F3Q16	I think camo clothes look stupid.
+F3Q17	I do not like nose rings.
+F3Q18	I don&lsquo;t think that schooling is important.
+F3Q19	I know the rules of baseball.
+F3Q20	I would never cheat on my taxes.
+F3Q21	I sympathize with the homeless.
+F3Q22	I am interested in the Dungeons & Dragons role playing game.
+F3Q23	I sometimes tease animals.
+F3Q24	I oppose restrictions on immigration.
+F3Q25	I&lsquo;d be interested in watching a rap battle.
+F3Q26	I think school children should have uniforms.
+F3Q27	I think genetically engineered foods are dangerous.
+F3Q28	I have done some kind of vandalism.
+F3Q29	I believe that we coddle criminals too much.
+F3Q30	I am normal.
+F3Q31	I went through a phase where I was interested in the occult.
+F3Q32	I believe that one can judge somebody based on their past actions.
+F3Q33	I wear deodorant.
+F3Q34	I would be interested in investing in gold.
+F3Q35	I think China is going to take over the world.
+F3Q36	I think everyone should go to college.
+F3Q37	I like to play with fire.
+F3Q38	I think my taxes should not pay for police.
+F3Q39	I use made up words.
+F3Q40	I think insurance is a rip-off.
+F3Q41	I yell at inanimate objects.
+F3Q42	I am just an ordinary person.
+F3Q43	I would give anything to travel into space.
+F3Q44	I share funny internet videos with people.
+F3Q45	I would like to be a florist.
+F3Q46	I worry that city water has toxic chemicals.
+F3Q47	I like to discuss movies.
+F3Q48	I would always wear a helmet if I rode a bike.
+F3Q49	I hate gender roles.
+F3Q50	I think all high school students ought to work part time jobs.
+F3Q51	I like capitalism.
+F3Q52	I hate extremists.
+F3Q53	I call people by fake names.
+F3Q54	I think the population of the world needs to be reduced.
+F3Q55	I enjoy beating the system.
+F3Q56	I think it is obnoxious for people to describe themselves as entrepreneurs.
+F3Q57	I enjoy visiting the zoo.
+F3Q58	I support home-schooling.
+F3Q59	I think wine tasting is silly.
+F3Q60	I think belly dancing is ridiculous.
+F3Q61	I think felons who have completed their sentence should be allowed to vote.
+F3Q62	I like jazz music.
+F3Q63	I do improper things.
+F3Q64	I spit on the sidewalk.
+F3Q65	I think immigration is bad.
+F3Q66	I like inspirational quotes.
+F3Q67	I like to listen to poems.
+F3Q68	I like to watch birds.
+F3Q69	I like opera singing.
+F3Q70	I don&lsquo;t think men and women can be &lsquo;just friends&lsquo;.
+F3Q71	I have ideas that are very strange.
+F3Q72	I say inappropriate things.
+F3Q73	I have few interests.
+F3Q74	I think IQ is nonsense.
+F3Q75	I think it should be illegal to ask for money on the street.
+F3Q76	I think it is important that buildings should be required to have elevators, to be handicap accessible.
+F3Q77	I act as if some laws do not apply to me.
+F3Q78	I believe that there is no absolute right and wrong.
+F3Q79	I think it is rude to call people on the phone late at night.
+F3Q80	I would enjoy being a security guard.
+F3Q81	I think most people are unintelligent.
+F3Q82	I think holidays are important.
+F3Q83	I sometimes wish I knew what it was like to be the opposite gender.
+F3Q84	I want to live forever.
+F3Q85	I don&lsquo;t mind cutting in line.
+F3Q86	I think India is a cool country.
+F3Q87	I don&lsquo;t like to be intoxicated.
+F3Q88	I love big business.
+F3Q89	I think long hair on men looks bad.
+F3Q90	I think pets must wear a leash if brought outside.
+F3Q91	I could deal with being homeless for a time.
+F3Q92	I have unusual beliefs about the world.
+F3Q93	I would not worry about drinking water from a stream.
+F3Q94	I play games on my phone.
+F3Q95	I think people should not talk on their cellphones on the bus.
+F3Q96	I think everyone should go to therapy.
+F3Q97	I think college is a waste of time.
+F3Q98	I leave mean comments on-line.
+F3Q99	I like soap operas.
+F3Q100	I would be interested in getting my DNA analyzed.
+F3Q101	I have been told that I am strange or weird.
+F3Q102	I love to play charades.
+F3Q103	I would hate camping in the rain.
+F3Q104	I like to watch wrestling.
+F3Q105	I have days when I&lsquo;m mad at the world.
+F3Q106	I enjoy it when arrogant people get called out.
+F3Q107	I think computers will never be conscious.
+F3Q108	I think it sounds exciting to bet money on a sports event.
+F3Q109	I believe that some people are born lucky.
+F3Q110	I would never describe myself as an asshole.
+F3Q111	I think most accents sound bad.
+F3Q112	I like to receive cards for my birthday.
+F3Q113	I think I have seen a ghost.
+F3Q114	I think astrology is fun.
+F3Q115	I think castles are cool.
+F3Q116	I am disgusted by drunken people.
+F3Q117	I have never hated anyone.
+F3Q118	I have some bad habits.
+F3Q119	I think it is appropriate to kiss on the first date.
+F3Q120	I worry about toxins in the water supply.
+F3Q121	I think deforestation is out of control.
+F3Q122	I would enjoy being out on a sailboat during a storm.
+F3Q123	I play tricks on others.
+F3Q124	I am interested in military history.
+F3Q125	I have positive feelings about golf.
+F3Q126	I am happy doing mindless work.
+F3Q127	I&lsquo;d not bother to wear a life jacket if I were in a canoe.
+F3Q128	I think people should not get married before they are 25.
+F3Q129	I would not be friends with a bully.
+F3Q130	I do things that women traditionally do.

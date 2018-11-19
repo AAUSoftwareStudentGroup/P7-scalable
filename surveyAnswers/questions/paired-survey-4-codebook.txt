@@ -1,0 +1,160 @@
+F4Q1	I support the United States.
+F4Q2	I think it is always wrong for a 25 year old to seduce a 19 year old.
+F4Q3	I have tried to move objects with my mind.
+F4Q4	I support using IQ tests to predict criminality.
+F4Q5	I have thoughts of murdering people.
+F4Q6	I have made bombs as a kid.
+F4Q7	I use disabilities as insults.
+F4Q8	I think engineers are all really arrogant.
+F4Q9	I like to watch foreign films.
+F4Q10	I think all dead people should be harvested for organ transplants.
+F4Q11	I think putting on silly accents is funny.
+F4Q12	I quote movies in everyday conversation.
+F4Q13	I think you can&apos;t have more than one best friend.
+F4Q14	I own a formal dress or tuxedo.
+F4Q15	I think its possible for someone to have supernatural powers.
+F4Q16	I think the rapper Eminem is one of the best musicians of all time.
+F4Q17	I think the average nerd is fat.
+F4Q18	I admire a really clever scam.
+F4Q19	I think a lot of people who claim to be happy are lying.
+F4Q20	I call people idiots.
+F4Q21	Fictional stories is one of my most common conversational topics.
+F4Q22	I think the media has a liberal bias.
+F4Q23	I think the elections are rigged.
+F4Q24	If my pet was sick and dieing, I would euthanize it right away.
+F4Q25	I give people &apos;high five&apos; hand slaps.
+F4Q26	I think its normal to have had sex with 50 people.
+F4Q27	I think about how I would survive a zombie apocalypse.
+F4Q28	I think prank calls are always stupid.
+F4Q29	I think living forever will never be possible.
+F4Q30	I enjoy wrestling with my friends.
+F4Q31	I think alcoholism is a sign of weakness.
+F4Q32	I think conspiracy theories are never true.
+F4Q33	I don&apos;t like people who are too nice.
+F4Q34	I have fantasized about my funeral.
+F4Q35	I fear dementia more than death.
+F4Q36	I think it is wrong to use students discounts after graduation.
+F4Q37	I think that most people in authority are incompetent or corrupt.
+F4Q38	I do not think journalists get much right.
+F4Q39	I frequently donate to charity.
+F4Q40	I have never engaged in gossip.
+F4Q41	I would be interested and willing to swap genders for a year.
+F4Q42	I eat a lot of pretzels.
+F4Q43	I do not trust Wikipedia to be accurate.
+F4Q44	I think faster than light travel will one day be possible.
+F4Q45	I do not like strange first names.
+F4Q46	I would like it if my friends played a prank on me.
+F4Q47	I think it is embarrassing for an adult to be into cartoons.
+F4Q48	I think there are too many people in the world.
+F4Q49	I never use slang.
+F4Q50	I think contact with aliens would be a bad thing for humankind.
+F4Q51	I can read a page from a book upside down.
+F4Q52	I don&apos;t think therapy is worthwhile for most people.
+F4Q53	I think morality is not real.
+F4Q54	I hate gossip and people who gossip.
+F4Q55	I think most teenagers who get tattoos will end up regretting it.
+F4Q56	I like to attend live music.
+F4Q57	I would consider getting a computer implant in my brain to make me smarter.
+F4Q58	I am interested in reptiles.
+F4Q59	I am a law-abiding citizen.
+F4Q60	I sometimes just want to wreak havoc.
+F4Q61	I tease people.
+F4Q62	I use reddit a lot.
+F4Q63	I like classic rock bands such as Led Zeppelin, AC/DC, or Pink Floyd.
+F4Q64	I think it is important that humans colonize space.
+F4Q65	I would never buy used shoes.
+F4Q66	If it were possible, I would make a lot of copies of myself.
+F4Q67	I only want service from the top-qualified person in the field.
+F4Q68	I would like to a ride a lion.
+F4Q69	I pirate music and movies instead of paying.
+F4Q70	I would like travel around the Middle East for a year.
+F4Q71	I can laugh and cry at the same time.
+F4Q72	I would like to have a custom licence plate (vanity licence plate).
+F4Q73	I worry about air pollution.
+F4Q74	I am very sceptical of non-monogamous relationships.
+F4Q75	I like electronic dance music.
+F4Q76	I do not like people who brag.
+F4Q77	I worry that the world is on the brink of destruction.
+F4Q78	I think bow ties look ridiculous.
+F4Q79	I think beauty pageants don&apos;t make sense.
+F4Q80	I would like to go to a class on how to flirt.
+F4Q81	I like beach bonfires.
+F4Q82	I have watched many science fiction TV shows.
+F4Q83	I have no opinions of my own.
+F4Q84	I am sceptical of hypnotism.
+F4Q85	I hate the band Nickelback.
+F4Q86	I call people by nicknames.
+F4Q87	I would find it disgusting to dig through trash.
+F4Q88	I get angry when I hear about people being scammed.
+F4Q89	I think doctors are unreliable.
+F4Q90	I act strange on purpose sometimes.
+F4Q91	I make puns.
+F4Q92	I experience anger every day.
+F4Q93	I would be upset if I saw an injured animal.
+F4Q94	I believe that I know more than most supposed &apos;experts.&apos;
+F4Q95	Music makes me nostalgic.
+F4Q96	I sometimes come off as creepy.
+F4Q97	I think I am better than everyone else.
+F4Q98	I&apos;d like to watch a movie about penguins.
+F4Q99	I misjudge situations.
+F4Q100	I think it is rude to read a book at a party.
+F4Q101	I think it is wrong for companies to ask their employees to work late.
+F4Q102	I think lots of muscle is very attractive.
+F4Q103	I judge people by their appearance.
+F4Q104	I watch cartoons.
+F4Q105	I find some fabrics very uncomfortable.
+F4Q106	I do not think politics is worth getting mad about.
+F4Q107	I would rather be homeless and smart than rich and dumb.
+F4Q108	I often feel overwhelmed with rage.
+F4Q109	I prefer to call people &apos;Mr.&apos; and &apos;Mrs.&apos;
+F4Q110	I think everyone should have a garden.
+F4Q111	I have done hundreds of pushups in my life.
+F4Q112	I am very masculine for my gender.
+F4Q113	I am annoyed by klutzy people.
+F4Q114	I think people who pursue money are misguided.
+F4Q115	I would be interested in living in a farming commune.
+F4Q116	I would consider adopting a handicapped child.
+F4Q117	I have frightening dreams.
+F4Q118	I think everyone should get in at least one physical fight in their lives.
+F4Q119	I do not listen to Taylor Swift at all.
+F4Q120	I leave mean comments on-line.
+F4Q121	I often argue with people about feminism and sexism.
+F4Q122	I have gone to book signings.
+F4Q123	I think it is embarrassing for an adult to keep a diary.
+F4Q124	I would hate to work as a cattle rancher.
+F4Q125	I know that I&apos;m a special person.
+F4Q126	I have gone to meet-ups of strangers arranged through the internet.
+F4Q127	I worry about being a victim of crime.
+F4Q128	I am bothered by frequent aches and pains.
+F4Q129	I would be interested in getting waterboarded to see what it is like.
+F4Q130	I would give my life to save another.
+F4Q131	I like it when strangers find me sexually appealing.
+F4Q132	I&apos;d rather be poor than alone.
+F4Q133	I am not concerned with the lives of others.
+F4Q134	I only hang out with people like me.
+F4Q135	I feel like I don&lsquo;t belong.
+F4Q136	I tend to dislike impulsive people.
+F4Q137	I want to be different from others.
+F4Q138	I am worried about being tracked on-line.
+F4Q139	I do not trust the internet.
+F4Q140	I would enjoy employing servants.
+F4Q141	I think people usually get what they deserve.
+F4Q142	I would never go to a dance club.
+F4Q143	I would never send my children to a private high school.
+F4Q144	I feel happy when I see strangers being nice to each other.
+F4Q145	I would rather have no friends than bad friends.
+F4Q146	I have no secrets.
+F4Q147	I&apos;d be interested in serving on a jury.
+F4Q148	I would much rather have my own children than adopt.
+F4Q149	I would enjoy being a commercial airline pilot.
+F4Q150	I think having a fight every now and then makes a relationship stronger.
+F4Q151	I have a negative view of the world.
+F4Q152	I am the kind of person who goes surfing.
+F4Q153	I sometimes act wild and crazy.
+F4Q154	I would rather live in a house than an apartment.
+F4Q155	I make an issue out of everything.
+F4Q156	I prefer to eat at expensive restaurants.
+F4Q157	I think what school you go to college at is not as important as people think.
+F4Q158	I have experienced the &apos;friend zone&apos;.
+F4Q159	I am always in the same mood.
+F4Q160	I make other people feel awkward sometimes.

@@ -1,0 +1,215 @@
+F5Q1	I see myself as extraverted and enthusiastic.
+F5Q2	I see myself as critical and quarrelsome.
+F5Q3	I see myself as dependable and self-disciplined.
+F5Q4	I see myself as anxious and easily upset.
+F5Q5	I see myself as open to new experiences and complex.
+F5Q6	I see myself as reserved and quiet.
+F5Q7	I see myself as sympathetic and warm.
+F5Q8	I see myself as disorganized and careless.
+F5Q9	I see myself as calm and emotionally stable.
+F5Q10	I see myself as conventional and uncreative.
+F5Q11	I am a feminist.
+F5Q12	I have smoked a lot of marijuana in my life.
+F5Q13	I support the United States.
+F5Q14	I would be open to dating a transsexual person.
+F5Q15	I like tattoos.
+F5Q16	I use facebook every day.
+F5Q17	I believe in evolution.
+F5Q18	I make jokes about autism.
+F5Q19	I believe in a universal power or God.
+F5Q20	I would not want my children to be gay/lesbian.
+F5Q21	I support conservative politicians.
+F5Q22	I speak more than one language.
+F5Q23	I do not trust the integrity of the police.
+F5Q24	I hate feminists.
+F5Q25	I would be interested in living in a farming commune.
+F5Q26	I like to drink alcohol.
+F5Q27	I love big business.
+F5Q28	I like capitalism.
+F5Q29	I think spanking children is reasonable.
+F5Q30	I like guns.
+F5Q31	I enjoy watching terrible movies to laugh at them.
+F5Q32	I think the holocaust has been exaggerated.
+F5Q33	I attend protests.
+F5Q34	I support the death penalty.
+F5Q35	I do not like the idea of genetically engineered foods.
+F5Q36	I go to coffee shops.
+F5Q37	I like jazz music.
+F5Q38	I like rap music.
+F5Q39	I think horoscopes are fun.
+F5Q40	I enjoy visiting the zoo.
+F5Q41	I believe that religion is foolish.
+F5Q42	I believe that we coddle criminals too much.
+F5Q43	I support home-schooling.
+F5Q44	I like opera singing.
+F5Q45	I think that children should not be exposed to violent video games.
+F5Q46	I playfully insult people.
+F5Q47	I would not like my child to marry someone of a different race.
+F5Q48	I think cosplay (dressing up as fiction characters) is stupid.
+F5Q49	I would never go to a dance club.
+F5Q50	I oppose restrictions on immigration.
+F5Q51	I think all drugs ought to be legalized.
+F5Q52	I think false accusations of rape are very rare.
+F5Q53	I am interested in the Dungeons & Dragons role playing game.
+F5Q54	I think the media has a liberal bias.
+F5Q55	I would like travel around the Middle East for a year.
+F5Q56	I would be interested in investing in gold.
+F5Q57	Fictional stories is one of my most common conversational topics.
+F5Q58	I want to own an expensive car.
+F5Q59	I am disgusted by drunken people.
+F5Q60	I think criminal convicts should be forced to work.
+F5Q61	I am disgusted by obesity.
+F5Q62	I eat at fast food restaurants.
+F5Q63	I like death metal music.
+F5Q64	I would never send my children to a private high school.
+F5Q65	I think I have seen a ghost.
+F5Q66	I do not like nose rings.
+F5Q67	I support using IQ tests to predict criminality.
+F5Q68	I do not listen to Taylor Swift at all.
+F5Q69	I use disabilities as insults.
+F5Q70	I think its possible for someone to have supernatural powers.
+F5Q71	I think most teenagers who get tattoos will end up regretting it.
+F5Q72	I feel happy when I see strangers being nice to each other.
+F5Q73	I tend to vote for liberal political candidates.
+F5Q74	Sexual jokes make me uncomfortable.
+F5Q75	I think the rapper Eminem is one of the best musicians of all time.
+F5Q76	I think camo clothes look stupid.
+F5Q77	I like to watch foreign films.
+F5Q78	I think everyone should have a garden.
+F5Q79	I believe in sexual modesty.
+F5Q80	I think it is wrong for companies to ask their employees to work late.
+F5Q81	I often argue with people about feminism and sexism.
+F5Q82	Spirituality is important to me.
+F5Q83	I love large parties.
+F5Q84	I believe that soldiers are heroes.
+F5Q85	I think it is wrong to use students discounts after graduation.
+F5Q86	I have played a lot of video games.
+F5Q87	I laugh at people who do stupid things and get hurt.
+F5Q88	I share funny internet videos with people.
+F5Q89	I think its normal to have had sex with 50 people.
+F5Q90	I pay attention to internet memes.
+F5Q91	I would use counterfeit money if I could get away with it.
+F5Q92	I love children's movies.
+F5Q93	I think the government assassinates its own citizens.
+F5Q94	I think the police are corrupt.
+F5Q95	I think school children should have uniforms.
+F5Q96	I laugh at jokes that would offend some people.
+F5Q97	I think long hair on men looks bad.
+F5Q98	I like beach bonfires.
+F5Q99	I watch cartoons.
+F5Q100	I believe in an eye for an eye.
+F5Q101	I am a high status person.
+F5Q102	I swear a lot.
+F5Q103	I think poverty in Africa is mostly the fault of European colonialism.
+F5Q104	I am the kind of person who goes surfing.
+F5Q105	There are important biological brain differences between men and women.
+F5Q106	I have made bombs as a kid.
+F5Q107	I tend to vote for liberal political candidates.
+F5Q108	I hate gender roles.
+F5Q109	I think doctors are unreliable.
+F5Q110	I do not think politics is worth getting mad about.
+F5Q111	I know that I'm a special person.
+F5Q112	I am wearing headphones most of the time.
+F5Q113	I don't like to be intoxicated.
+F5Q114	I worry about technology robbing us of our humanity.
+F5Q115	I think vegetarianism is stupid.
+F5Q116	I get annoyed by people kissing in public.
+F5Q117	I enjoy movies about sports.
+F5Q118	I think this current generation is soft.
+F5Q119	I sometimes litter.
+F5Q120	I like to go to fancy parties.
+F5Q121	I get obsessed with TV shows.
+F5Q122	I'd be interested in watching a rap battle.
+F5Q123	I think India is a cool country.
+F5Q124	I think it is always wrong for a 25 year old to seduce a 19 year old.
+F5Q125	I believe that people are essentially evil.
+F5Q126	I am nerdy.
+F5Q127	I like art films.
+F5Q128	I think the internet needs to be regulated.
+F5Q129	I am interested in reptiles.
+F5Q130	I'm interested in psychedelic drugs.
+F5Q131	I think it is important that humans colonize space.
+F5Q132	I like people who are musical.
+F5Q133	I think "that is what she said" jokes are funny.
+F5Q134	I think having a fight every now and then makes a relationship stronger.
+F5Q135	I make sexual jokes.
+F5Q136	I sympathize with the homeless.
+F5Q137	I think belly dancing is ridiculous.
+F5Q138	I greet people with hugs.
+F5Q139	I worry about air pollution.
+F5Q140	I would much rather have my own children than adopt.
+F5Q141	I sympathize with the homeless.
+F5Q142	I worry that city water has toxic chemicals.
+F5Q143	I like classic rock bands such as Led Zeppelin, AC/DC, or Pink Floyd.
+F5Q144	I wish magic were real.
+F5Q145	I think about how I would survive a zombie apocalypse.
+F5Q146	I like horror movies.
+F5Q147	I do not like concerts.
+F5Q148	I hate gossip and people who gossip.
+F5Q149	I have travelled alone in a foreign country.
+F5Q150	I pirate music and movies instead of paying.
+F5Q151	I like to talk about other people I know (gossip).
+F5Q152	I think all high school students ought to work part time jobs.
+F5Q153	I believe in the importance of art.
+F5Q154	I would enjoy employing servants.
+F5Q155	I think there are some things science can't explain.
+F5Q156	I make jokes that offend some people.
+F5Q157	I play games on my phone.
+F5Q158	I often make jokes about politics.
+F5Q159	I think college fraternities ought to be banned.
+F5Q160	I like to play with fire.
+F5Q161	I worry that the world is on the brink of destruction.
+F5Q162	I like super hero movies.
+F5Q163	I worry the corporations are destroying the environment.
+F5Q164	I like to watch figure skating.
+F5Q165	I enjoy wrestling with my friends.
+F5Q166	I have thoughts of murdering people.
+F5Q167	I have never engaged in gossip.
+F5Q168	I would consider adopting a handicapped child.
+F5Q169	I think my taxes should not pay for police.
+F5Q170	I would be interested in getting waterboarded to see what it is like.
+F5Q171	I would never associate with criminals.
+F5Q172	I have never used a racist slur.
+F5Q173	I think there are too many tests in school.
+F5Q174	I hate people.
+F5Q175	I am happy with my life.
+F5Q176	I do not trust doctors.
+F5Q177	I like to attend live music.
+F5Q178	I would enjoy being a farmer.
+F5Q179	I would enjoy being a librarian.
+F5Q180	I would like to be a hacker.
+F5Q181	I make self-deprecating jokes all the time.
+F5Q182	I have ideas that are very strange.
+F5Q183	I am disgusted by cigarette smoking.
+F5Q184	I don't like libertarians.
+F5Q185	I am interested in military history.
+F5Q186	I think everyone should to go to college.
+F5Q187	I think college is a waste of time.
+F5Q188	I have tried to move objects with my mind.
+F5Q189	I trust in luck.
+F5Q190	I judge people by their appearance.
+F5Q191	I like pranks.
+F5Q192	I think felons who have completed their sentence should be allowed to vote.
+F5Q193	I think archery is a cool hobby.
+F5Q194	I like abstract art.
+F5Q195	I think morality is not real.
+F5Q196	I would hate to work as a cattle rancher.
+F5Q197	I was an outcast in school.
+F5Q198	I think fat people should pay more for seats on airplanes.
+F5Q199	I like to watch birds.
+F5Q200	I think deforestation is out of control.
+F5Q201	I'm interested in ballet shows.
+F5Q202	I think genetically engineered foods are dangerous.
+F5Q203	I think computers will never be concious.
+F5Q204	I would never buy used shoes.
+F5Q205	I wear deodorant.
+F5Q206	I went through a phase where I was interested in the occult.
+F5Q207	I think political correctness is a problem.
+F5Q208	I think it is rude to read a book at a party.
+F5Q209	I do not enjoy movies that do not have a villain.
+F5Q210	I hate the band Nickelback.
+F5Q211	I watch movies with subtitles.
+F5Q212	I would not date someone who has gone through a sex change.
+F5Q213	I would be interested in living in a farming commune.
+F5Q214	I think spanking children is reasonable.
+F5Q215	I do not enjoy rap music.
