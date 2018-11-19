@@ -6,7 +6,8 @@ import Browser.Dom as Dom exposing (Viewport)
 import Html exposing (Html, div)
 import Html.Attributes as Attributes exposing (classList)
 import Html.Events as Events
-import Html.Keyed exposing (ul)
+import Html.Keyed as Keyed
+import Html.Lazy as Lazy
 import Http
 import Routing exposing (Route(..))
 import Session as Session exposing (Details, Session)
@@ -161,7 +162,7 @@ view model =
     , kids =
         El.titledContentLoader model.loaded
             ("Chatting with " ++ model.usernameFriend)
-            [ ul
+            [ Keyed.ul
                 [ classList
                     [ ( "messages", True )
                     , ( "l-12", True )
@@ -169,7 +170,7 @@ view model =
                     ]
                 , Attributes.id listId
                 ]
-                (List.map (viewMessage model) model.messages)
+                (List.map (viewMessageKeyed model) model.messages)
             , Html.form
                 [ Events.onSubmit SendMessage
                 , classList
@@ -185,14 +186,18 @@ view model =
     }
 
 
-viewMessage : Model -> Message -> ( String, Html Msg )
+viewMessageKeyed : Model -> Message -> ( String, Html msg )
+viewMessageKeyed model message =
+    ( message.timeStamp
+    , Lazy.lazy2 viewMessage model message
+    )
+
+viewMessage : Model -> Message -> Html msg
 viewMessage model message =
     let
-        myMessage =
-            model.usernameSelf == message.authorName
+        myMessage = model.usernameSelf == message.authorName
     in
-    ( message.timeStamp
-    , Html.li
+    Html.li
         [ classList
             [ ( "message", True ) ]
         ]
@@ -204,14 +209,12 @@ viewMessage model message =
             ]
             [ Html.text message.body ]
         ]
-    )
 
 
 sendMessage : Model -> Cmd Msg
 sendMessage model =
     if String.isEmpty model.unsentMessage then
         Cmd.none
-
     else
         case model.session of
             Session.LoggedIn _ _ userInfo ->

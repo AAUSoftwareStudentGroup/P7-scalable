@@ -99,7 +99,7 @@ port onStoreChange : (Maybe Encode.Value -> msg) -> Sub msg
 
 onChange : (Session -> msg) -> Nav.Key -> Sub msg
 onChange toMsg key =
-    onStoreChange (\value -> toMsg (Debug.log "Changed token" (createSessionFromLocalStorageValue value key)))
+    onStoreChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
 
 
 -- HELPERS

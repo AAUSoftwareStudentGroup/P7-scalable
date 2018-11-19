@@ -52,7 +52,7 @@ update msg model =
                 Ok fetchedUser ->
                     ( { model | user = fetchedUser, loaded = True }, Cmd.none )
                 Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( { model | user = Api.Users.emptyUser }
+                    ( { model | user = Api.Users.emptyUser }
                     , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home ) )
 
 
