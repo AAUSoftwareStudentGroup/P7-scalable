@@ -6,7 +6,8 @@ import Browser.Dom as Dom exposing (Viewport)
 import Html exposing (Html, div)
 import Html.Attributes as Attributes exposing (classList)
 import Html.Events as Events
-import Html.Keyed exposing (ul)
+import Html.Keyed as Keyed
+import Html.Lazy as Lazy
 import Http
 import Routing exposing (Route(..))
 import Session as Session exposing (Details, Session)
@@ -162,7 +163,7 @@ view model =
     , kids =
         El.titledContentLoader model.loaded
             ("Chatting with " ++ model.usernameFriend)
-            [ ul
+            [ Keyed.ul
                 [ classList
                     [ ( "messages", True )
                     , ( "l-12", True )
@@ -186,14 +187,18 @@ view model =
     }
 
 
-viewMessage : Model -> Message -> Bool -> Bool -> (String, Html Msg)
+viewMessageKeyed : Model -> Message -> Bool -> Bool -> ( String, Html msg )
+viewMessageKeyed model message isFirst isLast =
+    ( message.timeStamp
+    , Lazy.lazy4 viewMessage model message isFirst isLast
+    )
+
+viewMessage : Model -> Message -> Bool -> Bool -> Html msg
 viewMessage model message isFirst isLast = 
     let
-        myMessage =
-            model.usernameSelf == message.authorName
+        myMessage = model.usernameSelf == message.authorName
     in
-    ( message.timeStamp
-    , Html.li
+    Html.li
         [ classList
             [ ( "message", True )
             , ( "is-first-in-group", isFirst )
@@ -205,17 +210,16 @@ viewMessage model message isFirst isLast =
             [ ]
             [ Html.text message.body ]
         ]
-    )
 
 viewMessageGroup : Model -> Bool -> (Message, List Message) -> List ( String, Html Msg )
 viewMessageGroup model isFirstMessage (firstMessage, restOfMessages) =
     case (List.length restOfMessages) of
-        0 -> [(viewMessage model firstMessage isFirstMessage True)]
+        0 -> [(viewMessageKeyed model firstMessage isFirstMessage True)]
         _ ->
             let
                 firstRestOfMessages = Maybe.withDefault firstMessage (List.head restOfMessages)
                 lastRestOfMessages = Maybe.withDefault restOfMessages (List.tail restOfMessages)
-                firstMsgHtml = viewMessage model firstMessage isFirstMessage ((List.length restOfMessages) == 0)
+                firstMsgHtml = viewMessageKeyed model firstMessage isFirstMessage ((List.length restOfMessages) == 0)
                 lastMsgsHtml = viewMessageGroup model False (firstRestOfMessages, lastRestOfMessages)
             in
                 firstMsgHtml::lastMsgsHtml
@@ -225,7 +229,6 @@ sendMessage : Model -> Cmd Msg
 sendMessage model =
     if String.isEmpty model.unsentMessage then
         Cmd.none
-
     else
         case model.session of
             Session.LoggedIn _ _ userInfo ->

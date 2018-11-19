@@ -4,6 +4,7 @@ module UI.Elements exposing (..)
 import Html exposing (Html, Attribute, div)
 import Html.Attributes as Attributes exposing (class, classList, src)
 import Html.Events as Events
+import Html.Lazy as Lazy
 import Json.Decode as Decode
 import String.Extra exposing (toSentenceCase)
 
@@ -17,10 +18,10 @@ import Random
 
 site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
 site toMsg children session =
-    [ toasts session
+    [ Lazy.lazy toasts session
     , div [ class "main-wrapper" ]
-        [ header session
-        , content toMsg children
+        [ Lazy.lazy header session
+        , Lazy.lazy2 content toMsg children
         , footer
         ]
     ]

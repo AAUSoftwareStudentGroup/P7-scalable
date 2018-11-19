@@ -3,6 +3,7 @@ module Page.Messages exposing (Model, Msg(..), init, subscriptions, update, view
 import Html exposing (Html, div)
 import Html.Attributes as Attributes exposing (class, classList)
 import Html.Keyed as Keyed
+import Html.Lazy as Lazy
 import Http
 import Task as Task
 import Time as Time
@@ -58,17 +59,17 @@ update msg model =
         HandleGetMessages result ->
             case result of
                 Ok fetchedMessages ->
-                    Debug.log (Debug.toString fetchedMessages) ( { model | content = fetchedMessages, loaded = True }, Cmd.none)
+                    ( { model | content = fetchedMessages, loaded = True }, Cmd.none)
 
                 Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( model, Cmd.none )
+                    ( model, Cmd.none )
 
         FetchMessages newTime ->
             case (model.session) of
                 Session.Guest _ _ ->
                     ( { model | time = newTime }, Cmd.none)
                 Session.LoggedIn _ _ userInfo ->
-                    ( { model | time = (Debug.log "current time: " newTime) }
+                    ( { model | time = newTime }
                     , sendGetMessages HandleGetMessages model.session
                     )
 
@@ -97,24 +98,27 @@ view model =
                     , ( "l-6", True )
                     ]
                 ]
-                (List.map viewMessage model.content)
+                (List.map viewMessageKeyed model.content)
             ]
     }
 
 
-
-viewMessage : ConversationPreviewDTO -> (String, Html msg)
-viewMessage message =
+viewMessageKeyed : ConversationPreviewDTO -> (String, Html msg)
+viewMessageKeyed message =
     ( message.convoWithUsername
-    , Html.li [ class "conversation", Attributes.attribute "attr-id" <| message.convoWithUsername ]
+    , Lazy.lazy viewMessage message
+    )
+
+viewMessage : ConversationPreviewDTO -> Html msg
+viewMessage message =
+    Html.li [ class "conversation", Attributes.attribute "attr-id" <| message.convoWithUsername ]
         [ Html.a [ Attributes.href (Routing.routeToString (Chat message.convoWithUsername)) ]
             [ div [ class "conversation-with" ]
                 [ Html.text message.convoWithUsername ]
             , div [ class "conversation-last-message" ]
-                [ Html.text (lastMessage message) ]
+            [ Html.text (lastMessage message) ]
             ]
         ]
-    )
 
 lastMessage : ConversationPreviewDTO -> String
 lastMessage conversation =

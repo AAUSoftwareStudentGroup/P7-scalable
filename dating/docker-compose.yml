@@ -14,7 +14,7 @@ services:
         image: elm
         volumes:
             - ./frontend/:/opt/app
-        command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.js --debug\\\"\""
+        command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.dev.js --debug\\\" \\\"elm make src/Main.elm --output main.prod.js --optimize\\\" \"" 
 
     caddy:
       image: abiosoft/caddy

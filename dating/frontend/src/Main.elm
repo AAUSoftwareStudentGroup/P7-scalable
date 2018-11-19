@@ -282,10 +282,10 @@ update message model =
         HandleGetMessages result ->
             case result of
                 Ok fetchedMessages ->
-                    Debug.log (Debug.toString fetchedMessages) ( {model | numMessages = (Debug.log "length: "(List.length fetchedMessages)) }, Cmd.none)
+                    ( {model | numMessages = List.length fetchedMessages }, Cmd.none)
 
                 Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( model, Cmd.none )
+                    ( model, Cmd.none )
 
 
 
