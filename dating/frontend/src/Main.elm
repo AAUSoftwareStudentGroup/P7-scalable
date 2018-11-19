@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Element exposing (..)
 import Html exposing (Html)
 import Url
-import Url.Parser as Parser exposing ((</>), Parser)
+import Url.Parser as Parser exposing ((</>), Parser, top)
 import Url.Parser.Query as Query
 import Json.Encode as Encode
 import Json.Decode as Decode
@@ -13,6 +13,7 @@ import Time as Time
 import Http as Http
 
 import Page.CreateUser as CreateUser
+import Page.Home as Home
 import Page.ListUsers as ListUsers
 import Page.Messages as Messages
 import Page.NotFound as NotFound
@@ -55,6 +56,7 @@ type Page
     | CreateUser CreateUser.Model
     | Login Login.Model
     | Logout Logout.Model
+    | Home Home.Model
     | ListUsers ListUsers.Model
     | Messages Messages.Model
     | Profile Profile.Model
@@ -96,6 +98,9 @@ view model =
         Logout logoutModel ->
             viewContent LogoutMsg (Logout.view logoutModel)
 
+        Home homeModel ->
+            viewContent HomeMsg (Home.view homeModel)
+
         Messages messagesModel ->
             viewContent MessagesMsg (Messages.view messagesModel)
 
@@ -134,6 +139,9 @@ subscriptions model =
             Logout logoutModel ->
                 Sub.map LogoutMsg (Logout.subscriptions logoutModel)
 
+            Home homeModel ->
+                Sub.map HomeMsg (Home.subscriptions homeModel)
+
             Messages messagesModel ->
                 Sub.map MessagesMsg (Messages.subscriptions messagesModel)
 
@@ -161,6 +169,7 @@ type Msg
   | UrlChanged Url.Url
   | NotFoundMsg NotFound.Msg
   | CreateUserMsg CreateUser.Msg
+  | HomeMsg Home.Msg
   | ListUsersMsg ListUsers.Msg
   | LoginMsg Login.Msg
   | LogoutMsg Logout.Msg
@@ -220,6 +229,12 @@ update message model =
                     stepLogout model (Logout.update msg logoutModel)
                 _ ->
                     ( model, Cmd.none )
+
+        HomeMsg msg ->
+            case model.page of
+                Home homeModel ->
+                    stepHome model (Home.update msg homeModel)
+                _ -> ( model, Cmd.none )
 
         ListUsersMsg msg ->
             case model.page of
@@ -289,6 +304,9 @@ replacePage page session =
         Logout m ->
             Logout { m | session = session }
 
+        Home m ->
+             Home { m | session = session }
+
         ListUsers m ->
              ListUsers { m | session = session }
 
@@ -324,6 +342,12 @@ stepLogout : Model -> ( Logout.Model, Cmd Logout.Msg ) -> ( Model, Cmd Msg )
 stepLogout model ( logoutModel, cmds ) =
     ( { model | page = Logout logoutModel }
     , Cmd.map LogoutMsg cmds
+    )
+
+stepHome : Model -> ( Home.Model, Cmd Home.Msg ) -> ( Model, Cmd Msg )
+stepHome model (homeModel, cmds) =
+    ( { model | page = Home homeModel}
+    , Cmd.map HomeMsg cmds
     )
 
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
@@ -376,6 +400,9 @@ getSession model =
         Logout m ->
             m.session
 
+        Home m ->
+            m.session
+
         ListUsers m ->
             m.session
 
@@ -396,8 +423,8 @@ stepUrl url model =
 
         parser =
             Parser.oneOf
-                [ route (Parser.s "Main.elm")
-                    (stepLogin model (Login.init session))
+                [ route top
+                    (stepHome model (Home.init session))
                 , route (Parser.s "create-user")
                     (stepCreateUser model (CreateUser.init session))
                 , route (Parser.s "login")
