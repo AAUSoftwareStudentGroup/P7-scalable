@@ -313,11 +313,11 @@ fetchQuestions mongoConf username = runAction mongoConf fetchAction
     fetchAction :: Action IO [QuestionDTO]
     fetchAction = do
       cursor <- find 
-        ( ( select [] "questions") 
-          { project = [ "user_answers" =: [ "$elemMatch" =: [ "username" =: ["$ne" =: (username::Text) ] ] ], "text" =: (1::Int) ]
-          , limit = 10 
+        ( ( select ["user_answers.username" =: ["$ne" =: username]] "questions")
+          { project = ["survey_answers" =: (0::Int), "user_answers" =: (0::Int)]
+          , limit = 10
           }
-        )
+        )  
       docList <- rest cursor
       return $ fmap questionToQuestionDTO . rights . fmap docToEntityEither $ docList
     
@@ -347,7 +347,6 @@ postAnswer mongoConf username (AnswerDTO id response) = runAction mongoConf post
         Nothing -> 
           return $ Left $ err406 { errBody = "No such ID" }
 
-          ---modify (select [] "posts") ["$push" =: ["tags" =: "new"]]
     answerFromAnswerInfo :: Username -> Text -> IO UserAnswer
     answerFromAnswerInfo name body = do
       currentTime <- getCurrentTime
