@@ -54,7 +54,7 @@ init session usernameFriend =
     let
         redirect =
             ( emptyModel session
-            , Routing.goHome (Session.getNavKey session)
+            , Routing.goToLogin (Session.getNavKey session)
             )
     in
     case session of

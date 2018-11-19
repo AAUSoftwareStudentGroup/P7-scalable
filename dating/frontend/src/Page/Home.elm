@@ -44,7 +44,7 @@ init session =
     case session of
         Session.Guest _ _ ->
             ( initModel session
-            , Routing.goHome (Session.getNavKey session)
+            , Routing.goToLogin (Session.getNavKey session)
             )
         Session.LoggedIn _ _ _ ->
             ( initModel session

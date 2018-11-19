@@ -1,4 +1,4 @@
-module Routing exposing (Route(..), href, replaceUrl, goHome, pushUrl, routeToString)
+module Routing exposing (Route(..), href, replaceUrl, goToLogin, pushUrl, routeToString)
 
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), (<?>), Parser, oneOf, s)
@@ -46,9 +46,9 @@ replaceUrl : Nav.Key -> String -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key route
 
-goHome : Nav.Key -> Cmd msg
-goHome key =
-    replaceUrl key (routeToString Home)
+goToLogin : Nav.Key -> Cmd msg
+goToLogin key =
+    replaceUrl key (routeToString Login)
 
 pushUrl : Nav.Key -> String -> Cmd msg
 pushUrl key route =

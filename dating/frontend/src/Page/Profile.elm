@@ -36,7 +36,7 @@ init session username =
     case session of
         Session.Guest _ _ ->
             ( emptyModel session
-            , Routing.goHome (Session.getNavKey session)
+            , Routing.goToLogin (Session.getNavKey session)
             )
         Session.LoggedIn _ _ _ ->
             ( emptyModel session
