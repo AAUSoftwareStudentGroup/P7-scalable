@@ -44,7 +44,7 @@ init session =
     case session of
         Session.Guest _ _ ->
             ( initModel session
-            , Routing.goToLogin (Session.getNavKey session)
+            , Cmd.none
             )
         Session.LoggedIn _ _ _ ->
             ( initModel session
@@ -77,20 +77,37 @@ subscriptions model =
 
 view : Model -> Session.Details Msg
 view model =
-    let
-        myUsername = Maybe.withDefault "" (Session.getUsername model.session)
-    in
-        { title = "Home"
-        , session = model.session
-        , kids =
-            El.titledContent "Home"
-                [ Html.div
-                    [ classList
-                        [ ( "l-12", True )
-                        , ( "s-12", True )
-                        , ( "centered", True )
+    case model.session of
+        Session.Guest _ _ ->
+            { title = "Home"
+            , session = model.session
+            , kids =
+                El.titledContent "Home"
+                    [ Html.div
+                        [ classList
+                            [ ( "l-12", True )
+                            , ( "s-12", True )
+                            , ( "centered", True )
+                            ]
                         ]
+                        [ Html.text "Hello World" ]
                     ]
-                    [ Html.text myUsername ]
-                ]
-        }
+            }
+        Session.LoggedIn _ _ _ ->
+            let
+                myUsername = Maybe.withDefault "" (Session.getUsername model.session)
+            in
+                { title = "Home"
+                , session = model.session
+                , kids =
+                    El.titledContent "Home"
+                        [ Html.div
+                            [ classList
+                                [ ( "l-12", True )
+                                , ( "s-12", True )
+                                , ( "centered", True )
+                                ]
+                            ]
+                            [ Html.text myUsername ]
+                        ]
+                }
