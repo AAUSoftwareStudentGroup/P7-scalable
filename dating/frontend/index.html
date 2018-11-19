@@ -8,11 +8,6 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
         <link href="/style/style.css" rel="stylesheet">
 
-        <script
-                src="https://code.jquery.com/jquery-3.3.1.min.js"
-                integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-                crossorigin="anonymous">
-        </script>
         <script src="main.prod.js"></script>
     </head>
     <body>
@@ -94,12 +89,19 @@
             let loading = false;
             let lastHeight = 0;
 
+            function getWindowHeight() {
+                const body = document.body;
+                const html = document.documentElement;
+
+                return Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+            }
+
             // Listen for scroll events
             window.addEventListener("scroll", function(e) {
                 clearTimeout(timeout);
 
                 timeout = setTimeout(function() {
-                    const triggerHeight = $(document).height() - $(window).height() - offset;
+                    const triggerHeight = getWindowHeight() - window.innerHeight - offset;
 
                     if (loading) {
                         if (triggerHeight > lastHeight) {
@@ -115,15 +117,24 @@
                     }
 
                     lastHeight = triggerHeight;
-                }, 50);
+                }, 100);
             });
         </script>
 
         <script>
-            $('body').on('click', 'header nav', function (e) {
-                if (!$(e.target).is('ul')) {
-                    $('html, body').toggleClass('disableScroll');
-                    $('header nav').toggleClass('closed')
+            const navEl = document.querySelector('header nav');
+
+            document.querySelector('header .logo').addEventListener('click', function (e) {
+                document.body.classList.remove('disableScroll');
+                navEl.classList.add('closed');
+            });
+
+            navEl.addEventListener('click', function (e) {
+                const targetTag = e.target.tagName;
+
+                if (targetTag === 'NAV' || targetTag === 'A') {
+                    document.body.classList.toggle('disableScroll');
+                    navEl.classList.toggle('closed');
                 }
             });
         </script>

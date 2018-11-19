@@ -108,24 +108,44 @@ button, .btn {
 
     div {
         max-width: 40%;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.2rem;
         padding: 0.6rem;
         border-radius: 0.8rem;
         overflow-wrap: break-word;
     }
 
-    .author-me {
+    &.author-me div {
         @extend %txt-white;
-
+        border-radius: 0.8em 0.2em 0.2em 0.8em;
         float: right;
         background-color: $pri-col-light;
     }
-
-    .author-friend {
+    &.author-friend div {
+        border-radius: 0.2em 0.8em 0.8em 0.2em;
         float: left;
         background-color: $bg-col-light;
     }
+
+    &.is-first-in-group.author-me div     { border-top-right-radius: 0.8em; }
+    &.is-last-in-group.author-me div      { border-bottom-right-radius: 0.8em; }
+    &.is-first-in-group.author-friend div { border-top-left-radius: 0.8em; }
+    &.is-last-in-group.author-friend div  { border-bottom-left-radius: 0.8em; }
 }
+
+/*
+li.message.author-me.is-first-in-group div {
+}
+
+li.message.author-me.is-last-in-group div {
+    border-bottom-right-radius: 0.8em;
+}
+li.message.author-friend.is-first-in-group div {
+    border-top-left-radius: 0.8em;
+}
+li.message.author-friend.is-last-in-group div {
+    border-bottom-left-radius: 0.8em;
+}
+*/
 
 .messages {
     li {

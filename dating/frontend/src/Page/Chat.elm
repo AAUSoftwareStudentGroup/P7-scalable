@@ -15,6 +15,7 @@ import String
 import Task
 import Time
 import UI.Elements as El
+import List.Extra
 
 
 
@@ -170,7 +171,7 @@ view model =
                     ]
                 , Attributes.id listId
                 ]
-                (List.map (viewMessageKeyed model) model.messages)
+                (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) model.messages)))
             , Html.form
                 [ Events.onSubmit SendMessage
                 , classList
@@ -186,30 +187,43 @@ view model =
     }
 
 
-viewMessageKeyed : Model -> Message -> ( String, Html msg )
-viewMessageKeyed model message =
+viewMessageKeyed : Model -> Message -> Bool -> Bool -> ( String, Html msg )
+viewMessageKeyed model message isFirst isLast =
     ( message.timeStamp
-    , Lazy.lazy2 viewMessage model message
+    , Lazy.lazy4 viewMessage model message isFirst isLast
     )
 
-viewMessage : Model -> Message -> Html msg
-viewMessage model message =
+viewMessage : Model -> Message -> Bool -> Bool -> Html msg
+viewMessage model message isFirst isLast = 
     let
         myMessage = model.usernameSelf == message.authorName
     in
     Html.li
         [ classList
-            [ ( "message", True ) ]
+            [ ( "message", True )
+            , ( "is-first-in-group", isFirst )
+            , ( "is-last-in-group", isLast )
+            , ( "author-me", myMessage )
+            , ( "author-friend", not myMessage ) ]
         ]
         [ div
-            [ classList
-                [ ( "author-me", myMessage )
-                , ( "author-friend", not myMessage )
-                ]
-            ]
+            [ ]
             [ Html.text message.body ]
         ]
 
+viewMessageGroup : Model -> Bool -> (Message, List Message) -> List ( String, Html Msg )
+viewMessageGroup model isFirstMessage (firstMessage, restOfMessages) =
+    case (List.length restOfMessages) of
+        0 -> [(viewMessageKeyed model firstMessage isFirstMessage True)]
+        _ ->
+            let
+                firstRestOfMessages = Maybe.withDefault firstMessage (List.head restOfMessages)
+                lastRestOfMessages = Maybe.withDefault restOfMessages (List.tail restOfMessages)
+                firstMsgHtml = viewMessageKeyed model firstMessage isFirstMessage ((List.length restOfMessages) == 0)
+                lastMsgsHtml = viewMessageGroup model False (firstRestOfMessages, lastRestOfMessages)
+            in
+                firstMsgHtml::lastMsgsHtml
+    
 
 sendMessage : Model -> Cmd Msg
 sendMessage model =

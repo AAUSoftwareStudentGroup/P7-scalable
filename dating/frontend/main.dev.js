@@ -13257,8 +13257,8 @@ var author$project$Page$Chat$SendMessage = {$: 'SendMessage'};
 var author$project$Page$Chat$UnsentMessageChanged = function (a) {
 	return {$: 'UnsentMessageChanged', a: a};
 };
-var author$project$Page$Chat$viewMessage = F2(
-	function (model, message) {
+var author$project$Page$Chat$viewMessage = F4(
+	function (model, message, isFirst, isLast) {
 		var myMessage = _Utils_eq(model.usernameSelf, message.authorName);
 		return A2(
 			elm$html$Html$li,
@@ -13267,33 +13267,73 @@ var author$project$Page$Chat$viewMessage = F2(
 					elm$html$Html$Attributes$classList(
 					_List_fromArray(
 						[
-							_Utils_Tuple2('message', true)
+							_Utils_Tuple2('message', true),
+							_Utils_Tuple2('is-first-in-group', isFirst),
+							_Utils_Tuple2('is-last-in-group', isLast),
+							_Utils_Tuple2('author-me', myMessage),
+							_Utils_Tuple2('author-friend', !myMessage)
 						]))
 				]),
 			_List_fromArray(
 				[
 					A2(
 					elm$html$Html$div,
-					_List_fromArray(
-						[
-							elm$html$Html$Attributes$classList(
-							_List_fromArray(
-								[
-									_Utils_Tuple2('author-me', myMessage),
-									_Utils_Tuple2('author-friend', !myMessage)
-								]))
-						]),
+					_List_Nil,
 					_List_fromArray(
 						[
 							elm$html$Html$text(message.body)
 						]))
 				]));
 	});
-var author$project$Page$Chat$viewMessageKeyed = F2(
-	function (model, message) {
+var elm$virtual_dom$VirtualDom$lazy4 = _VirtualDom_lazy4;
+var elm$html$Html$Lazy$lazy4 = elm$virtual_dom$VirtualDom$lazy4;
+var author$project$Page$Chat$viewMessageKeyed = F4(
+	function (model, message, isFirst, isLast) {
 		return _Utils_Tuple2(
 			message.timeStamp,
-			A3(elm$html$Html$Lazy$lazy2, author$project$Page$Chat$viewMessage, model, message));
+			A5(elm$html$Html$Lazy$lazy4, author$project$Page$Chat$viewMessage, model, message, isFirst, isLast));
+	});
+var elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(xs);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Page$Chat$viewMessageGroup = F3(
+	function (model, isFirstMessage, _n0) {
+		var firstMessage = _n0.a;
+		var restOfMessages = _n0.b;
+		var _n1 = elm$core$List$length(restOfMessages);
+		if (!_n1) {
+			return _List_fromArray(
+				[
+					A4(author$project$Page$Chat$viewMessageKeyed, model, firstMessage, isFirstMessage, true)
+				]);
+		} else {
+			var lastRestOfMessages = A2(
+				elm$core$Maybe$withDefault,
+				restOfMessages,
+				elm$core$List$tail(restOfMessages));
+			var firstRestOfMessages = A2(
+				elm$core$Maybe$withDefault,
+				firstMessage,
+				elm$core$List$head(restOfMessages));
+			var lastMsgsHtml = A3(
+				author$project$Page$Chat$viewMessageGroup,
+				model,
+				false,
+				_Utils_Tuple2(firstRestOfMessages, lastRestOfMessages));
+			var firstMsgHtml = A4(
+				author$project$Page$Chat$viewMessageKeyed,
+				model,
+				firstMessage,
+				isFirstMessage,
+				!elm$core$List$length(restOfMessages));
+			return A2(elm$core$List$cons, firstMsgHtml, lastMsgsHtml);
+		}
 	});
 var author$project$UI$Elements$materialIcon = function (iconName) {
 	return A2(
@@ -13463,6 +13503,54 @@ var elm$virtual_dom$VirtualDom$keyedNode = function (tag) {
 };
 var elm$html$Html$Keyed$node = elm$virtual_dom$VirtualDom$keyedNode;
 var elm$html$Html$Keyed$ul = elm$html$Html$Keyed$node('ul');
+var elm_community$list_extra$List$Extra$oneGroupWhileHelper = F3(
+	function (condition, first, list) {
+		if (!list.b) {
+			return _Utils_Tuple2(_List_Nil, _List_Nil);
+		} else {
+			var second = list.a;
+			var rest = list.b;
+			if (A2(condition, first, second)) {
+				var _n1 = A3(elm_community$list_extra$List$Extra$oneGroupWhileHelper, condition, second, rest);
+				var thisGroup = _n1.a;
+				var ungroupedRest = _n1.b;
+				return _Utils_Tuple2(
+					A2(elm$core$List$cons, second, thisGroup),
+					ungroupedRest);
+			} else {
+				return _Utils_Tuple2(_List_Nil, list);
+			}
+		}
+	});
+var elm_community$list_extra$List$Extra$accumulateGroupWhile = F3(
+	function (condition, list, accum) {
+		accumulateGroupWhile:
+		while (true) {
+			if (!list.b) {
+				return elm$core$List$reverse(accum);
+			} else {
+				var first = list.a;
+				var rest = list.b;
+				var _n1 = A3(elm_community$list_extra$List$Extra$oneGroupWhileHelper, condition, first, rest);
+				var thisGroup = _n1.a;
+				var ungroupedRest = _n1.b;
+				var $temp$condition = condition,
+					$temp$list = ungroupedRest,
+					$temp$accum = A2(
+					elm$core$List$cons,
+					_Utils_Tuple2(first, thisGroup),
+					accum);
+				condition = $temp$condition;
+				list = $temp$list;
+				accum = $temp$accum;
+				continue accumulateGroupWhile;
+			}
+		}
+	});
+var elm_community$list_extra$List$Extra$groupWhile = F2(
+	function (condition, list) {
+		return A3(elm_community$list_extra$List$Extra$accumulateGroupWhile, condition, list, _List_Nil);
+	});
 var author$project$Page$Chat$view = function (model) {
 	return {
 		kids: A3(
@@ -13484,10 +13572,17 @@ var author$project$Page$Chat$view = function (model) {
 								])),
 							elm$html$Html$Attributes$id(author$project$Page$Chat$listId)
 						]),
-					A2(
-						elm$core$List$map,
-						author$project$Page$Chat$viewMessageKeyed(model),
-						model.messages)),
+					elm$core$List$concat(
+						A2(
+							elm$core$List$map,
+							A2(author$project$Page$Chat$viewMessageGroup, model, true),
+							A2(
+								elm_community$list_extra$List$Extra$groupWhile,
+								F2(
+									function (a, b) {
+										return _Utils_eq(a.authorName, b.authorName);
+									}),
+								model.messages)))),
 					A2(
 					elm$html$Html$form,
 					_List_fromArray(
@@ -14346,7 +14441,9 @@ var author$project$UI$Elements$linkButton = F3(
 	});
 var author$project$Page$Profile$chatButton = F2(
 	function (username, session) {
-		return A3(
+		return _Utils_eq(
+			elm$core$Maybe$Just(username),
+			author$project$Session$getUsername(session)) ? elm$html$Html$text('') : A3(
 			author$project$UI$Elements$linkButton,
 			_List_Nil,
 			author$project$Routing$routeToString(

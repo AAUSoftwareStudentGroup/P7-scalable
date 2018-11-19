@@ -100,10 +100,13 @@ showImg user =
 
 chatButton : String -> Session -> Html msg
 chatButton username session =
-    El.linkButton
-        []
-        (Routing.routeToString (Chat username))
-        [ Html.text "chat" ]
+    if Just username == Session.getUsername session then
+        Html.text ""
+    else
+        El.linkButton
+            []
+            (Routing.routeToString (Chat username))
+            [ Html.text "chat" ]
 
 
 sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
