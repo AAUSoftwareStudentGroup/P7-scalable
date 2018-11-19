@@ -328,24 +328,13 @@ postAnswer mongoConf username (AnswerDTO id response) = runAction mongoConf post
     postAction :: Action IO (Either ServantErr Text)
     postAction = do
       answerToInsert <- liftIO $ answerFromAnswerInfo username response
-      case (readMayObjectId id) of
-        Just context -> do
-          doc <- findOne ( select ["_id" =: context, "user_answers" =: [ "$elemMatch" =: [ "username" =: [ "$eq" =: username ]]]] "questions")  
-          case doc of
-            Just _ -> return $ Left $ err406 { errBody = "question already answered" }--( (LBS.fromStrict $ encodeUtf8 username) <> " already answered this question")}
-            Nothing ->
-              case (readMayMongoKey id) of
-                Just key -> do
-                  a <- update (fromBackendKey key) [QuestionUser_answers `push` answerToInsert]
-                  return $ Right "Sucessfully sent"
-                Nothing ->
-                  return $ Left $ err406 { errBody = "something went wrong"}
-              {-a <- modify 
-                ( select ["_id" =: context, "user_answers" =: [ "$elemMatch" =: [ "username" =: [ "$ne" =: (username::Text)]]]] "questions")
-                ["$push" =: ["user_answers" =: (answerToInsert::UserAnswer)]] 
-              -}
-        Nothing -> 
-          return $ Left $ err406 { errBody = "No such ID" }
+      case readMayObjectId id of
+        Just oId -> do
+          updatingQuestion <- modify 
+            ( select ["_id" =: oId, "user_answers.username" =: [ "$ne" =: (username::Text)]] "questions")
+            ["$push" =: ["user_answers" =: ((recordToDocument $ answerToInsert)::Document)]] 
+          return $ Right $ "Successfully inserted"
+        Nothing -> return $ Left $ err406 { errBody = "No such ID" }
 
     answerFromAnswerInfo :: Username -> Text -> IO UserAnswer
     answerFromAnswerInfo name body = do
