@@ -38,7 +38,7 @@ import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
 import           Database.MongoDB.Admin     as Mongo.Admin
-import           Database.MongoDB.Query     (find, findOne, rest, select, project)
+import           Database.MongoDB.Query     (modify, find, findOne, rest, select, project, limit)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.Types     (unHaskellName)
@@ -303,6 +303,62 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
 
 
 -------------------------------------------------------------------------------
+--                                 Questions                                 --
+-------------------------------------------------------------------------------
+        
+
+fetchQuestions :: MongoConf -> Username -> IO [QuestionDTO]
+fetchQuestions mongoConf username = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [QuestionDTO]
+    fetchAction = do
+      cursor <- find 
+        ( ( select [] "questions") 
+          { project = [ "user_answers" =: [ "$elemMatch" =: [ "username" =: ["$ne" =: (username::Text) ] ] ], "text" =: (1::Int) ]
+          , limit = 10 
+          }
+        )
+      docList <- rest cursor
+      return $ fmap questionToQuestionDTO . rights . fmap docToEntityEither $ docList
+    
+
+postAnswer :: MongoConf -> Username -> AnswerDTO -> IO (Either ServantErr Text)
+postAnswer mongoConf username (AnswerDTO id response) = runAction mongoConf postAction
+  where
+    postAction :: Action IO (Either ServantErr Text)
+    postAction = do
+      answerToInsert <- liftIO $ answerFromAnswerInfo username response
+      case (readMayObjectId id) of
+        Just context -> do
+          doc <- findOne ( select ["_id" =: context, "user_answers" =: [ "$elemMatch" =: [ "username" =: [ "$eq" =: username ]]]] "questions")  
+          case doc of
+            Just _ -> return $ Left $ err406 { errBody = "question already answered" }--( (LBS.fromStrict $ encodeUtf8 username) <> " already answered this question")}
+            Nothing ->
+              case (readMayMongoKey id) of
+                Just key -> do
+                  a <- update (fromBackendKey key) [QuestionUser_answers `push` answerToInsert]
+                  return $ Right "Sucessfully sent"
+                Nothing ->
+                  return $ Left $ err406 { errBody = "something went wrong"}
+              {-a <- modify 
+                ( select ["_id" =: context, "user_answers" =: [ "$elemMatch" =: [ "username" =: [ "$ne" =: (username::Text)]]]] "questions")
+                ["$push" =: ["user_answers" =: (answerToInsert::UserAnswer)]] 
+              -}
+        Nothing -> 
+          return $ Left $ err406 { errBody = "No such ID" }
+
+          ---modify (select [] "posts") ["$push" =: ["tags" =: "new"]]
+    answerFromAnswerInfo :: Username -> Text -> IO UserAnswer
+    answerFromAnswerInfo name body = do
+      currentTime <- getCurrentTime
+      return UserAnswer
+          { userAnswerUsername = name
+          , userAnswerScore = body
+          , userAnswerTime = currentTime
+          }
+
+
+-------------------------------------------------------------------------------
 --                                 HELPERS                                   --
 -------------------------------------------------------------------------------
 
@@ -356,7 +412,12 @@ messageToMessageDTO message = messageDTO
       , body = messageText message
       }
 
-
+questionToQuestionDTO :: Entity Question -> QuestionDTO
+questionToQuestionDTO (Entity key q) = QuestionDTO
+  { id = keyToText $ toBackendKey key
+  , question = getField @"questionText" q
+  }
+        
 hashPassword :: Text -> Text -> Text
 hashPassword password salt = T.pack $ show hashed
   where

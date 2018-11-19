@@ -48,7 +48,7 @@ import           Schema
 --                                API                                --
 -----------------------------------------------------------------------
 -- | The API.
-type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI
+type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI :<|> QuestionAPI
 
 type UserAPI =
         -- Create User
@@ -91,6 +91,16 @@ type MessageAPI =
              :> Capture "offset" Int 
              :> Capture "limit" Int 
              :> Get '[JSON] ConversationDTO
+
+type QuestionAPI =
+        -- Get Questions
+  "questions" :> AuthProtect "cookie-auth"
+              :> Get '[JSON] [QuestionDTO]
+  :<|>  -- Post Answer
+  "questions" :> AuthProtect "cookie-auth"
+              :> ReqBody '[JSON] AnswerDTO
+              :> Post '[JSON] ()
+
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -200,6 +210,22 @@ fetchConversationPreviewsHandler mongoInfo ownUsername =
   liftIO $ DB.fetchConversationPreviews mongoInfo ownUsername
 
 
+-------------------------------------------------------------------------------
+--                                 Questions                                 --
+-------------------------------------------------------------------------------
+
+fetchQuestionsHandler :: MongoInfo -> Username -> Handler [QuestionDTO]
+fetchQuestionsHandler mongoInfo username =
+  liftIO $ DB.fetchQuestions mongoInfo username
+
+
+postAnswerHandler :: MongoInfo -> Username -> AnswerDTO -> Handler ()
+postAnswerHandler mongoInfo username answer = do
+  maybePostAnswer <- liftIO $ DB.postAnswer mongoInfo username answer
+  case maybePostAnswer of
+    Right a -> return ()
+    Left err -> Handler $ throwE $ err
+
 
 -------------------------------------------------------------------------------
 --                          COMBINATION OF PARTS                             --
@@ -207,7 +233,7 @@ fetchConversationPreviewsHandler mongoInfo ownUsername =
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: MongoInfo -> RedisInfo -> Server DatingAPI
-datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHandlers
+datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHandlers :<|> questionHandlers
   where
 
     authHandlers =       loginHandler mongoInfo
@@ -222,6 +248,8 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
                     :<|> fetchConversationPreviewsHandler mongoInfo
                     :<|> fetchMessagesBetweenHandler mongoInfo
 
+    questionHandlers =   fetchQuestionsHandler mongoInfo 
+                    :<|> postAnswerHandler mongoInfo
 
 -- | Serves the API on port 1234
 runServer :: IO ()
