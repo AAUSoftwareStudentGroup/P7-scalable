@@ -1,4 +1,6 @@
 module Main where
 
-import CollaborativeFiltering
+import TestColFil (runEverything)
 
+main :: IO ()
+main = runEverything
