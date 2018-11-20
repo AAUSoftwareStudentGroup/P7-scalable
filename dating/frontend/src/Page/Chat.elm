@@ -10,7 +10,7 @@ import Html.Keyed as Keyed
 import Html.Lazy as Lazy
 import Http
 import Routing exposing (Route(..))
-import Session as Session exposing (Details, Session)
+import Session as Session exposing (Details, PageType(..), Session)
 import String
 import Task
 import Time
@@ -160,8 +160,8 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.titledContentLoader model.loaded
+    , kids = Scrollable
+        <| El.titledContentLoader model.loaded
             ("Chatting with " ++ model.usernameFriend)
             [ Keyed.ul
                 [ classList
@@ -192,6 +192,7 @@ viewMessageKeyed model message isFirst isLast =
     ( message.timeStamp
     , Lazy.lazy4 viewMessage model message isFirst isLast
     )
+
 
 viewMessage : Model -> Message -> Bool -> Bool -> Html msg
 viewMessage model message isFirst isLast = 

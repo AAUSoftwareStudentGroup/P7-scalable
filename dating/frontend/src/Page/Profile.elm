@@ -10,7 +10,7 @@ import String
 import Api.Users exposing (User, emptyUser)
 import Api.Types exposing (Gender(..))
 import Routing exposing (Route(..))
-import Session exposing (Session, Details)
+import Session exposing (Session, Details, PageType(..))
 import UI.Elements as El
 
 
@@ -68,8 +68,8 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.titledContentLoader model.loaded model.user.username
+    , kids = Scrollable
+        <| El.titledContentLoader model.loaded model.user.username
             [ div
                 [ classList
                     [ ( "grid", True )

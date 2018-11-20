@@ -16,7 +16,7 @@ import List exposing (map)
 import Url
 
 import Api.Users exposing (User)
-import Session exposing (Session, Details)
+import Session exposing (Session, PageType(..), Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
 import Ports.LoadMorePort exposing (LoadMoreData, loadMore)
@@ -111,8 +111,8 @@ view model =
     in
         { title = "All users"
         , session = model.session
-        , kids =
-            El.titledContent "All users"
+        , kids = Scrollable
+            <| El.titledContent "All users"
                 [ Html.ul
                     [ classList
                         [ ( "grid", True )

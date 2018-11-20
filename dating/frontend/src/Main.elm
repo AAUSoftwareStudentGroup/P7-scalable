@@ -117,7 +117,7 @@ view model =
 viewContent : (a -> msg) -> Session.Details a -> Browser.Document msg
 viewContent toMsg details =
     { title = details.title
-    , body = El.site toMsg details.kids details.session
+    , body = El.site details toMsg
     }
 
 

@@ -10,7 +10,7 @@ import Time as Time
 import UI.Elements as El
 
 
-import Session exposing (Session, Details)
+import Session exposing (Session, PageType(..), Details)
 import Routing exposing (Route(..))
 import Api.Messages exposing (ConversationPreviewDTO)
 
@@ -89,8 +89,8 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.titledContentLoader model.loaded "Messages"
+    , kids = Fixed
+        <| El.titledContentLoader model.loaded "Messages"
             [ Keyed.ul
                 [ classList
                     [ ( "messages", True )

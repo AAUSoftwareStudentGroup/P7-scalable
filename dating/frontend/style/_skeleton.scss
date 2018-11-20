@@ -166,6 +166,12 @@ header, footer {
         grid-template-columns: repeat(12, 1fr);
         justify-items: stretch;
     }
+
+    &.scrollable {
+        height: calc(100vh - 144px);
+        padding: 0;
+        margin: 0;
+    }
 }
 
 .loading-spinner {
