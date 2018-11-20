@@ -160,7 +160,7 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = Scrollable
+    , kids = Fixed
         <| El.titledContentLoader model.loaded
             ("Chatting with " ++ model.usernameFriend)
             [ Keyed.ul

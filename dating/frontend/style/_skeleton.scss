@@ -1,5 +1,6 @@
 $header-height: 64px;
-
+$footer-height: 64px;
+$main-grid-gap: 16px;
 
 .disableScroll {
     margin: 0;
@@ -20,14 +21,21 @@ $header-height: 64px;
     height: 100vh;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: $header-height auto 64px;
-    grid-gap: 8px;
+    grid-template-rows: $header-height auto $footer-height;
+    grid-gap: $main-grid-gap;
     align-items: start;
 }
 
 header, footer {
     background-color: $pri-col;
+}
+
+header {
     height: $header-height;
+}
+
+footer {
+    height: $footer-height;
 }
 
 .header-content {
@@ -110,6 +118,7 @@ header, footer {
                 height: calc(100% - #{$header-height});
                 background: rgba(0, 0, 0, 0.6);
                 z-index: 1;
+                //animation: header-neg-nav-animation 0.15s ease;
             }
 
             ul {
@@ -121,6 +130,7 @@ header, footer {
                 display: inline-block;
                 background-color: $pri-col;
                 z-index: 1;
+                //animation: header-nav-animation 0.15s ease;
 
                 li {
                     display: block;
@@ -145,6 +155,26 @@ header, footer {
     }
 }
 
+/*
+@keyframes header-nav-animation {
+    0% {
+        width: 0;
+    }
+    100% {
+        width: 75%;
+    }
+}
+
+@keyframes header-neg-nav-animation {
+    0% {
+        width: 100%;
+    }
+    100% {
+        width: 25%;
+    }
+}
+*/
+
 
 .footer-content {
     @extend %max-width-container;
@@ -159,16 +189,14 @@ header, footer {
 .content-container {
     @extend %max-width-container;
 
-    margin-bottom: 1rem;
-
     .content {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
         justify-items: stretch;
     }
 
-    &.scrollable {
-        height: calc(100vh - 144px);
+    &.fixed {
+        height: calc(100vh - #{$header-height + $footer-height + (2 * $main-grid-gap)});
         padding: 0;
         margin: 0;
     }
