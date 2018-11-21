@@ -67,7 +67,7 @@ update msg model =
         HandleAnswerSubmitted result ->
             case result of
                 Ok _ ->
-                    if List.isEmpty (Debug.log "questions" model.questions) then
+                    if List.isEmpty model.questions then
                         ( { model | loaded = False }, sendGetQuestions HandleQuestionsReceived model.session)
                     else
                         ( { model | questions = List.drop 1 model.questions, currentQuestion = getFirstQuestion model.questions, answerValue = 1 }, Cmd.none )
