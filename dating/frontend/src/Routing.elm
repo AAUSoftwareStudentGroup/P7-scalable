@@ -6,6 +6,7 @@ import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 
+
 -- ROUTING
 
 
@@ -18,6 +19,7 @@ type Route
     | Messages
     | Profile String
     | Chat String
+    | Survey
 
 
 parser : Parser (Route -> a) a
@@ -31,6 +33,7 @@ parser =
         , Parser.map Messages (s "messages")
         , Parser.map Profile (s "user" </> Parser.string)
         , Parser.map Chat (s "chat" </> Parser.string)
+        , Parser.map Survey (s "survey")
         ]
 
 
@@ -64,8 +67,9 @@ routeToString page =
             case page of
                 Home ->
                     []
+
                 CreateUser ->
-                    ["create-user"]
+                    [ "create-user" ]
 
                 Login ->
                     [ "login" ]
@@ -75,7 +79,7 @@ routeToString page =
 
                 ListUsers ->
                     [ "list-users" ]
-                
+
                 Messages ->
                     [ "messages" ]
 
@@ -85,6 +89,8 @@ routeToString page =
                 Chat username ->
                     [ "chat", username ]
 
+                Survey ->
+                    [ "survey" ]
     in
         "/" ++ String.join "/" pieces
 
