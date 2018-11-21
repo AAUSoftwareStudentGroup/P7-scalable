@@ -8,6 +8,7 @@ import API
 
 main :: IO ()
 main = do 
+  --deleteEverything
   --putStr "DELETING EVERYTHING IN DB..."
   --deleteEverythingInDB localConnString
   --putStrLn "DONE"

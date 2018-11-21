@@ -38,7 +38,7 @@ import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
 import           Database.MongoDB.Admin     as Mongo.Admin
-import           Database.MongoDB.Query     (modify, find, findOne, rest, select, project, limit)
+import           Database.MongoDB.Query     (modify, delete, find, findOne, rest, select, project, limit)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.Types     (unHaskellName)
@@ -50,7 +50,7 @@ import qualified Database.Redis             as Redis
 import           GHC.Generics               (Generic)
 import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
-import           System.IO.Unsafe           (unsafePerformIO)
+import           System.Directory
 import qualified System.Random              as Random
 import           Servant.Server.Internal.ServantErr
 import           FrontendTypes
@@ -411,3 +411,27 @@ hashPassword password salt = T.pack $ show hashed
   where
     passPlusSalt = encodeUtf8 (password <> salt)
     hashed = hash passPlusSalt :: Digest SHA3_512
+
+deleteEverything :: IO ()
+deleteEverything = do
+  _ <- deleteEverythingInDB
+  content <- listDirectory "frontend/img/users"
+  _ <- sequence $ fmap removeSingleFile (map ("frontend/img/users/" ++) content)
+  return ()
+    where
+      removeSingleFile :: FilePath -> IO ()
+      removeSingleFile path =
+        if path == "frontend/img/users/.gitignore" then
+          return ()
+        else
+          removeFile path
+
+deleteEverythingInDB :: IO ()
+deleteEverythingInDB = runAction localMongoInfo action
+  where
+    action :: Action IO ()
+    action = do
+      _ <- Database.MongoDB.Query.delete $ select [] "users"
+      _ <- Database.MongoDB.Query.delete $ select [] "conversations"
+      _ <- Database.MongoDB.Query.delete $ select [] "questions"
+      return ()
