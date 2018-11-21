@@ -38,7 +38,7 @@ import           Data.Time.Clock            (UTCTime (..), getCurrentTime,
                                              secondsToDiffTime)
 import qualified Database.MongoDB           as Mongo
 import           Database.MongoDB.Admin     as Mongo.Admin
-import           Database.MongoDB.Query     (find, findOne, rest, select, project)
+import           Database.MongoDB.Query     (modify, delete, find, findOne, rest, select, project, limit)
 import           Database.Persist
 import           Database.Persist.MongoDB
 import           Database.Persist.Types     (unHaskellName)
@@ -50,7 +50,7 @@ import qualified Database.Redis             as Redis
 import           GHC.Generics               (Generic)
 import           Language.Haskell.TH.Syntax
 import           Network                    (PortID (PortNumber))
-import           System.IO.Unsafe           (unsafePerformIO)
+import           System.Directory
 import qualified System.Random              as Random
 import           Servant.Server.Internal.ServantErr
 import           FrontendTypes
@@ -303,6 +303,50 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
 
 
 -------------------------------------------------------------------------------
+--                                 Questions                                 --
+-------------------------------------------------------------------------------
+        
+
+fetchQuestions :: MongoConf -> Username -> IO [QuestionDTO]
+fetchQuestions mongoConf username = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [QuestionDTO]
+    fetchAction = do
+      cursor <- find 
+        ( ( select ["user_answers.username" =: ["$ne" =: username]] "questions")
+          { project = ["survey_answers" =: (0::Int), "user_answers" =: (0::Int)]
+          , limit = 10
+          }
+        )  
+      docList <- rest cursor
+      return $ fmap questionToQuestionDTO . rights . fmap docToEntityEither $ docList
+    
+
+postAnswer :: MongoConf -> Username -> AnswerDTO -> IO (Either ServantErr Text)
+postAnswer mongoConf username (AnswerDTO id response) = runAction mongoConf postAction
+  where
+    postAction :: Action IO (Either ServantErr Text)
+    postAction = do
+      answerToInsert <- liftIO $ answerFromAnswerInfo username response
+      case readMayObjectId id of
+        Just oId -> do
+          updatingQuestion <- modify 
+            ( select ["_id" =: oId, "user_answers.username" =: [ "$ne" =: (username::Text)]] "questions")
+            ["$push" =: ["user_answers" =: ((recordToDocument $ answerToInsert)::Document)]] 
+          return $ Right $ "Successfully inserted"
+        Nothing -> return $ Left $ err406 { errBody = "No such ID" }
+
+    answerFromAnswerInfo :: Username -> Text -> IO UserAnswer
+    answerFromAnswerInfo name body = do
+      currentTime <- getCurrentTime
+      return UserAnswer
+          { userAnswerUsername = name
+          , userAnswerScore = body
+          , userAnswerTime = currentTime
+          }
+
+
+-------------------------------------------------------------------------------
 --                                 HELPERS                                   --
 -------------------------------------------------------------------------------
 
@@ -356,9 +400,38 @@ messageToMessageDTO message = messageDTO
       , body = messageText message
       }
 
-
+questionToQuestionDTO :: Entity Question -> QuestionDTO
+questionToQuestionDTO (Entity key q) = QuestionDTO
+  { id = keyToText $ toBackendKey key
+  , question = getField @"questionText" q
+  }
+        
 hashPassword :: Text -> Text -> Text
 hashPassword password salt = T.pack $ show hashed
   where
     passPlusSalt = encodeUtf8 (password <> salt)
     hashed = hash passPlusSalt :: Digest SHA3_512
+
+deleteEverything :: IO ()
+deleteEverything = do
+  _ <- deleteEverythingInDB
+  content <- listDirectory "frontend/img/users"
+  _ <- sequence $ fmap removeSingleFile (map ("frontend/img/users/" ++) content)
+  return ()
+    where
+      removeSingleFile :: FilePath -> IO ()
+      removeSingleFile path =
+        if path == "frontend/img/users/.gitignore" then
+          return ()
+        else
+          removeFile path
+
+deleteEverythingInDB :: IO ()
+deleteEverythingInDB = runAction localMongoInfo action
+  where
+    action :: Action IO ()
+    action = do
+      _ <- Database.MongoDB.Query.delete $ select [] "users"
+      _ <- Database.MongoDB.Query.delete $ select [] "conversations"
+      _ <- Database.MongoDB.Query.delete $ select [] "questions"
+      return ()

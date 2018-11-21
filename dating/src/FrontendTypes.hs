@@ -92,6 +92,22 @@ data MessageDTO = MessageDTO
 
 
 
+-------------------------------------------------------------------------------
+--                                 Questions                                 --
+-------------------------------------------------------------------------------
+
+data QuestionDTO = QuestionDTO
+  { id :: Text
+  , question :: Text
+  } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+data AnswerDTO = AnswerDTO
+  { id :: Text
+  , score :: Text
+  } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+
+
 --------------------------------------------------------------------------------
 --                           ARBITRARY INSTANCES                              --
 --------------------------------------------------------------------------------

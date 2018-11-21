@@ -55,6 +55,7 @@ library:
   - base64-bytestring
   - strict
   - hmatrix
+  - directory
 executables:
   dating:
     main: Main.hs

@@ -90,3 +90,6 @@ db.conversations.findOne({$and:[{'members.id':1}, {'members.id':2}]})
 db.conversations.find( {'members.id':2}, {messages: {$slice: -1 }, _id:0, members:0})
 
 
+----Question----
+Push answer to question if not already answered by user
+db.questions.update({$and: [{_id:ObjectId("5bf270cb51d602112baa76eb")},{ user_answers: {$elemMatch: {username: {$ne: "benoît guillot"}}}}]}, {$push: {user_answers: {username:"benoît guillot", score:"3", time:ISODate("2018-11-19T11:48:40.561Z")}}})

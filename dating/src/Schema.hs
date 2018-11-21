@@ -57,4 +57,22 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     time     UTCTime
     text     Text
     deriving Show Read Eq Generic
+
+  Question json sql=questions
+    text            Text
+    survey_answers  [SurveyAnswer]
+    user_answers    [UserAnswer]
+    deriving Show Read Eq Generic
+
+  SurveyAnswer json sql=survey_answers
+    respondent_id   Int
+    score           Text
+    deriving Show Read Eq Generic
+
+  UserAnswer json sql=user_answers
+    username        Text
+    score           Text
+    time            UTCTime
+    deriving Show Read Eq Generic
+
 |]
