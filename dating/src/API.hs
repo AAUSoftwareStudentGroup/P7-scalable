@@ -129,8 +129,8 @@ fetchUserHandler mongoInfo _ username = do
     Nothing -> Handler $ throwE $ err404 { errBody = "The user does not exist"}
 
 -- | Fetches all users from db.
-fetchAllUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
-fetchAllUsersHandler mongoInfo _ offset limit = liftIO $ DB.fetchAllUsers mongoInfo offset limit
+fetchUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
+fetchUsersHandler mongoInfo username offset limit = liftIO $ DB.fetchUsers mongoInfo username offset limit
 
 
 -- | Ask if username exists.
@@ -241,7 +241,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
 
     userHandlers =       createUserHandler mongoInfo
                     :<|> fetchUserHandler mongoInfo
-                    :<|> fetchAllUsersHandler mongoInfo
+                    :<|> fetchUsersHandler mongoInfo
                     :<|> fetchUserExists mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo

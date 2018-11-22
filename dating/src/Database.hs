@@ -158,12 +158,12 @@ fetchUser mongoConf username = runAction mongoConf fetchAction
 
 
 -- | Fetch all users
-fetchAllUsers :: MongoConf -> Int -> Int -> IO [UserDTO]
-fetchAllUsers mongoConf offset askedLimit = runAction mongoConf fetchAction
+fetchUsers :: MongoConf -> Username -> Int -> Int -> IO [UserDTO]
+fetchUsers mongoConf username offset askedLimit = runAction mongoConf fetchAction
   where
     limit = if askedLimit > 30 then 30 else askedLimit
     fetchAction :: Action IO [UserDTO]
-    fetchAction = fmap userEntityToUserDTO <$> selectList [] [OffsetBy offset, LimitTo limit]
+    fetchAction = fmap userEntityToUserDTO <$> selectList [UserUsername !=. username] [OffsetBy offset, LimitTo limit]
 
 
 -- | Return "True" or "False" if user exists
