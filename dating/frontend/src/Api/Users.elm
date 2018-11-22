@@ -1,4 +1,4 @@
-module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, emptyUser, encodeUserInfo, decodeUserInfo)
+module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -254,6 +254,28 @@ getUsers pageNum pageSize userInfo =
                 , "users"
                 , String.fromInt (pageNum * pageSize)
                 , String.fromInt pageSize
+                ]
+        , body =
+            Http.emptyBody
+        , expect =
+            Http.expectJson (Decode.list decodeUser)
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
+getMatches : UserInfo -> Http.Request (List (User))
+getMatches userInfo =
+    Http.request
+        { method =
+            "GET"
+        , headers =
+            [Auth.createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "match"
                 ]
         , body =
             Http.emptyBody
