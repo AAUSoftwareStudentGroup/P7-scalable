@@ -63,6 +63,9 @@ type UserAPI =
           :> Capture "offset" Int 
           :> Capture "limit" Int 
           :> Get '[JSON] [UserDTO]
+  :<|>  -- Fetch matching users
+  "match" :> AuthProtect "cookie-auth"
+          :> Get '[JSON] [UserDTO]
   :<|>  -- Does Username Exist?
   "users" :> "exists"
           :> Capture "username" Username
@@ -132,6 +135,9 @@ fetchUserHandler mongoInfo _ username = do
 fetchUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
 fetchUsersHandler mongoInfo username offset limit = liftIO $ DB.fetchUsers mongoInfo username offset limit
 
+-- | Fetches users that matches current user
+fetchMatchingUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
+fetchMatchingUsersHandler mongoInfo username = liftIO $ DB.fetchMatchingUsers mongoInfo username
 
 -- | Ask if username exists.
 fetchUserExists :: MongoInfo -> Username -> Handler Bool
@@ -242,6 +248,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
     userHandlers =       createUserHandler mongoInfo
                     :<|> fetchUserHandler mongoInfo
                     :<|> fetchUsersHandler mongoInfo
+                    :<|> fetchMatchingUsersHandler mongoInfo
                     :<|> fetchUserExists mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo

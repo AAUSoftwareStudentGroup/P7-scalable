@@ -166,6 +166,18 @@ fetchUsers mongoConf username offset askedLimit = runAction mongoConf fetchActio
     fetchAction = fmap userEntityToUserDTO <$> selectList [UserUsername !=. username] [OffsetBy offset, LimitTo limit]
 
 
+-- | Find matches for user
+fetchMatchingUsers :: MongoConf -> Username -> IO [UserDTO]
+fetchMatchingUsers mongoConf username = runAction mongoConf fetchAction
+  where
+    getMatches :: Username -> IO [Username]
+    -- to find matches, we previously read from it, so has to be of type IO
+    getMatches username = return ["alex duran", "andre heinrich"] 
+    fetchAction :: Action IO [UserDTO]
+    fetchAction = do
+      matches <- liftIO $ getMatches username
+      fmap userEntityToUserDTO <$> selectList [UserUsername !=. username, UserUsername <-. matches] []
+
 -- | Return "True" or "False" if user exists
 fetchUserExists :: MongoConf -> Username -> IO Bool
 fetchUserExists mongoConf username = runAction mongoConf fetchAction
