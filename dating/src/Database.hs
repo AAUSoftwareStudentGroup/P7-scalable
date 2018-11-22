@@ -412,6 +412,17 @@ hashPassword password salt = T.pack $ show hashed
     passPlusSalt = encodeUtf8 (password <> salt)
     hashed = hash passPlusSalt :: Digest SHA3_512
 
+
+getQuestions :: IO [Question]
+getQuestions = runAction localMongoInfo action
+  where
+    entityQuestionToQuestion :: Entity Question -> Question
+    entityQuestionToQuestion (Entity _ q) = q
+    action :: Action IO [Question]
+    action = fmap entityQuestionToQuestion <$> selectList [] []
+
+
+
 deleteEverything :: IO ()
 deleteEverything = do
   _ <- deleteEverythingInDB
