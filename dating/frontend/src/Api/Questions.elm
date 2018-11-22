@@ -20,7 +20,7 @@ type alias Question =
 
 type alias Answer =
     { id        : String
-    , score     : String
+    , score     : Int
     }
 
 
@@ -34,7 +34,7 @@ encodeAnswer : Answer -> Encode.Value
 encodeAnswer answer =
     Encode.object
         [ ( "id", Encode.string answer.id )
-        , ( "score", Encode.string answer.score )
+        , ( "score", Encode.int answer.score )
         ]
 
 getQuestions : UserInfo -> Http.Request (List Question)

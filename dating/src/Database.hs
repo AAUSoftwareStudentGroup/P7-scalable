@@ -326,22 +326,23 @@ postAnswer :: MongoConf -> Username -> AnswerDTO -> IO (Either ServantErr Text)
 postAnswer mongoConf username (AnswerDTO id response) = runAction mongoConf postAction
   where
     postAction :: Action IO (Either ServantErr Text)
-    postAction = do
-      answerToInsert <- liftIO $ answerFromAnswerInfo username response
-      case readMayObjectId id of
-        Just oId -> do
-          updatingQuestion <- modify 
-            ( select ["_id" =: oId, "user_answers.username" =: [ "$ne" =: (username::Text)]] "questions")
-            ["$push" =: ["user_answers" =: ((recordToDocument $ answerToInsert)::Document)]] 
-          return $ Right $ "Successfully inserted"
-        Nothing -> return $ Left $ err406 { errBody = "No such ID" }
+    postAction = if (response > 5 || response < 1) then return $ Left $ err416 { errBody = "answer must be an integer between 1 and 5" }
+      else do
+        answerToInsert <- liftIO $ answerFromAnswerInfo username response
+        case readMayObjectId id of
+          Just oId -> do
+            updatingQuestion <- modify 
+              ( select ["_id" =: oId, "user_answers.username" =: [ "$ne" =: (username::Text)]] "questions")
+              ["$push" =: ["user_answers" =: ((recordToDocument $ answerToInsert)::Document)]] 
+            return $ Right $ "Successfully inserted"
+          Nothing -> return $ Left $ err406 { errBody = "No such ID" }
 
-    answerFromAnswerInfo :: Username -> Text -> IO UserAnswer
-    answerFromAnswerInfo name body = do
+    answerFromAnswerInfo :: Username -> Int -> IO UserAnswer
+    answerFromAnswerInfo name score = do
       currentTime <- getCurrentTime
       return UserAnswer
           { userAnswerUsername = name
-          , userAnswerScore = body
+          , userAnswerScore = T.pack . show $ score
           , userAnswerTime = currentTime
           }
 

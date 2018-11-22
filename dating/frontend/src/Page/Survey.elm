@@ -134,4 +134,4 @@ sendAnswer responseMsg session answer =
             Cmd.none
 
 createAnswer : Int -> String -> Answer
-createAnswer score id = Answer id <| String.fromInt score
+createAnswer score id = Answer id score

@@ -103,7 +103,7 @@ data QuestionDTO = QuestionDTO
 
 data AnswerDTO = AnswerDTO
   { id :: Text
-  , score :: Text
+  , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 
