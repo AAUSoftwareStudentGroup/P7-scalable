@@ -159,8 +159,9 @@ fetchUser mongoConf username = runAction mongoConf fetchAction
 
 -- | Fetch all users
 fetchAllUsers :: MongoConf -> Int -> Int -> IO [UserDTO]
-fetchAllUsers mongoConf offset limit = runAction mongoConf fetchAction
+fetchAllUsers mongoConf offset askedLimit = runAction mongoConf fetchAction
   where
+    limit = if askedLimit > 30 then 30 else askedLimit
     fetchAction :: Action IO [UserDTO]
     fetchAction = fmap userEntityToUserDTO <$> selectList [] [OffsetBy offset, LimitTo limit]
 
@@ -266,8 +267,9 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
           }
 
 fetchConversation :: MongoConf -> Username -> Username -> Int -> Int -> IO ConversationDTO
-fetchConversation mongoConf ownUsername otherUsername offset limit = runAction mongoConf fetchAction
+fetchConversation mongoConf ownUsername otherUsername offset askedLimit = runAction mongoConf fetchAction
   where
+    limit = if askedLimit > 100 then 100 else askedLimit
     fetchAction :: Action IO ConversationDTO
     fetchAction = do
       maybeDoc <- findOne 
