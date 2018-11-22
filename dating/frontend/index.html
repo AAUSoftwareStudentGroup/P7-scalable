@@ -40,7 +40,7 @@
 
 
             app.ports.fileSelected.subscribe(function () {
-                const node = $('input[type="file"]')[0];
+                const node = document.querySelector('input[type="file"]');
                     if (!node) {
                         return;
                     }
