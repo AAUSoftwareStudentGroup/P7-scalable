@@ -5,7 +5,7 @@ import Html exposing (Html, div)
 import Html.Attributes exposing (classList, src, title, style)
 import Http
 import Routing exposing (Route(..))
-import Session exposing (Session)
+import Session exposing (Session, PageType(..))
 import String
 import Api.Questions exposing (Question, Answer)
 import UI.Elements as El
@@ -92,8 +92,8 @@ view : Model -> Session.Details Msg
 view model =
     { title = "Answer plz"
     , session = model.session
-    , kids =
-        El.titledContentLoader model.loaded "Questions"
+    , kids = Scrollable
+        <| El.titledContentLoader model.loaded "Questions"
             ( if model.currentQuestion.id /= "" then
                 [ El.textProperty "Question" model.currentQuestion.question
                 , El.labelledRadio "Answer" AnswerClicked model.answerValue
