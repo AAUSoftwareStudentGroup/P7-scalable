@@ -11,7 +11,6 @@ module FrontendTypes where
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.ByteString
-import           Data.Int                       (Int64)
 import           Data.Text.Arbitrary
 import           Data.Time.Calendar             (Day)
 import           Data.Time.Clock                (UTCTime (..))
@@ -97,12 +96,12 @@ data MessageDTO = MessageDTO
 -------------------------------------------------------------------------------
 
 data QuestionDTO = QuestionDTO
-  { id :: Text
+  { id       :: Text
   , question :: Text
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 data AnswerDTO = AnswerDTO
-  { id :: Text
+  { id    :: Text
   , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
