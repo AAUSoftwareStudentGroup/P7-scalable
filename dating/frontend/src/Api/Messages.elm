@@ -1,4 +1,4 @@
-module Api.Messages exposing (Message, Conversation, ConversationPreviewDTO, postMessage, getMessagesFromUsername, getConvoPreview)
+module Api.Messages exposing (Message, Conversation, ConversationPreview, emptyConvoPreview, emptyMessage, postMessage, getMessagesFromUsername, getConvoPreview)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -23,7 +23,7 @@ type alias Message =
     , timeStamp     : Time.Posix
     }
 
-type alias ConversationPreviewDTO =
+type alias ConversationPreview =
     { convoWithUsername : String
     , body              : String
     , isLastAuthor      : Bool
@@ -34,6 +34,12 @@ type alias Conversation =
     { convoWithUsername : String
     , messages          : List Message
     }
+
+emptyConvoPreview : ConversationPreview
+emptyConvoPreview = ConversationPreview "" "" True <| Time.millisToPosix 0
+
+emptyMessage : Message
+emptyMessage = Message "" "" <| Time.millisToPosix 0
 
 encodeMessage : String -> Encode.Value
 encodeMessage x =
@@ -56,9 +62,9 @@ decodeConversation =
         |> Pipeline.required "messages" (Decode.list (decodeMessage))
 
 
-decodeConvoPreview : Decoder ConversationPreviewDTO
+decodeConvoPreview : Decoder ConversationPreview
 decodeConvoPreview =
-    Decode.succeed ConversationPreviewDTO
+    Decode.succeed ConversationPreview
         |> Pipeline.required "convoWithUsername" Decode.string
         |> Pipeline.required "body" Decode.string
         |> Pipeline.required "isLastAuthor" Decode.bool
@@ -114,7 +120,7 @@ getMessagesFromUsername userInfo username offset pageSize =
             False
         }
 
-getConvoPreview : UserInfo -> Http.Request (List (ConversationPreviewDTO))
+getConvoPreview : UserInfo -> Http.Request (List (ConversationPreview))
 getConvoPreview userInfo =
     Http.request
         { method =

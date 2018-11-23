@@ -23,7 +23,7 @@ import Page.Logout as Logout
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
-import Api.Messages exposing (ConversationPreviewDTO)
+import Api.Messages exposing (ConversationPreview)
 import Routing as Routing
 import UI.Elements as El
 
@@ -179,7 +179,7 @@ type Msg
   | SessionChanged Session
   | LogOutClicked
   | GetNumMessages Time.Posix
-  | HandleGetMessages (Result Http.Error (List ConversationPreviewDTO))
+  | HandleGetMessages (Result Http.Error (List ConversationPreview))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -374,7 +374,7 @@ stepChat model ( chat, cmds ) =
     , Cmd.map ChatMsg cmds
     )
 
-sendGetMessages : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Session -> Cmd msg
+sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
         Session.LoggedIn _ _ userInfo ->

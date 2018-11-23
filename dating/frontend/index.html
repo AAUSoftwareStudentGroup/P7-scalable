@@ -96,12 +96,13 @@
                 return Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
             }
 
-            // Listen for scroll events
-            window.addEventListener("scroll", function(e) {
+            function handleScroll(event) {
                 clearTimeout(timeout);
 
                 timeout = setTimeout(function() {
                     const triggerHeight = getWindowHeight() - window.innerHeight - offset;
+
+                    console.log(window.scrollY, triggerHeight, window.scrollY >= triggerHeight);
 
                     if (loading) {
                         if (triggerHeight > lastHeight) {
@@ -113,12 +114,31 @@
 
                     if (window.scrollY >= triggerHeight) {
                         loading = true;
+
                         app.ports.loadMore.send(true);
                     }
 
                     lastHeight = triggerHeight;
                 }, 100);
-            });
+            }
+
+            let eventListener = null;
+
+            setInterval(function () {
+                const messages = document.querySelector('.messages');
+
+                if (messages === null) {
+                    eventListener = null;
+                }
+
+                if (eventListener === null && messages !== null) {
+                    eventListener = messages.addEventListener("scroll", handleScroll);
+                    console.log(eventListener);
+                }
+            }, 250);
+
+            // Listen for scroll events
+            window.addEventListener("scroll", handleScroll);
         </script>
 
         <script>

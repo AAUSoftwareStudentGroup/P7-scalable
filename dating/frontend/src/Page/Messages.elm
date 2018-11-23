@@ -15,7 +15,8 @@ import List.Extra
 import UI.Elements as El
 import Session exposing (Session, PageType(..), Details)
 import Routing exposing (Route(..))
-import Api.Messages exposing (Message, Conversation, ConversationPreviewDTO)
+import Api.Messages exposing (Message, emptyConvoPreview, emptyMessage, Conversation, ConversationPreview)
+import Ports.LoadMorePort exposing (LoadMoreData, loadMore)
 
 
 -- MODEL
@@ -25,14 +26,15 @@ type alias Model =
     , loaded        : Bool
     , usernameSelf  : String
     , unsentMessage : String
-    , previews      : List ConversationPreviewDTO
-    , convoShown    : String
-    , convos        : Dict String (List Message)
+    , attemptedSend : Bool
+    , previews      : List ConversationPreview
+    , activeConvo   : String
+    , convos        : Dict String (Bool, List Message) -- (Done, List of messages)
     }
 
 initModel : Session -> Model
 initModel session =
-    Model session "Messages" False "" "" [] "" Dict.empty
+    Model session "Messages" False "" "" False [] "" Dict.empty
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -47,20 +49,25 @@ init session =
                 )
             Session.LoggedIn _ _ userInfo ->
                 ( { model | usernameSelf = userInfo.username }
-                , sendGetConvos HandleGetConvos model
+                , sendGetConvos HandleInitConvos model
                 )
 
 -- UPDATE
 type Msg
     = NoOp
     | GetConvos Time.Posix
-    | HandleGetConvos (Result Http.Error (List ConversationPreviewDTO))
+    | GetNewMessages Time.Posix
     | ConvoSelected String
-    | GetMessages String Time.Posix
-    | HandleGetMessages (Result Http.Error Conversation)
+    | HandleInitConvos (Result Http.Error (List ConversationPreview))
+    | HandleGetConvos (Result Http.Error (List ConversationPreview))
+    | HandleGetInitMessages (Result Http.Error Conversation)
+    | HandleGetOldMessages (Result Http.Error Conversation)
+    | HandleGetNewMessages (Result Http.Error Conversation)
     | UnsentMessageChanged String
     | SendMessage
     | HandleMessageSent (Result Http.Error String.String)
+    | LoadMore Bool
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -75,23 +82,34 @@ update msg model =
                 Session.LoggedIn _ _ userInfo ->
                     ( model, sendGetConvos HandleGetConvos model)
 
+        GetNewMessages _ ->
+            case (model.session) of
+                Session.Guest _ _ ->
+                    ( model, Cmd.none)
+                Session.LoggedIn _ _ userInfo ->
+                    ( model, sendGetMessages HandleGetNewMessages model.activeConvo model 0 pageSize)
+
+        HandleInitConvos result ->
+            case result of
+                Ok fetchedConvos ->
+                    let
+                        sortedConvos = List.sortWith sortConvos fetchedConvos
+                        username = (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
+                    in
+                        ( { model | previews = sortedConvos, activeConvo = username, loaded = True }
+                        , sendGetMessages HandleGetInitMessages username model 0 pageSize )
+
+                Err errResponse ->
+                    ( model, Cmd.none )
+
         HandleGetConvos result ->
             case result of
                 Ok fetchedConvos ->
                     let
                         sortedConvos = List.sortWith sortConvos fetchedConvos
-                        username =
-                            if model.convoShown == "" then
-                                case List.head sortedConvos of
-                                    Nothing ->
-                                        ""
-                                    Just convo ->
-                                        convo.convoWithUsername
-                            else
-                                model.convoShown
                     in
-                        ( { model | previews = sortedConvos, convoShown = username, loaded = True }
-                        , sendGetMessages HandleGetMessages username model )
+                        ( { model | previews = sortedConvos }
+                        , Cmd.none )
 
                 Err errResponse ->
                     ( model, Cmd.none )
@@ -101,55 +119,111 @@ update msg model =
                 command =
                     case Dict.get username model.convos of
                         Nothing ->
-                            sendGetMessages HandleGetMessages username model
+                            sendGetMessages HandleGetInitMessages username model 0 pageSize
                         Just _ ->
                             jumpToBottom listId
             in
-                ( { model | convoShown = username }, command )
+                ( { model | activeConvo = username }, command )
 
-        GetMessages username _ ->
-            ( model, sendGetMessages HandleGetMessages username model)
 
-        HandleGetMessages result ->
+        HandleGetInitMessages result ->
             case result of
                 Ok fetchedConvo ->
                     let
                         username = fetchedConvo.convoWithUsername
                         messages = fetchedConvo.messages
-                        numNewMessages = List.length messages
+                        gottenAllMessages = (List.length messages < pageSize)
 
                         command =
-                            if numNewMessages == 0 then
+                            if (List.length messages) == 0 then
                                 Cmd.none
                             else
                                 jumpToBottom listId
                     in
-                        ( { model | convos = Dict.insert username messages model.convos, loaded = True }
+                        ( { model | convos = Dict.insert username (gottenAllMessages, messages) model.convos, loaded = True }
                         , command)
 
                 Err errResponse ->
                     ( model, Cmd.none )
 
+
+        HandleGetNewMessages result ->
+            case result of
+                Ok fetchedConvo ->
+                    let
+                        username = fetchedConvo.convoWithUsername
+                        oldest = Maybe.withDefault emptyMessage (List.head (List.reverse (listCurrentMessages model)))
+                        newMessages = List.filter (\m -> compareMessage m oldest == LT) fetchedConvo.messages
+
+                        newConvos =
+                            case Dict.get username model.convos of
+                                Nothing ->
+                                    Dict.insert username (False, newMessages) model.convos
+                                Just (done, oldMessageList) ->
+                                    Dict.insert username (done, oldMessageList ++ newMessages) model.convos
+                    in
+                        ( { model | convos = newConvos, loaded = True }, Cmd.none)
+
+                Err errResponse ->
+                    ( model, Cmd.none )
+
+        HandleGetOldMessages result ->
+            case result of
+                Ok fetchedConvo ->
+                    let
+                        username = fetchedConvo.convoWithUsername
+                        oldestMessage = Maybe.withDefault emptyMessage (List.head (listCurrentMessages model))
+                        newMessages = List.filter (\m -> compareMessage m oldestMessage == GT) fetchedConvo.messages
+
+                        gottenAllMessages = (List.length newMessages < pageSize)
+
+                        newConvos =
+                            case Dict.get username model.convos of
+                                Nothing ->
+                                    Dict.insert username (gottenAllMessages, newMessages) model.convos
+                                Just (_, oldMessageList) ->
+                                    Dict.insert username (gottenAllMessages, newMessages ++ oldMessageList) model.convos
+
+                    in
+                        ( { model | convos = newConvos, loaded = True }
+                        , Cmd.none)
+
+                Err errResponse ->
+                    ( model, Cmd.none )
+
+
         UnsentMessageChanged new ->
             ( { model | unsentMessage = new }, Cmd.none )
 
         SendMessage ->
-            ( model, sendMessage model )
+            if model.attemptedSend then
+                ( model, Cmd.none )
+            else
+                ( { model | attemptedSend = True }, sendMessage model )
 
         HandleMessageSent result ->
             case result of
                 Ok responseString ->
-                    ( { model | unsentMessage = "" }
-                    , sendGetMessages HandleGetMessages model.convoShown model )
+                    ( { model | unsentMessage = "", attemptedSend = False }
+                    , sendGetMessages HandleGetNewMessages model.activeConvo model 0 pageSize )
 
                 Err _ ->
                     ( model, Cmd.none )
+
+        LoadMore _ ->
+            ( model
+            , sendGetMessages HandleGetOldMessages model.activeConvo model (numberCurrentMessages model) pageSize
+            )
 
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every 3000 GetConvos
+    Sub.batch
+        [ Time.every 3000 GetConvos
+        , Time.every 3000 GetNewMessages
+        , loadMore LoadMore
+        ]
 
 
 -- VIEW
@@ -189,7 +263,7 @@ view model =
                             ]
                         , Attributes.id listId
                         ]
-                        (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model))))
+                        ([viewLoadMore model] ++ (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
                     , Html.form
                         [ Events.onSubmit SendMessage
                         , classList
@@ -206,18 +280,29 @@ view model =
             ]
     }
 
+viewLoadMore : Model -> (String, Html Msg)
+viewLoadMore model =
+    if Tuple.first (Maybe.withDefault (False, []) (Dict.get model.activeConvo model.convos)) then
+        ( "", Html.text "" )
+    else
+        ( "test"
+        , El.msgButtonFlat []
+            (LoadMore True)
+            [ El.iconText "Load more" "keyboard_arrow_up" ]
+        )
 
-viewConvoKeyed : Model -> ConversationPreviewDTO -> (String, Html Msg)
+
+viewConvoKeyed : Model -> ConversationPreview -> (String, Html Msg)
 viewConvoKeyed model message =
     ( message.convoWithUsername
     , Lazy.lazy2 viewConvo model message
     )
 
 
-viewConvo : Model -> ConversationPreviewDTO -> Html Msg
+viewConvo : Model -> ConversationPreview -> Html Msg
 viewConvo model message =
     let
-        activeConvo = message.convoWithUsername == model.convoShown
+        activeConvo = message.convoWithUsername == model.activeConvo
     in
         Html.li
             [ classList
@@ -276,11 +361,17 @@ viewMessageGroup model isFirstMessage (firstMessage, restOfMessages) =
 
 
 -- HELPERS
+pageSize = 20
+
 listId = "message-list"
+
+numberCurrentMessages : Model -> Int
+numberCurrentMessages model =
+    List.length (listCurrentMessages model)
 
 listCurrentMessages : Model -> List (Message)
 listCurrentMessages model =
-    Maybe.withDefault [] (Dict.get model.convoShown model.convos)
+    Tuple.second (Maybe.withDefault (False, []) (Dict.get model.activeConvo model.convos))
 
 
 jumpToBottom : String -> Cmd Msg
@@ -290,7 +381,7 @@ jumpToBottom id =
         |> Task.attempt (\_ -> NoOp)
 
 
-lastMessage : ConversationPreviewDTO -> String
+lastMessage : ConversationPreview -> String
 lastMessage conversation =
     if conversation.isLastAuthor then
          "You: " ++ conversation.body
@@ -298,12 +389,17 @@ lastMessage conversation =
         conversation.body
 
 
-sortConvos : ConversationPreviewDTO -> ConversationPreviewDTO -> Order
+sortConvos : ConversationPreview -> ConversationPreview -> Order
 sortConvos a b =
     compare (Time.posixToMillis b.timeStamp) (Time.posixToMillis a.timeStamp)
 
 
-sendGetConvos : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Model -> Cmd msg
+compareMessage : Message -> Message -> Order
+compareMessage a b =
+    compare (Time.posixToMillis b.timeStamp) (Time.posixToMillis a.timeStamp)
+
+
+sendGetConvos : (Result Http.Error (List ConversationPreview) -> msg) -> Model -> Cmd msg
 sendGetConvos responseMsg model =
     case model.session of
         Session.LoggedIn _ _ userInfo ->
@@ -312,11 +408,11 @@ sendGetConvos responseMsg model =
             Cmd.none
 
 
-sendGetMessages : (Result Http.Error Conversation -> msg) -> String -> Model -> Cmd msg
-sendGetMessages responseMsg username model =
+sendGetMessages : (Result Http.Error Conversation -> msg) -> String -> Model -> Int -> Int -> Cmd msg
+sendGetMessages responseMsg username model offset numMessages =
     case model.session of
         Session.LoggedIn _ _ userInfo ->
-            Http.send responseMsg (Api.Messages.getMessagesFromUsername userInfo username 0 1000)
+            Http.send responseMsg (Api.Messages.getMessagesFromUsername userInfo username (-1 * (offset + numMessages)) numMessages)
 
         Session.Guest _ _ ->
             Cmd.none
@@ -329,7 +425,7 @@ sendMessage model =
     else
         case model.session of
             Session.LoggedIn _ _ userInfo ->
-                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.convoShown)
+                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.activeConvo)
 
             Session.Guest _ _ ->
                 Cmd.none
