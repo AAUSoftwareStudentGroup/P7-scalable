@@ -15,9 +15,11 @@ import Http as Http
 import Page.CreateUser as CreateUser
 import Page.Home as Home
 import Page.ListUsers as ListUsers
+import Page.Login as Login exposing (subscriptions)
 import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
+import Page.Survey as Survey
 import Page.Login as Login
 import Page.Logout as Logout
 import Page.Chat as Chat
@@ -26,6 +28,8 @@ import Session exposing (Session)
 import Api.Messages exposing (ConversationPreview)
 import Routing as Routing
 import UI.Elements as El
+
+
 
 -- MAIN
 
@@ -40,6 +44,8 @@ main =
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
         }
+
+
 
 -- MODEL
 
@@ -61,6 +67,7 @@ type Page
     | Messages Messages.Model
     | Profile Profile.Model
     | Chat Chat.Model
+    | Survey Survey.Model
 
 
 init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -83,11 +90,12 @@ init maybeValue url key =
 
 -- VIEW
 
+
 view : Model -> Browser.Document Msg
 view model =
     case model.page of
         NotFound notFoundModel ->
-            viewContent NotFoundMsg  (NotFound.view notFoundModel)
+            viewContent NotFoundMsg (NotFound.view notFoundModel)
 
         CreateUser createUserModel ->
             viewContent CreateUserMsg (CreateUser.view createUserModel)
@@ -113,6 +121,9 @@ view model =
         Profile profileModel ->
             viewContent ProfileMsg (Profile.view profileModel)
 
+        Survey surveyModel ->
+            viewContent SurveyMsg (Survey.view surveyModel)
+
 
 viewContent : (a -> msg) -> Session.Details a -> Browser.Document msg
 viewContent toMsg details =
@@ -122,6 +133,7 @@ viewContent toMsg details =
 
 
 -- SUBSCRIPTIONS
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -154,10 +166,16 @@ subscriptions model =
             Chat chatModel ->
                 Sub.map ChatMsg (Chat.subscriptions chatModel)
 
+            Survey surveyModel ->
+                Sub.map SurveyMsg (Survey.subscriptions surveyModel)
+
         , Session.onChange SessionChanged (Session.getNavKey (getSession model))
 
       --, Time.every 1000 GetNumMessages
     ]
+
+
+
 
 
 -- UPDATE
@@ -176,10 +194,12 @@ type Msg
   | MessagesMsg Messages.Msg
   | ProfileMsg Profile.Msg
   | ChatMsg Chat.Msg
+  | SurveyMsg Survey.Msg
   | SessionChanged Session
   | LogOutClicked
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List ConversationPreview))
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -240,25 +260,34 @@ update message model =
             case model.page of
                 ListUsers listUsersModel ->
                     stepListUsers model (ListUsers.update msg listUsersModel)
-                _ -> ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
 
         ProfileMsg msg ->
             case model.page of
                 Profile profileModel ->
                     stepProfile model (Profile.update msg profileModel)
-                _ -> ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
         MessagesMsg msg ->
             case model.page of
                 Messages messagesModel ->
                     stepMessages model (Messages.update msg messagesModel)
-                _ -> ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
         ChatMsg msg ->
             case model.page of
                 Chat chat ->
                     stepChat model (Chat.update msg chat)
+                _ -> ( model, Cmd.none )
+
+        SurveyMsg msg ->
+            case model.page of
+                Survey surveyModel ->
+                    stepSurvey model (Survey.update msg surveyModel)
                 _ -> ( model, Cmd.none )
 
         SessionChanged session ->
@@ -319,12 +348,17 @@ replacePage page session =
         Chat m ->
              Chat { m | session = session }
 
+        Survey m ->
+             Survey { m | session = session }
+
+
 
 stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )
 stepNotFound model ( notFoundModel, cmds ) =
     ( { model | page = NotFound notFoundModel }
     , Cmd.map NotFoundMsg cmds
     )
+
 
 stepCreateUser : Model -> ( CreateUser.Model, Cmd CreateUser.Msg ) -> ( Model, Cmd Msg )
 stepCreateUser model ( createUserModel, cmds ) =
@@ -351,16 +385,18 @@ stepHome model (homeModel, cmds) =
     )
 
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
-stepListUsers model (listUsersModel, cmds) =
-    ( { model | page = ListUsers listUsersModel}
+stepListUsers model ( listUsersModel, cmds ) =
+    ( { model | page = ListUsers listUsersModel }
     , Cmd.map ListUsersMsg cmds
     )
 
+
 stepProfile : Model -> ( Profile.Model, Cmd Profile.Msg ) -> ( Model, Cmd Msg )
-stepProfile model (profileModel, cmds) =
+stepProfile model ( profileModel, cmds ) =
     ( { model | page = Profile profileModel }
     , Cmd.map ProfileMsg cmds
     )
+
 
 stepMessages : Model -> ( Messages.Model, Cmd Messages.Msg ) -> ( Model, Cmd Msg )
 stepMessages model ( messagesModel, cmds ) =
@@ -381,6 +417,13 @@ sendGetMessages responseMsg session =
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
         Session.Guest _ _ ->
             Cmd.none
+
+stepSurvey : Model -> ( Survey.Model, Cmd Survey.Msg ) -> ( Model, Cmd Msg )
+stepSurvey model ( surveyModel, cmds ) =
+    ( { model | page = Survey surveyModel }
+    , Cmd.map SurveyMsg cmds
+    )
+
 
 
 -- SESSION
@@ -415,6 +458,10 @@ getSession model =
         Chat m ->
             m.session
 
+        Survey m ->
+            m.session
+
+
 stepUrl : Url.Url -> Model -> ( Model, Cmd Msg )
 stepUrl url model =
     let
@@ -439,6 +486,8 @@ stepUrl url model =
                     (stepMessages model (Messages.init session))
                 , route (Parser.s "chat" </> Parser.string)
                     (\username -> stepChat model (Chat.init session username))
+                , route (Parser.s "survey")
+                    (stepSurvey model (Survey.init session))
                 ]
 
     in

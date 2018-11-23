@@ -6,24 +6,20 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
 module API where
 
 import           Control.Monad.IO.Class           (liftIO)
 import           Control.Monad.Trans.Except       (throwE)
-import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.Lazy.Char8       as LBS
-import           Data.Generics.Product            (getField)
 import           Data.Int                         (Int64)
-import           Data.Map                         (Map, fromList)
+import           Data.Map                         (Map)
 import qualified Data.Map                         as Map
 import           Data.Proxy                       (Proxy (..))
 import           Data.Semigroup                   ((<>))
 import           Data.Text                        (Text)
-import           Data.Text.Encoding               (encodeUtf8, decodeUtf8, encodeUtf16BE)
-import           Database.Persist                 (Entity, Key, update)
+import           Data.Text.Encoding               (decodeUtf8)
 import           Network.Wai                      (Request, requestHeaders)
 import           Network.Wai.Handler.Warp         (run)
 import           Servant                          (throwError)
@@ -41,27 +37,27 @@ import           FrontendTypes
 import           Schema
 
 
-
-
-
 -----------------------------------------------------------------------
 --                                API                                --
 -----------------------------------------------------------------------
 -- | The API.
-type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI
+type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI :<|> QuestionAPI
 
 type UserAPI =
         -- Create User
-  "users" :> ReqBody '[JSON] CreateUserDTO 
+  "users" :> ReqBody '[JSON] CreateUserDTO
           :> Post '[JSON] LoggedInDTO
   :<|>  -- Fetch User
-  "users" :> AuthProtect "cookie-auth" 
-          :> Capture "username" Username 
+  "users" :> AuthProtect "cookie-auth"
+          :> Capture "username" Username
           :> Get '[JSON] UserDTO
   :<|>  -- Fetch Users
-  "users" :> AuthProtect "cookie-auth" 
-          :> Capture "offset" Int 
-          :> Capture "limit" Int 
+  "users" :> AuthProtect "cookie-auth"
+          :> Capture "offset" Int
+          :> Capture "limit" Int
+          :> Get '[JSON] [UserDTO]
+  :<|>  -- Fetch matching users
+  "match" :> AuthProtect "cookie-auth"
           :> Get '[JSON] [UserDTO]
   :<|>  -- Does Username Exist?
   "users" :> "exists"
@@ -70,27 +66,37 @@ type UserAPI =
 
 type AuthAPI =
         -- Login
-  "login"  :> ReqBody '[JSON] CredentialDTO 
+  "login"  :> ReqBody '[JSON] CredentialDTO
            :> Post '[JSON] LoggedInDTO
   :<|>  --Logout
-  "logout" :> ReqBody '[JSON] Text 
+  "logout" :> ReqBody '[JSON] Text
            :> Post '[JSON] ()
 
 type MessageAPI =
         -- Create Message
-  "messages" :> AuthProtect "cookie-auth" 
-             :> Capture "username" Username 
-             :> ReqBody '[JSON] CreateMessageDTO 
+  "messages" :> AuthProtect "cookie-auth"
+             :> Capture "username" Username
+             :> ReqBody '[JSON] CreateMessageDTO
              :> Post '[JSON] ()
-  :<|>  -- Fetch Message Previews 
-  "messages" :> AuthProtect "cookie-auth" 
+  :<|>  -- Fetch Message Previews
+  "messages" :> AuthProtect "cookie-auth"
              :> Get '[JSON] [ConversationPreviewDTO]
   :<|>  -- Fetch Conversation and some messages
-  "messages" :> AuthProtect "cookie-auth" 
-             :> Capture "username" Username 
-             :> Capture "offset" Int 
-             :> Capture "limit" Int 
+  "messages" :> AuthProtect "cookie-auth"
+             :> Capture "username" Username
+             :> Capture "offset" Int
+             :> Capture "limit" Int
              :> Get '[JSON] ConversationDTO
+
+type QuestionAPI =
+        -- Get Questions
+  "questions" :> AuthProtect "cookie-auth"
+              :> Get '[JSON] [QuestionDTO]
+  :<|>  -- Post Answer
+  "questions" :> AuthProtect "cookie-auth"
+              :> ReqBody '[JSON] AnswerDTO
+              :> Post '[JSON] ()
+
 
 -- | A proxy for the API. Technical detail.
 datingAPI :: Proxy DatingAPI
@@ -107,7 +113,7 @@ createUserHandler mongoInfo newUser = do
   maybeCreated <- liftIO $ DB.createUser mongoInfo newUser
   case maybeCreated of
     Right loggedInDTO -> return loggedInDTO
-    Left text -> Handler $ throwE $ text
+    Left text         -> Handler $ throwE text
 
 -- | Fetches a user by username.
 fetchUserHandler :: MongoInfo -> Username -> Username -> Handler UserDTO
@@ -119,9 +125,12 @@ fetchUserHandler mongoInfo _ username = do
     Nothing -> Handler $ throwE $ err404 { errBody = "The user does not exist"}
 
 -- | Fetches all users from db.
-fetchAllUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
-fetchAllUsersHandler mongoInfo _ offset limit = liftIO $ DB.fetchAllUsers mongoInfo offset limit
+fetchUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
+fetchUsersHandler mongoInfo username offset limit = liftIO $ DB.fetchUsers mongoInfo username offset limit
 
+-- | Fetches users that matches current user
+fetchMatchingUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
+fetchMatchingUsersHandler mongoInfo username = liftIO $ DB.fetchMatchingUsers mongoInfo username
 
 -- | Ask if username exists.
 fetchUserExists :: MongoInfo -> Username -> Handler Bool
@@ -156,7 +165,7 @@ type instance AuthServerData (AuthProtect "cookie-auth") = Username
 datingServerContext :: MongoInfo -> Context (AuthHandler Request Username ': '[])
 datingServerContext mongoInfo = authHandler mongoInfo :. EmptyContext
 
--- err401 ::
+
 -- | The handler which is called whenever a protected endpoint is visited.
 authHandler :: MongoInfo -> AuthHandler Request Username
 authHandler mongoInfo = mkAuthHandler handler
@@ -200,6 +209,22 @@ fetchConversationPreviewsHandler mongoInfo ownUsername =
   liftIO $ DB.fetchConversationPreviews mongoInfo ownUsername
 
 
+-------------------------------------------------------------------------------
+--                                 Questions                                 --
+-------------------------------------------------------------------------------
+
+fetchQuestionsHandler :: MongoInfo -> Username -> Handler [QuestionDTO]
+fetchQuestionsHandler mongoInfo username =
+  liftIO $ DB.fetchQuestions mongoInfo username
+
+
+createAnswerHandler :: MongoInfo -> Username -> AnswerDTO -> Handler ()
+createAnswerHandler mongoInfo username answer = do
+  maybePostAnswer <- liftIO $ DB.postAnswer mongoInfo username answer
+  case maybePostAnswer of
+    Right a  -> return ()
+    Left err -> Handler $ throwE err
+
 
 -------------------------------------------------------------------------------
 --                          COMBINATION OF PARTS                             --
@@ -207,7 +232,7 @@ fetchConversationPreviewsHandler mongoInfo ownUsername =
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: MongoInfo -> RedisInfo -> Server DatingAPI
-datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHandlers
+datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHandlers :<|> questionHandlers
   where
 
     authHandlers =       loginHandler mongoInfo
@@ -215,13 +240,16 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
 
     userHandlers =       createUserHandler mongoInfo
                     :<|> fetchUserHandler mongoInfo
-                    :<|> fetchAllUsersHandler mongoInfo
+                    :<|> fetchUsersHandler mongoInfo
+                    :<|> fetchMatchingUsersHandler mongoInfo
                     :<|> fetchUserExists mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo
                     :<|> fetchConversationPreviewsHandler mongoInfo
                     :<|> fetchMessagesBetweenHandler mongoInfo
 
+    questionHandlers =   fetchQuestionsHandler mongoInfo
+                    :<|> createAnswerHandler mongoInfo
 
 -- | Serves the API on port 1234
 runServer :: IO ()

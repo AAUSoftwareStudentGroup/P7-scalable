@@ -14,16 +14,12 @@
 
 module Schema where
 
-import           Data.Aeson
-import           Data.ByteString               (ByteString)
-import           Data.Int                      (Int64)
 import           Data.Text                     (Text)
 import           Data.Time.Calendar            (Day)
 import           Data.Time.Clock               (UTCTime)
-import           Database.Persist              (Entity (..), Key)
 import           Database.Persist.MongoDB
 import qualified Database.Persist.TH           as PTH
-import           GHC.Generics                  (Generic, Rep)
+import           GHC.Generics                  (Generic)
 import           Language.Haskell.TH.Syntax
 
 import           SchemaEnums
@@ -57,4 +53,22 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     time     UTCTime
     text     Text
     deriving Show Read Eq Generic
+
+  Question json sql=questions
+    text            Text
+    survey_answers  [SurveyAnswer]
+    user_answers    [UserAnswer]
+    deriving Show Read Eq Generic
+
+  SurveyAnswer json sql=survey_answers
+    respondent_id   Int
+    score           Int
+    deriving Show Read Eq Generic
+
+  UserAnswer json sql=user_answers
+    username        Text
+    score           Int
+    time            UTCTime
+    deriving Show Read Eq Generic
+
 |]

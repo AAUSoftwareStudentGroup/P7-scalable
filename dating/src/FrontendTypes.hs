@@ -9,15 +9,12 @@
 module FrontendTypes where
 
 import           Data.Aeson
-import           Data.Aeson.Types
-import           Data.ByteString
-import           Data.Int                       (Int64)
 import           Data.Text.Arbitrary
 import           Data.Time.Calendar             (Day)
 import           Data.Time.Clock                (UTCTime (..))
 import           GHC.Generics                   (Generic)
 import           Test.QuickCheck
-import           Test.QuickCheck.Instances.Time
+import           Test.QuickCheck.Instances.Time ()
 
 import           SchemaEnums                    (Gender (..))
 
@@ -88,6 +85,22 @@ data MessageDTO = MessageDTO
   { authorUsername :: Text
   , timeStamp      :: UTCTime
   , body           :: Text
+  } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+
+
+-------------------------------------------------------------------------------
+--                                 Questions                                 --
+-------------------------------------------------------------------------------
+
+data QuestionDTO = QuestionDTO
+  { id       :: Text
+  , question :: Text
+  } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+data AnswerDTO = AnswerDTO
+  { id    :: Text
+  , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 

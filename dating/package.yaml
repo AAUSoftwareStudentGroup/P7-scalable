@@ -55,6 +55,7 @@ library:
   - base64-bytestring
   - strict
   - hmatrix
+  - directory
 executables:
   dating:
     main: Main.hs
@@ -63,6 +64,12 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    #- -Wall
+    #- -fno-warn-orphans
+    #- -Wcompat
+    #- -Wincomplete-record-updates
+    #- -Wincomplete-uni-patterns
+    #- -Wredundant-constraints
     dependencies:
     - base
     - dating
@@ -74,6 +81,11 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Wcompat
+    - -Wincomplete-record-updates
+    - -Wincomplete-uni-patterns
+    - -Wredundant-constraints
     dependencies:
     - base
     - hspec

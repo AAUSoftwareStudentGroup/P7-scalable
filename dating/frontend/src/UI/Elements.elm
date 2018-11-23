@@ -96,7 +96,8 @@ headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
         Session.LoggedIn _ _ userInfo ->
-            [ headerNavLink (Routing.routeToString Messages) "Messages"
+            [ headerNavLink (Routing.routeToString Survey) "Survey"
+            , headerNavLink (Routing.routeToString Messages) "Messages"
             , headerNavLink (Routing.routeToString ListUsers) "All users"
             , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
@@ -415,7 +416,7 @@ imageInput caption imageSelectedMsg maybeImage =
         imagePreview =
             case maybeImage of
                 Just image ->
-                    imageElement image
+                    imageElement image [("preview-image", True)]
                 Nothing ->
                     Html.text ""
     in
@@ -435,11 +436,12 @@ imageInput caption imageSelectedMsg maybeImage =
         , imagePreview
         ]
 
-imageElement : Image -> Html msg
-imageElement image =
+imageElement : Image -> List (String, Bool) -> Html msg
+imageElement image classes =
   Html.img
     [ Attributes.src image.contents
     , Attributes.title image.filename
+    , classList classes
     ]
     []
 

@@ -40,7 +40,7 @@
 
 
             app.ports.fileSelected.subscribe(function () {
-                const node = $('input[type="file"]')[0];
+                const node = document.querySelector('input[type="file"]');
                     if (!node) {
                         return;
                     }
@@ -74,13 +74,37 @@
                     // that was selected. The result is base64 encoded contents of the file.
                     const base64encoded = event.target.result;
 
-                    // We call the `fileContentRead` port with the file data
-                    // which will be sent to our Elm runtime via Subscriptions.
-                    app.ports.fileContentRead.send({
-                        error: '',
-                        contents: base64encoded,
-                        fileName: file.name
-                    });
+                    function imageToDataUri(img, width, height) {
+
+                        // create an off-screen canvas
+                        var canvas = document.createElement('canvas'),
+                            ctx = canvas.getContext('2d');
+
+                        // set its dimension to target size
+                        canvas.width = width;
+                        // canvas.height = height;
+                        canvas.height = img.height*(width/img.width);
+
+                        // draw source image into the off-screen canvas:
+                        ctx.drawImage(img, 0, 0, width, img.height*(width/img.width));
+
+                        // encode image to data-uri with base64 version of compressed image
+                        return canvas.toDataURL('image/jpeg', 0.9);
+                    }
+                    var image = new Image();
+                    image.onload = function() {
+                        const resizedBase64encoded = imageToDataUri(image, 512,512);
+                        
+                        // We call the `fileContentRead` port with the file data
+                        // which will be sent to our Elm runtime via Subscriptions.
+                        app.ports.fileContentRead.send({
+                            error: '',
+                            contents: resizedBase64encoded,
+                            fileName: file.name
+                        });
+                    };
+                    image.src = base64encoded;
+
                 });
             });
 
