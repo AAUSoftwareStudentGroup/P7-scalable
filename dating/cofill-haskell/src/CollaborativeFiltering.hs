@@ -49,7 +49,7 @@ gradientDescent' iterRange iter threshold alpha alphaInitial preMse a aHasValue 
     guess  = mul u q
     guess' = guess * aHasValue
     error  = guess' - a
-    mse    = meanSquareError (a - guess')
+    mse    = meanSquareError (a - guess') $ sumElements aHasValue
     u'     = u - tr' (mul q (tr' error)) * alpha
     q'     = q - mul (tr' u) error * alpha
     newAlp = if isSmaller mse preMse then alpha + alphaInitial else alphaInitial
@@ -69,14 +69,11 @@ continue iterRange iter threshold newMse (Just oldMse) =
     )   || iter <= fst iterRange                         -- or continue if we have not yet reached our min iteration limit
 
 
-meanSquareError :: Matrix -> Double
-meanSquareError matrix = mean (square matrix)
+meanSquareError :: Matrix -> Double -> Double
+meanSquareError matrix noOfElements = mean (square matrix)
     where
         square :: Matrix -> Matrix
         square matrix = matrix * matrix
 
         mean :: Matrix -> Double
-        mean matrix = sumElements matrix / matrixSize
-            where
-                (rows, cols) = size matrix
-                matrixSize = fromIntegral $ rows * cols
+        mean matrix = sumElements matrix / noOfElements
