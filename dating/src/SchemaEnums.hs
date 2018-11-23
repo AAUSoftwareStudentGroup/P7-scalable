@@ -5,8 +5,7 @@ module SchemaEnums where
 
 import           GHC.Generics
 import qualified Database.Persist.TH as PTH
-import           Data.Aeson (ToJSON, toJSON, object, (.=), FromJSON, parseJSON, (.:), withObject
-                            , Object)
+import           Data.Aeson (ToJSON, FromJSON)
 
 data Gender =
     Male

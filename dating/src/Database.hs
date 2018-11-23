@@ -31,7 +31,6 @@ import qualified Database.Redis                     as Redis
 import           Servant.Server.Internal.ServantErr
 import           System.Directory
 import qualified System.Random                      as Random
-import Control.Monad.IO.Class (MonadIO)
 
 import           FrontendTypes
 import           Schema
@@ -349,7 +348,7 @@ postAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf po
 --                                 HELPERS                                   --
 -------------------------------------------------------------------------------
 
-runAction :: MonadIO m => MongoInfo -> Action m b -> m b
+--runAction :: MonadIO m => MongoInfo -> Action m b -> m b
 runAction mongoConf action = Persist.Mongo.withConnection mongoConf $
   \pool -> Persist.Mongo.runMongoDBPoolDef action pool
 

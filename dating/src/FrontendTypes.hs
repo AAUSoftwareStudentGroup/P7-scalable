@@ -9,14 +9,12 @@
 module FrontendTypes where
 
 import           Data.Aeson
-import           Data.Aeson.Types
-import           Data.ByteString
 import           Data.Text.Arbitrary
 import           Data.Time.Calendar             (Day)
 import           Data.Time.Clock                (UTCTime (..))
 import           GHC.Generics                   (Generic)
 import           Test.QuickCheck
-import           Test.QuickCheck.Instances.Time
+import           Test.QuickCheck.Instances.Time ()
 
 import           SchemaEnums                    (Gender (..))
 

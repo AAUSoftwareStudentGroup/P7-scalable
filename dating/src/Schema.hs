@@ -14,16 +14,12 @@
 
 module Schema where
 
-import           Data.Aeson
-import           Data.ByteString               (ByteString)
-import           Data.Int                      (Int64)
 import           Data.Text                     (Text)
 import           Data.Time.Calendar            (Day)
 import           Data.Time.Clock               (UTCTime)
-import           Database.Persist              (Entity (..), Key)
 import           Database.Persist.MongoDB
 import qualified Database.Persist.TH           as PTH
-import           GHC.Generics                  (Generic, Rep)
+import           GHC.Generics                  (Generic)
 import           Language.Haskell.TH.Syntax
 
 import           SchemaEnums
