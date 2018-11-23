@@ -113,7 +113,6 @@ update msg model =
                         command =
                             if numNewMessages == 0 then
                                 Cmd.none
-
                             else
                                 jumpToBottom listId
                     in
@@ -189,7 +188,7 @@ view model =
 
 viewMessageKeyed : Model -> Message -> Bool -> Bool -> ( String, Html msg )
 viewMessageKeyed model message isFirst isLast =
-    ( message.timeStamp
+    ( String.fromInt (Time.posixToMillis message.timeStamp)
     , Lazy.lazy4 viewMessage model message isFirst isLast
     )
 

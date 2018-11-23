@@ -2,13 +2,6 @@ $header-height: 64px;
 $footer-height: 64px;
 $main-grid-gap: 16px;
 
-.disableScroll {
-    margin: 0;
-    height: 100%;
-    overflow: hidden
-}
-
-
 %max-width-container {
     width: 100%;
     max-width: 1200px;
@@ -103,6 +96,12 @@ footer {
 }
 
 @media screen and (max-width: $small-screen) {
+    .disableScroll {
+        margin: 0;
+        height: 100%;
+        overflow: hidden
+    }
+
     .header-content {
         nav {
             &:before {

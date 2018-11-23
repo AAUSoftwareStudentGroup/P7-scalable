@@ -7,6 +7,7 @@ import Http
 import String
 import Url
 import Time as Time
+import Iso8601
 
 import Api.Authentication as Auth exposing (UserInfo)
 
@@ -19,14 +20,14 @@ apiLocation =
 type alias Message =
     { body          : String
     , authorName    : String
-    , timeStamp     : String
+    , timeStamp     : Time.Posix
     }
 
 type alias ConversationPreviewDTO =
     { convoWithUsername : String
     , body              : String
     , isLastAuthor      : Bool
-    , timeStamp         : String
+    , timeStamp         : Time.Posix
     }
 
 type alias Conversation =
@@ -45,7 +46,7 @@ decodeMessage =
     Decode.succeed Message
         |> Pipeline.required "body" Decode.string
         |> Pipeline.required "authorUsername" Decode.string
-        |> Pipeline.required "timeStamp" Decode.string
+        |> Pipeline.required "timeStamp" Iso8601.decoder
 
 
 decodeConversation : Decoder Conversation
@@ -54,13 +55,14 @@ decodeConversation =
         |> Pipeline.required "convoWithUsername" Decode.string
         |> Pipeline.required "messages" (Decode.list (decodeMessage))
 
+
 decodeConvoPreview : Decoder ConversationPreviewDTO
 decodeConvoPreview =
     Decode.succeed ConversationPreviewDTO
         |> Pipeline.required "convoWithUsername" Decode.string
         |> Pipeline.required "body" Decode.string
         |> Pipeline.required "isLastAuthor" Decode.bool
-        |> Pipeline.required "timeStamp" Decode.string
+        |> Pipeline.required "timeStamp" Iso8601.decoder
 
 
 
