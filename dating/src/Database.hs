@@ -340,7 +340,7 @@ postAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf po
       currentTime <- Clock.getCurrentTime
       return UserAnswer
           { userAnswerUsername = name
-          , userAnswerScore = T.pack . show $ score'
+          , userAnswerScore = score'
           , userAnswerTime = currentTime
           }
 

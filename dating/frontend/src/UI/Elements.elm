@@ -394,7 +394,7 @@ imageInput caption imageSelectedMsg maybeImage =
         imagePreview =
             case maybeImage of
                 Just image ->
-                    imageElement image
+                    imageElement image [("preview-image", True)]
                 Nothing ->
                     Html.text ""
     in
@@ -414,11 +414,12 @@ imageInput caption imageSelectedMsg maybeImage =
         , imagePreview
         ]
 
-imageElement : Image -> Html msg
-imageElement image =
+imageElement : Image -> List (String, Bool) -> Html msg
+imageElement image classes =
   Html.img
     [ Attributes.src image.contents
     , Attributes.title image.filename
+    , classList classes
     ]
     []
 

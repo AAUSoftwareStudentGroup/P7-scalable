@@ -4,7 +4,7 @@ do
     gender="$(tr '[:lower:]' '[:upper:]' <<< ${gender:0:1})${gender:1}"
     echo -e " $name_first\t|$name_last\t|$gender\t|$email\t|$birthdate"
     curl -X POST \
-    http://api.dating.local:8002/users \
+    http://api.dating.local/users \
     -H 'Content-Type: application/json' \
     -H 'cache-control: no-cache' \
     -d "{
