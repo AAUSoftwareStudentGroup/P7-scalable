@@ -33,6 +33,8 @@ library:
   - aeson
   - bytestring
   - random
+  - cassava
+  - vector
 
 executables:
   cofil-haskel-exe:
