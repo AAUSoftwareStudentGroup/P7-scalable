@@ -1,10 +1,9 @@
 module TestData where
 
-import Numeric.LinearAlgebra
-import Numeric.LinearAlgebra.HMatrix
-import CollaborativeFiltering 
+import Numeric.LinearAlgebra ((><))
+import CollaborativeFiltering
 
-fastAiAnswers :: Matrix R
+fastAiAnswers :: Matrix
 fastAiAnswers = (15><15)
     [ 3  , 5  , 1  , 3  , 4, 4  , 5  , 2  , 5  , 5  , 4  , 5  , 5  , 2  , 5
     , 5  , 5  , 5  , 4  , 5, 4  , 4  , 5  , 4  , 4  , 5  , 5  , 3  , 4  , 5
@@ -22,7 +21,7 @@ fastAiAnswers = (15><15)
     , 4.5, 4.5, 3.5, 3  , 4, 4.5, 4  , 4  , 4  , 4  , 3.5, 3  , 4.5, 4  , 4.5
     , 0  , 5  , 3  , 3  , 0, 3  , 5  , 0  , 5  , 5  , 5  , 5  , 2  , 5  , 4  ]
 
-groupAnswers :: Matrix R
+groupAnswers :: Matrix
 groupAnswers = (6><10)
     [ 3, 4, 3, 1, 1, 5, 5, 2, 3, 3
     , 3, 2, 3, 1, 4, 5, 5, 3, 2, 1
@@ -31,7 +30,7 @@ groupAnswers = (6><10)
     , 2, 4, 2, 1, 2, 5, 5, 2, 1, 1
     , 3, 4, 2, 1, 2, 5, 5, 4, 1, 1 ]
 
-testAnswers :: Matrix R
+testAnswers :: Matrix
 testAnswers = (6><10)
     [ 0, 4, 3, 1, 1, 5, 5, 0, 3, 3
     , 3, 2, 3, 0, 4, 5, 5, 3, 2, 1
@@ -41,13 +40,12 @@ testAnswers = (6><10)
     , 3, 4, 2, 1, 2, 5, 5, 4, 0, 1 ]
 
 
-alpha' :: LearningRate
-alpha' = 0.0000001
-threshold' = 0.01
-    
 
-runner :: IO R
+runner :: IO Double
 runner = do
-    guess <- uncurry mul <$> gradientDescent (50, 1000) threshold' alpha' fastAiAnswers 5
+    let alpha = 0.0000001
+    let threshold = 0.01
+        
+    guess <- uncurry mul <$> gradientDescent (50, 1000) threshold alpha fastAiAnswers 5
     return $ meanSquareError (fastAiAnswers - guess)
             

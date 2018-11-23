@@ -3,9 +3,8 @@ module Main where
 import TestColFil (runEverything)
 import DataTransformation (toAssocMatrix)
 import DataLoad (loadRatings)
-import Numeric.LinearAlgebra.Data (toDense)
-import Numeric.LinearAlgebra.HMatrix (mul)
-import CollaborativeFiltering (gradientDescent)
+
+import CollaborativeFiltering (gradientDescent, mul, toDense)
 
 main :: IO ()
 main = do 

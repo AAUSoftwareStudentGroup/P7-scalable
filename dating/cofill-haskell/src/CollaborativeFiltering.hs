@@ -1,25 +1,27 @@
-module CollaborativeFiltering where
+module CollaborativeFiltering(gradientDescent, mul, Matrix, getRandomNumbers, meanSquareError, toDense) where
 
 import Control.Monad                 (void)
 import Debug.Trace                   (trace)
-import Numeric.LinearAlgebra
-import Numeric.LinearAlgebra.HMatrix 
+import qualified Numeric.LinearAlgebra as LA
+import Numeric.LinearAlgebra (size, tr', (><), cmap, sumElements)
+import Numeric.LinearAlgebra.HMatrix (mul)
+import Numeric.LinearAlgebra.Data (toDense)
 import System.Random                 (newStdGen, randomRs)
 
-toOneOrZero :: Mtx -> Mtx
+toOneOrZero :: Matrix -> Matrix
 toOneOrZero = cmap (\x -> if x == 0 then 0 else 1)
 
 getRandomNumbers :: IO [Double]
 getRandomNumbers = randomRs (0, 1) <$> newStdGen
 
-type Mtx = Matrix R
-type LearningRate = Mtx
+type Matrix = LA.Matrix LA.R
+type LearningRate = Matrix
 type MinMaxIterations = (Int, Int)
 
-mkEmbeddinMatrix :: Int -> Int -> IO Mtx
+mkEmbeddinMatrix :: Int -> Int -> IO Matrix
 mkEmbeddinMatrix rows cols = (rows><cols) <$> getRandomNumbers
 
-gradientDescent :: MinMaxIterations -> Double -> LearningRate -> Mtx -> Int -> IO (Mtx, Mtx)
+gradientDescent :: MinMaxIterations -> Double -> LearningRate -> Matrix -> Int -> IO (Matrix, Matrix)
 gradientDescent minMaxIter threshold learningRate answers kValue = do
     userEmbedding <- mkEmbeddinMatrix rows kValue
     questEmbedding <- mkEmbeddinMatrix kValue cols
@@ -34,11 +36,11 @@ gradientDescent' ::
     -> LearningRate
     -> LearningRate 
     -> Maybe Double 
-    -> Mtx 
-    -> Mtx 
-    -> Mtx 
-    -> Mtx 
-    -> (Mtx, Mtx)
+    -> Matrix 
+    -> Matrix 
+    -> Matrix 
+    -> Matrix 
+    -> (Matrix, Matrix)
 gradientDescent' iterRange iter threshold alpha alphaInitial preMse a aHasValue u q =
     if continue iterRange iter threshold mse preMse
     then trace debug $ gradientDescent' iterRange (iter+1) threshold newAlp alphaInitial (Just mse) a aHasValue u' q'
@@ -67,13 +69,13 @@ continue iterRange iter threshold newMse (Just oldMse) =
     )   || iter <= fst iterRange                         -- or continue if we have not yet reached our min iteration limit
 
 
-meanSquareError :: Mtx -> Double
+meanSquareError :: Matrix -> Double
 meanSquareError matrix = mean (square matrix)
     where
-        square :: Mtx -> Mtx
+        square :: Matrix -> Matrix
         square matrix = matrix * matrix
 
-        mean :: Mtx -> Double
+        mean :: Matrix -> Double
         mean matrix = sumElements matrix / matrixSize
             where
                 (rows, cols) = size matrix
