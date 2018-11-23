@@ -197,7 +197,6 @@ footer {
     &.fixed {
         height: calc(100vh - #{$header-height + $footer-height + (2 * $main-grid-gap)});
         padding: 0;
-        margin: 0;
     }
 }
 

@@ -6,6 +6,7 @@ import Html.Attributes as Attributes exposing (class, classList)
 import Html.Events as Events
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
+import Browser.Dom as Dom
 import Http
 import Task as Task
 import Time as Time
@@ -96,7 +97,15 @@ update msg model =
                     ( model, Cmd.none )
 
         ConvoSelected username ->
-            ( { model | convoShown = username }, Cmd.none )
+            let
+                command =
+                    case Dict.get username model.convos of
+                        Nothing ->
+                            sendGetMessages HandleGetMessages username model
+                        Just _ ->
+                            Cmd.none
+            in
+                ( { model | convoShown = username }, command )
 
         GetMessages username _ ->
             ( model, sendGetMessages HandleGetMessages username model)
@@ -107,8 +116,16 @@ update msg model =
                     let
                         username = fetchedConvo.convoWithUsername
                         messages = fetchedConvo.messages
+                        numNewMessages = List.length messages
+
+                        command =
+                            if numNewMessages == 0 then
+                                Cmd.none
+                            else
+                                jumpToBottom listId
                     in
-                        ( { model | convos = Dict.insert username messages model.convos, loaded = True }, Cmd.none)
+                        ( { model | convos = Dict.insert username messages model.convos, loaded = True }
+                        , command)
 
                 Err errResponse ->
                     ( model, Cmd.none )
@@ -129,12 +146,6 @@ update msg model =
                     ( model, Cmd.none )
 
 
-
-sortConvos : ConversationPreviewDTO -> ConversationPreviewDTO -> Order
-sortConvos a b =
-    compare (Time.posixToMillis b.timeStamp) (Time.posixToMillis a.timeStamp)
-
-
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -151,19 +162,23 @@ view model =
             [ div
                 [ classList
                     [ ( "grid", True )
+                    , ( "l-12", True )
+                    , ( "s-12", True )
                     ]
                 ]
                 [ Keyed.ul
                         [ classList
                             [ ( "convos", True )
-                            , ( "l-12", True )
-                            , ( "l-6", True )
+                            , ( "l-3", True )
+                            , ( "s-12", True )
                             ]
                         ]
-                        (List.map viewConvoKeyed model.previews)
+                        (List.map (viewConvoKeyed model) model.previews)
                 , div
                     [ classList
                         [ ( "chat", True )
+                        , ( "l-9", True )
+                        , ( "s-12", True )
                         ]
                     ]
                     [ Keyed.ul
@@ -172,6 +187,7 @@ view model =
                             , ( "l-12", True )
                             , ( "l-6", True )
                             ]
+                        , Attributes.id listId
                         ]
                         (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model))))
                     , Html.form
@@ -181,7 +197,7 @@ view model =
                             , ( "l-6", True )
                             ]
                         ]
-                        [ El.simpleInput "text" "message" model.unsentMessage UnsentMessageChanged False
+                        [ El.simpleInput "text" "Message" model.unsentMessage UnsentMessageChanged False
                         , El.submitButtonHtml
                             [ El.iconText "Send" "send" ]
                         ]
@@ -190,26 +206,33 @@ view model =
             ]
     }
 
-listCurrentMessages : Model -> List (Message)
-listCurrentMessages model =
-    Maybe.withDefault [] (Dict.get model.convoShown model.convos)
 
-viewConvoKeyed : ConversationPreviewDTO -> (String, Html Msg)
-viewConvoKeyed message =
+viewConvoKeyed : Model -> ConversationPreviewDTO -> (String, Html Msg)
+viewConvoKeyed model message =
     ( message.convoWithUsername
-    , Lazy.lazy viewConvo message
+    , Lazy.lazy2 viewConvo model message
     )
 
-viewConvo : ConversationPreviewDTO -> Html Msg
-viewConvo message =
-    Html.li [ class "conversation", Attributes.attribute "attr-id" <| message.convoWithUsername ]
-        [ Html.div [ Events.onClick (ConvoSelected message.convoWithUsername) ]
-            [ div [ class "conversation-with" ]
-                [ Html.text message.convoWithUsername ]
-            , div [ class "conversation-last-message" ]
-            [ Html.text (lastMessage message) ]
+
+viewConvo : Model -> ConversationPreviewDTO -> Html Msg
+viewConvo model message =
+    let
+        activeConvo = message.convoWithUsername == model.convoShown
+    in
+        Html.li
+            [ classList
+                [ ( "conversation", True )
+                , ( "active", activeConvo )
+                ]
+            , Attributes.attribute "attr-id" <| message.convoWithUsername
+            , Events.onClick (ConvoSelected message.convoWithUsername)
             ]
-        ]
+            [ Html.span [ class "conversation-with" ]
+                [ Html.text message.convoWithUsername ]
+            , Html.span [ class "conversation-last-message" ]
+                [ Html.text (lastMessage message) ]
+            ]
+
 
 viewMessageKeyed : Model -> Message -> Bool -> Bool -> ( String, Html msg )
 viewMessageKeyed model message isFirst isLast =
@@ -223,32 +246,48 @@ viewMessage model message isFirst isLast =
     let
         myMessage = model.usernameSelf == message.authorName
     in
-    Html.li
-        [ classList
-            [ ( "message", True )
-            , ( "is-first-in-group", isFirst )
-            , ( "is-last-in-group", isLast )
-            , ( "author-me", myMessage )
-            , ( "author-friend", not myMessage ) ]
-        ]
-        [ div
-            [ ]
-            [ Html.text message.body ]
-        ]
+        Html.li
+            [ classList
+                [ ( "message", True )
+                , ( "is-first-in-group", isFirst )
+                , ( "is-last-in-group", isLast )
+                , ( "author-me", myMessage )
+                , ( "author-friend", not myMessage ) ]
+            ]
+            [ div
+                [ ]
+                [ Html.text message.body ]
+            ]
+
 
 viewMessageGroup : Model -> Bool -> (Message, List Message) -> List ( String, Html Msg )
 viewMessageGroup model isFirstMessage (firstMessage, restOfMessages) =
-    case (List.length restOfMessages) of
-        0 -> [(viewMessageKeyed model firstMessage isFirstMessage True)]
-        _ ->
-            let
-                firstRestOfMessages = Maybe.withDefault firstMessage (List.head restOfMessages)
-                lastRestOfMessages = Maybe.withDefault restOfMessages (List.tail restOfMessages)
-                firstMsgHtml = viewMessageKeyed model firstMessage isFirstMessage ((List.length restOfMessages) == 0)
-                lastMsgsHtml = viewMessageGroup model False (firstRestOfMessages, lastRestOfMessages)
-            in
-                firstMsgHtml::lastMsgsHtml
+    if List.length restOfMessages == 0 then
+        [(viewMessageKeyed model firstMessage isFirstMessage True)]
+    else
+        let
+            firstRestOfMessages = Maybe.withDefault firstMessage (List.head restOfMessages)
+            lastRestOfMessages = Maybe.withDefault restOfMessages (List.tail restOfMessages)
+            firstMsgHtml = viewMessageKeyed model firstMessage isFirstMessage ((List.length restOfMessages) == 0)
+            lastMsgsHtml = viewMessageGroup model False (firstRestOfMessages, lastRestOfMessages)
+        in
+            firstMsgHtml::lastMsgsHtml
 
+
+
+-- HELPERS
+listId = "message-list"
+
+listCurrentMessages : Model -> List (Message)
+listCurrentMessages model =
+    Maybe.withDefault [] (Dict.get model.convoShown model.convos)
+
+
+jumpToBottom : String -> Cmd Msg
+jumpToBottom id =
+    Dom.getViewportOf id
+        |> Task.andThen (\info -> Dom.setViewportOf id 0 info.scene.height)
+        |> Task.attempt (\_ -> NoOp)
 
 
 lastMessage : ConversationPreviewDTO -> String
@@ -258,6 +297,12 @@ lastMessage conversation =
     else
         conversation.body
 
+
+sortConvos : ConversationPreviewDTO -> ConversationPreviewDTO -> Order
+sortConvos a b =
+    compare (Time.posixToMillis b.timeStamp) (Time.posixToMillis a.timeStamp)
+
+
 sendGetConvos : (Result Http.Error (List ConversationPreviewDTO) -> msg) -> Model -> Cmd msg
 sendGetConvos responseMsg model =
     case model.session of
@@ -265,6 +310,7 @@ sendGetConvos responseMsg model =
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
         Session.Guest _ _ ->
             Cmd.none
+
 
 sendGetMessages : (Result Http.Error Conversation -> msg) -> String -> Model -> Cmd msg
 sendGetMessages responseMsg username model =
@@ -274,6 +320,7 @@ sendGetMessages responseMsg username model =
 
         Session.Guest _ _ ->
             Cmd.none
+
 
 sendMessage : Model -> Cmd Msg
 sendMessage model =

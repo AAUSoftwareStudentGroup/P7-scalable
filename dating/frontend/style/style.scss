@@ -8,7 +8,7 @@
 @import "helpers";
 @import "forms";
 @import "scrollbars";
-
+@import "messages";
 
 %button {
     @extend %txt-button;
@@ -82,74 +82,6 @@ button, .btn {
         border: 1px solid #852929;
         display: block;
         border-radius: 0.2rem;
-    }
-}
-
-.conversation-with {
-    @extend %txt-heading;
-}
-
-.conversation-last-message {
-    @extend %txt-subheading;
-
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.messages {
-    height: 70vh;
-    overflow-y: auto;
-}
-
-.message {
-    width: 100%;
-    clear: both;
-
-    div {
-        max-width: 40%;
-        margin-bottom: 0.2rem;
-        padding: 0.6rem;
-        border-radius: 0.8rem;
-        overflow-wrap: break-word;
-    }
-
-    &.author-me div {
-        @extend %txt-white;
-        border-radius: 0.8em 0.2em 0.2em 0.8em;
-        float: right;
-        background-color: $pri-col-light;
-    }
-    &.author-friend div {
-        border-radius: 0.2em 0.8em 0.8em 0.2em;
-        float: left;
-        background-color: $bg-col-light;
-    }
-
-    &.is-first-in-group.author-me div     { border-top-right-radius: 0.8em; }
-    &.is-last-in-group.author-me div      { border-bottom-right-radius: 0.8em; }
-    &.is-first-in-group.author-friend div { border-top-left-radius: 0.8em; }
-    &.is-last-in-group.author-friend div  { border-bottom-left-radius: 0.8em; }
-}
-
-/*
-li.message.author-me.is-first-in-group div {
-}
-
-li.message.author-me.is-last-in-group div {
-    border-bottom-right-radius: 0.8em;
-}
-li.message.author-friend.is-first-in-group div {
-    border-top-left-radius: 0.8em;
-}
-li.message.author-friend.is-last-in-group div {
-    border-bottom-left-radius: 0.8em;
-}
-*/
-
-.messages {
-    li {
-        margin-bottom: 1rem;
     }
 }
 
