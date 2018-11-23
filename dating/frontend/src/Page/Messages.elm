@@ -103,7 +103,7 @@ update msg model =
                         Nothing ->
                             sendGetMessages HandleGetMessages username model
                         Just _ ->
-                            Cmd.none
+                            jumpToBottom listId
             in
                 ( { model | convoShown = username }, command )
 
