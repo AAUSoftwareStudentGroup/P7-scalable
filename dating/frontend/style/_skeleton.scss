@@ -1,6 +1,6 @@
 $header-height: 64px;
 $footer-height: 64px;
-$main-grid-gap: 16px;
+$main-grid-gap: 32px;
 
 %max-width-container {
     width: 100%;
@@ -188,10 +188,8 @@ footer {
 .content-container {
     @extend %max-width-container;
 
-    .content {
-        display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        justify-items: stretch;
+    .content-title {
+        margin-bottom: 1rem;
     }
 
     &.fixed {

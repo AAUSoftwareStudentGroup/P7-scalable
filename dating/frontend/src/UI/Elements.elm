@@ -152,7 +152,13 @@ fixedContent toMsg children =
 
 titledContent : String -> List (Html msg) -> List (Html msg)
 titledContent heading contents =
-    [ Html.h1 [ class "l-12"]
+    [ Html.h1
+        [ classList
+            [ ( "content-title", True )
+            , ( "l-12", True )
+            , ( "s-12", True )
+            ]
+        ]
         [ Html.text heading ]
     ] ++ contents
 
