@@ -161,8 +161,14 @@ update msg model =
                                     Dict.insert username (False, newMessages) model.convos
                                 Just (done, oldMessageList) ->
                                     Dict.insert username (done, oldMessageList ++ newMessages) model.convos
+
+                        command =
+                            if (List.length newMessages) == 0 then
+                                Cmd.none
+                            else
+                                jumpToBottom listId
                     in
-                        ( { model | convos = newConvos, loaded = True }, Cmd.none)
+                        ( { model | convos = newConvos, loaded = True }, command)
 
                 Err errResponse ->
                     ( model, Cmd.none )

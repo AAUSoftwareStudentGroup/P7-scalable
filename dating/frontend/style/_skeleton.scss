@@ -108,27 +108,27 @@ footer {
                 content: "clear";
             }
 
-            &:after {
+            &:after, ul {
                 position: absolute;
                 top: $header-height;
+                height: calc(100% - #{$header-height});
+                z-index: 2;
+
+            }
+
+            &:after {
                 right: 0;
                 content: '';
                 width: 25%;
-                height: calc(100% - #{$header-height});
                 background: rgba(0, 0, 0, 0.6);
-                z-index: 1;
                 //animation: header-neg-nav-animation 0.15s ease;
             }
 
             ul {
-                position: absolute;
-                top: $header-height;
                 left: 0;
                 width: 75%;
-                height: calc(100% - #{$header-height});
                 display: inline-block;
                 background-color: $pri-col;
-                z-index: 1;
                 //animation: header-nav-animation 0.15s ease;
 
                 li {
