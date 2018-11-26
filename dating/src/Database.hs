@@ -189,7 +189,7 @@ editUser mongoConf username currentUser = runAction mongoConf editAction
                 _ <- Persist.Mongo.insert user
                 return $ Left txt
               Right dto -> do
-                _ <- liftIO . removeSingleFile . T.unpack $ "frontend/img/users/" <> (userSalt user) <> ".jpg"
+                _ <- liftIO . removeSingleFile . T.unpack $ "frontend" <> userImage user
                 return $ Right $ dto
           Nothing ->
             return $ Left $ err409 { errBody = "This user does not exist in the database" }
