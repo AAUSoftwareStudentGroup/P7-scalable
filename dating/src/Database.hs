@@ -236,7 +236,11 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
       msgToInsert <- liftIO $ mkMessage from body'
       maybeConvo <- selectFirst [ConversationMembers `Persist.Mongo.anyEq` from, ConversationMembers `Persist.Mongo.anyEq` to] []
       case maybeConvo of
-        Nothing -> void $ insert (mkConversation from to msgToInsert)
+        Nothing -> do
+          user' <- getBy (UniqueUsername to) 
+          case user' of
+            Just _ -> void $ insert (mkConversation from to msgToInsert)
+            Nothing -> return ()
         Just (Entity conversationId _) ->
           update conversationId [ConversationMessages `Persist.Mongo.push` msgToInsert]
 
