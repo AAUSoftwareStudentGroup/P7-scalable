@@ -60,6 +60,15 @@
 }
 
 .messages {
+    .conversation-start {
+        text-align: center;
+    }
+
+    .load-more-button {
+        display: block;
+        margin: 0 auto;
+    }
+
     li {
         margin-bottom: 1rem;
     }

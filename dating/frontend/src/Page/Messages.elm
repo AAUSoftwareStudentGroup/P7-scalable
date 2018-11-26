@@ -28,13 +28,14 @@ type alias Model =
     , unsentMessage : String
     , attemptedSend : Bool
     , previews      : List ConversationPreview
-    , activeConvo   : String
+    , chattingWith  : String
     , convos        : Dict String (Bool, List Message) -- (Done, List of messages)
+    , loadingConvo  : Bool
     }
 
 initModel : Session -> Model
 initModel session =
-    Model session "Messages" False "" "" False [] "" Dict.empty
+    Model session "Messages" False "" "" False [] "" Dict.empty False
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -87,7 +88,7 @@ update msg model =
                 Session.Guest _ _ ->
                     ( model, Cmd.none)
                 Session.LoggedIn _ _ userInfo ->
-                    ( model, sendGetMessages HandleGetNewMessages model.activeConvo model 0 pageSize)
+                    ( model, sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize)
 
         HandleInitConvos result ->
             case result of
@@ -96,7 +97,7 @@ update msg model =
                         sortedConvos = List.sortWith sortConvos fetchedConvos
                         username = (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
                     in
-                        ( { model | previews = sortedConvos, activeConvo = username, loaded = True }
+                        ( { model | previews = sortedConvos, chattingWith = username, loaded = True, loadingConvo = True }
                         , sendGetMessages HandleGetInitMessages username model 0 pageSize )
 
                 Err errResponse ->
@@ -123,7 +124,7 @@ update msg model =
                         Just _ ->
                             jumpToBottom listId
             in
-                ( { model | activeConvo = username }, command )
+                ( { model | chattingWith = username }, command )
 
 
         HandleGetInitMessages result ->
@@ -140,7 +141,7 @@ update msg model =
                             else
                                 jumpToBottom listId
                     in
-                        ( { model | convos = Dict.insert username (gottenAllMessages, messages) model.convos, loaded = True }
+                        ( { model | convos = Dict.insert username (gottenAllMessages, messages) model.convos, loaded = True, loadingConvo = False }
                         , command)
 
                 Err errResponse ->
@@ -191,7 +192,7 @@ update msg model =
                                     Dict.insert username (gottenAllMessages, newMessages ++ oldMessageList) model.convos
 
                     in
-                        ( { model | convos = newConvos, loaded = True }
+                        ( { model | convos = newConvos, loaded = True, loadingConvo = False }
                         , Cmd.none)
 
                 Err errResponse ->
@@ -211,14 +212,14 @@ update msg model =
             case result of
                 Ok responseString ->
                     ( { model | unsentMessage = "", attemptedSend = False }
-                    , sendGetMessages HandleGetNewMessages model.activeConvo model 0 pageSize )
+                    , sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize )
 
                 Err _ ->
                     ( model, Cmd.none )
 
         LoadMore _ ->
-            ( model
-            , sendGetMessages HandleGetOldMessages model.activeConvo model (numberCurrentMessages model) pageSize
+            ( { model | loadingConvo = True }
+            , sendGetMessages HandleGetOldMessages model.chattingWith model (numberCurrentMessages model) pageSize
             )
 
 
@@ -269,7 +270,7 @@ view model =
                             ]
                         , Attributes.id listId
                         ]
-                        ([viewLoadMore model] ++ (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
+                        (viewTopElement model :: (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
                     , Html.form
                         [ Events.onSubmit SendMessage
                         , classList
@@ -286,16 +287,34 @@ view model =
             ]
     }
 
-viewLoadMore : Model -> (String, Html Msg)
-viewLoadMore model =
-    if Tuple.first (Maybe.withDefault (False, []) (Dict.get model.activeConvo model.convos)) then
-        ( "", Html.text "" )
-    else
-        ( "test"
-        , El.msgButtonFlat []
-            (LoadMore True)
-            [ El.iconText "Load more" "keyboard_arrow_up" ]
+viewTopElement : Model -> (String, Html Msg)
+viewTopElement model =
+    if Tuple.first (Maybe.withDefault (False, []) (Dict.get model.chattingWith model.convos)) then
+        ( "first-element"
+        , div
+            [ classList
+                [ ( "conversation-start", True ) ]
+            ]
+            [ Html.text ("This is your first message with " ++ model.chattingWith) ]
         )
+    else
+        let
+            icon =
+                if model.loadingConvo then
+                    "more_horiz"
+                else
+                    "keyboard_arrow_up"
+        in
+            ( "first-element"
+            , El.msgButtonFlat
+                [ classList
+                    [ ( "load-more-button", True )
+                    , ( "loading", model.loadingConvo )
+                    ]
+                ]
+                (LoadMore True)
+                [ El.iconText "Load more" icon ]
+            )
 
 
 viewConvoKeyed : Model -> ConversationPreview -> (String, Html Msg)
@@ -308,12 +327,12 @@ viewConvoKeyed model message =
 viewConvo : Model -> ConversationPreview -> Html Msg
 viewConvo model message =
     let
-        activeConvo = message.convoWithUsername == model.activeConvo
+        chattingWith = message.convoWithUsername == model.chattingWith
     in
         Html.li
             [ classList
                 [ ( "conversation", True )
-                , ( "active", activeConvo )
+                , ( "active", chattingWith )
                 ]
             , Attributes.attribute "attr-id" <| message.convoWithUsername
             , Events.onClick (ConvoSelected message.convoWithUsername)
@@ -367,7 +386,7 @@ viewMessageGroup model isFirstMessage (firstMessage, restOfMessages) =
 
 
 -- HELPERS
-pageSize = 20
+pageSize = 25
 
 listId = "message-list"
 
@@ -377,7 +396,7 @@ numberCurrentMessages model =
 
 listCurrentMessages : Model -> List (Message)
 listCurrentMessages model =
-    Tuple.second (Maybe.withDefault (False, []) (Dict.get model.activeConvo model.convos))
+    Tuple.second (Maybe.withDefault (False, []) (Dict.get model.chattingWith model.convos))
 
 
 jumpToBottom : String -> Cmd Msg
@@ -431,7 +450,7 @@ sendMessage model =
     else
         case model.session of
             Session.LoggedIn _ _ userInfo ->
-                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.activeConvo)
+                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.chattingWith)
 
             Session.Guest _ _ ->
                 Cmd.none
