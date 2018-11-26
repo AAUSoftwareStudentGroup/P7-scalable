@@ -38,8 +38,8 @@ initModel session =
     Model session "Messages" False "" "" False [] "" Dict.empty False
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
+init : Session -> Maybe String -> ( Model, Cmd Msg )
+init session initUsername =
     let
         model = initModel session
     in
@@ -49,7 +49,7 @@ init session =
                 , Routing.goToLogin (Session.getNavKey session)
                 )
             Session.LoggedIn _ _ userInfo ->
-                ( { model | usernameSelf = userInfo.username }
+                ( { model | usernameSelf = userInfo.username, chattingWith = Maybe.withDefault "" initUsername }
                 , sendGetConvos HandleInitConvos model
                 )
 
@@ -95,7 +95,12 @@ update msg model =
                 Ok fetchedConvos ->
                     let
                         sortedConvos = List.sortWith sortConvos fetchedConvos
-                        username = (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
+                        username =
+                            if model.chattingWith == "" then
+                                (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
+                            else
+                                model.chattingWith
+
                     in
                         ( { model | previews = sortedConvos, chattingWith = username, loaded = True, loadingConvo = True }
                         , sendGetMessages HandleGetInitMessages username model 0 pageSize )

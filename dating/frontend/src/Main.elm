@@ -482,8 +482,13 @@ stepUrl url model =
                     (stepListUsers model (ListUsers.init session))
                 , route (Parser.s "user" </> Parser.string)
                     (\username -> stepProfile model (Profile.init session username))
-                , route (Parser.s "messages")
-                    (stepMessages model (Messages.init session))
+                , route (Parser.s "messages" </> Parser.string)
+                    (\username ->
+                        if username == "" then
+                            stepMessages model (Messages.init session Nothing)
+                        else
+                            stepMessages model (Messages.init session (Just username))
+                        )
                 , route (Parser.s "chat" </> Parser.string)
                     (\username -> stepChat model (Chat.init session username))
                 , route (Parser.s "survey")
