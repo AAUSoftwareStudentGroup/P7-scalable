@@ -108,11 +108,6 @@
                 });
             });
 
-            const offset = 350;
-            let timeout;
-            let loading = false;
-            let lastHeight = 0;
-
             function getWindowHeight() {
                 const body = document.body;
                 const html = document.documentElement;
@@ -120,8 +115,12 @@
                 return Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
             }
 
-            // Listen for scroll events
-            window.addEventListener("scroll", function(e) {
+            const offset = 350;
+            let timeout;
+            let loading = false;
+            let lastHeight = 0;
+
+            function handleScrollDownUsers() {
                 clearTimeout(timeout);
 
                 timeout = setTimeout(function() {
@@ -137,12 +136,57 @@
 
                     if (window.scrollY >= triggerHeight) {
                         loading = true;
+
                         app.ports.loadMore.send(true);
                     }
 
                     lastHeight = triggerHeight;
                 }, 100);
-            });
+            }
+
+            function handleScrollUpMessages() {
+                clearTimeout(timeout);
+
+                timeout = setTimeout(function() {
+                    const triggerHeight = 30;
+                    const el = document.querySelector('.messages');
+                    console.log(loading);
+
+                    if (loading) {
+                        if (el.scrollHeight > lastHeight) {
+                            loading = false;
+                        } else {
+                            return;
+                        }
+                    }
+
+                    if (el.scrollTop <= triggerHeight) {
+                        loading = true;
+
+                        app.ports.loadMore.send(true);
+                    }
+
+                    lastHeight = el.scrollHeight;
+                }, 100);
+            }
+
+            let eventListener = null;
+
+            setInterval(function () {
+                const messages = document.querySelector('.messages');
+
+                if (messages === null) {
+                    eventListener = null;
+                    lastHeight = 0;
+                }
+
+                if (eventListener === null && messages !== null) {
+                    eventListener = messages.addEventListener("scroll", handleScrollUpMessages);
+                }
+            }, 250);
+
+            // Listen for scroll events
+            window.addEventListener("scroll", handleScrollDownUsers);
         </script>
 
         <script>

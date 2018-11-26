@@ -9,7 +9,7 @@ import Http
 
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
-import Session exposing (Session)
+import Session exposing (Session, PageType(..))
 import Ports.FileUploadPort exposing (FilePortData, fileSelected, fileContentRead)
 import UI.Elements as El
 
@@ -240,8 +240,8 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.titledContent model.title
+    , kids = Scrollable
+        <| El.titledContent model.title
             [ Html.form [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )

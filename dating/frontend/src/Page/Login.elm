@@ -11,7 +11,7 @@ import String
 
 import Api.Authentication exposing (UserInfo, Credentials)
 import Api.Users exposing (User)
-import Session exposing (Session, Details)
+import Session exposing (Session, PageType(..), Details)
 import Common as Common
 import Routing exposing (Route(..))
 import UI.Elements as El
@@ -148,8 +148,8 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.titledContent "Sign in"
+    , kids = Scrollable
+        <| El.titledContent "Sign in"
             [ Html.form [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )

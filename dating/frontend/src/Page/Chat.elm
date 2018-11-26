@@ -10,7 +10,7 @@ import Html.Keyed as Keyed
 import Html.Lazy as Lazy
 import Http
 import Routing exposing (Route(..))
-import Session as Session exposing (Details, Session)
+import Session as Session exposing (Details, PageType(..), Session)
 import String
 import Task
 import Time
@@ -113,7 +113,6 @@ update msg model =
                         command =
                             if numNewMessages == 0 then
                                 Cmd.none
-
                             else
                                 jumpToBottom listId
                     in
@@ -160,8 +159,8 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.titledContentLoader model.loaded
+    , kids = Fixed
+        <| El.titledContentLoader model.loaded
             ("Chatting with " ++ model.usernameFriend)
             [ Keyed.ul
                 [ classList
@@ -189,9 +188,10 @@ view model =
 
 viewMessageKeyed : Model -> Message -> Bool -> Bool -> ( String, Html msg )
 viewMessageKeyed model message isFirst isLast =
-    ( message.timeStamp
+    ( String.fromInt (Time.posixToMillis message.timeStamp)
     , Lazy.lazy4 viewMessage model message isFirst isLast
     )
+
 
 viewMessage : Model -> Message -> Bool -> Bool -> Html msg
 viewMessage model message isFirst isLast = 

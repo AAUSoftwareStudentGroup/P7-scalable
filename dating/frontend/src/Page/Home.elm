@@ -16,7 +16,7 @@ import List exposing (map)
 import Url
 
 import Api.Users exposing (User)
-import Session exposing (Session, Details)
+import Session exposing (Session, PageType(..), Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
 import Ports.LoadMorePort exposing (LoadMoreData, loadMore)
@@ -77,37 +77,25 @@ subscriptions model =
 
 view : Model -> Session.Details Msg
 view model =
-    case model.session of
-        Session.Guest _ _ ->
-            { title = "Home"
-            , session = model.session
-            , kids =
-                El.titledContent "Home"
-                    [ Html.div
-                        [ classList
-                            [ ( "l-12", True )
-                            , ( "s-12", True )
-                            , ( "centered", True )
-                            ]
+    let
+        text =
+            case model.session of
+                Session.LoggedIn _ _ userInfo ->
+                    userInfo.username
+                Session.Guest _ _ ->
+                    "Welcome to Functional Dating"
+    in
+        { title = "Home"
+        , session = model.session
+        , kids = Scrollable
+            <| El.titledContent "Home"
+                [ Html.div
+                    [ classList
+                        [ ( "l-12", True )
+                        , ( "s-12", True )
+                        , ( "centered", True )
                         ]
-                        [ Html.text "Hello World" ]
                     ]
-            }
-        Session.LoggedIn _ _ _ ->
-            let
-                myUsername = Maybe.withDefault "" (Session.getUsername model.session)
-            in
-                { title = "Home"
-                , session = model.session
-                , kids =
-                    El.titledContent "Home"
-                        [ Html.div
-                            [ classList
-                                [ ( "l-12", True )
-                                , ( "s-12", True )
-                                , ( "centered", True )
-                                ]
-                            ]
-                            [ Html.text myUsername ]
-                        ]
-                }
+                    [ Html.text text ]
+                ]
+        }

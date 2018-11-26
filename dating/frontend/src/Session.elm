@@ -1,4 +1,4 @@
-port module Session exposing (Session(..), Notification, Details, getNavKey, getUsername, getUserToken, addNotification, getNotifications, onChange, login, logout, createSessionFromLocalStorageValue)
+port module Session exposing (Session(..), PageType(..), Notification, Details, getNavKey, getUsername, getUserToken, addNotification, getNotifications, onChange, login, logout, createSessionFromLocalStorageValue)
 
 import Browser.Navigation as Nav
 import Html exposing (Html)
@@ -14,13 +14,16 @@ type Session
     = LoggedIn Nav.Key (List Notification) UserInfo
     | Guest Nav.Key (List Notification)
 
+type PageType msg
+    = Scrollable (List (Html msg))
+    | Fixed (List (Html msg))
 
 type alias Notification = String
 
 type alias Details msg =
     { title : String
     , session : Session
-    , kids : List (Html msg)
+    , kids : PageType msg
     }
 
 

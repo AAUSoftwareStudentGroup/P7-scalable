@@ -9,22 +9,32 @@ import Json.Decode as Decode
 import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
-import Session exposing (Session, Notification)
+import Session exposing (Details, PageType(..), Session, Notification)
 import Api.Types exposing (Gender(..), Image)
 import Api.Users exposing (User)
 
 import Random
 
 
-site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
-site toMsg children session =
-    [ Lazy.lazy toasts session
-    , div [ class "main-wrapper" ]
-        [ Lazy.lazy header session
-        , Lazy.lazy2 content toMsg children
-        , footer
+site : Session.Details msgA -> (msgA -> msgB) -> List (Html msgB)
+site details toMsg =
+    let
+        session = details.session
+        body =
+            case details.kids of
+                Scrollable children ->
+                    Lazy.lazy2 content toMsg children
+                Fixed children ->
+                    Lazy.lazy2 fixedContent toMsg children
+
+    in
+        [ Lazy.lazy toasts session
+        , div [ class "main-wrapper" ]
+            [ Lazy.lazy header session
+            , body
+            , footer
+            ]
         ]
-    ]
 
 toasts : Session -> Html msg
 toasts session =
@@ -127,9 +137,28 @@ content toMsg children =
     )
 
 
+fixedContent : (a -> msg) -> List (Html a) -> Html msg
+fixedContent toMsg children =
+    Html.map toMsg (
+        div [ classList
+                [ ( "content-container", True )
+                , ( "fixed", True )
+                , ( "grid", True )
+                ]
+            ]
+            children
+    )
+
+
 titledContent : String -> List (Html msg) -> List (Html msg)
 titledContent heading contents =
-    [ Html.h1 [ class "l-12"]
+    [ Html.h1
+        [ classList
+            [ ( "content-title", True )
+            , ( "l-12", True )
+            , ( "s-12", True )
+            ]
+        ]
         [ Html.text heading ]
     ] ++ contents
 
@@ -139,8 +168,7 @@ titledContentLoader isLoaded heading contents =
     if isLoaded then
         titledContent heading contents
     else
-        titledContent heading
-        loader
+        titledContent heading loader
 
 loader : List (Html msg)
 loader =

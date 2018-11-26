@@ -1,12 +1,6 @@
 $header-height: 64px;
-
-
-.disableScroll {
-    margin: 0;
-    height: 100%;
-    overflow: hidden
-}
-
+$footer-height: 64px;
+$main-grid-gap: 32px;
 
 %max-width-container {
     width: 100%;
@@ -20,14 +14,21 @@ $header-height: 64px;
     height: 100vh;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: $header-height auto 64px;
-    grid-gap: 8px;
+    grid-template-rows: $header-height auto $footer-height;
+    grid-gap: $main-grid-gap;
     align-items: start;
 }
 
 header, footer {
     background-color: $pri-col;
+}
+
+header {
     height: $header-height;
+}
+
+footer {
+    height: $footer-height;
 }
 
 .header-content {
@@ -95,32 +96,40 @@ header, footer {
 }
 
 @media screen and (max-width: $small-screen) {
+    .disableScroll {
+        margin: 0;
+        height: 100%;
+        overflow: hidden
+    }
+
     .header-content {
         nav {
             &:before {
                 content: "clear";
             }
 
-            &:after {
+            &:after, ul {
                 position: absolute;
                 top: $header-height;
+                height: calc(100% - #{$header-height});
+                z-index: 2;
+
+            }
+
+            &:after {
                 right: 0;
                 content: '';
                 width: 25%;
-                height: calc(100% - #{$header-height});
                 background: rgba(0, 0, 0, 0.6);
-                z-index: 1;
+                //animation: header-neg-nav-animation 0.15s ease;
             }
 
             ul {
-                position: absolute;
-                top: $header-height;
                 left: 0;
                 width: 75%;
-                height: calc(100% - #{$header-height});
                 display: inline-block;
                 background-color: $pri-col;
-                z-index: 1;
+                //animation: header-nav-animation 0.15s ease;
 
                 li {
                     display: block;
@@ -145,6 +154,26 @@ header, footer {
     }
 }
 
+/*
+@keyframes header-nav-animation {
+    0% {
+        width: 0;
+    }
+    100% {
+        width: 75%;
+    }
+}
+
+@keyframes header-neg-nav-animation {
+    0% {
+        width: 100%;
+    }
+    100% {
+        width: 25%;
+    }
+}
+*/
+
 
 .footer-content {
     @extend %max-width-container;
@@ -159,12 +188,13 @@ header, footer {
 .content-container {
     @extend %max-width-container;
 
-    margin-bottom: 1rem;
+    .content-title {
+        margin-bottom: 1rem;
+    }
 
-    .content {
-        display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        justify-items: stretch;
+    &.fixed {
+        height: calc(100vh - #{$header-height + $footer-height + (2 * $main-grid-gap)});
+        padding: 0;
     }
 }
 
