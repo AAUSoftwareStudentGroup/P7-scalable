@@ -63,6 +63,10 @@ type UserAPI =
   "users" :> "exists"
           :> Capture "username" Username
           :> Get '[JSON] Bool
+  :<|>  -- Edit User
+  "edit"  :> AuthProtect "cookie-auth"
+          :> ReqBody '[JSON] CreateUserDTO
+          :> Post '[JSON] LoggedInDTO
 
 type AuthAPI =
         -- Login
@@ -135,6 +139,14 @@ fetchMatchingUsersHandler mongoInfo username = liftIO $ DB.fetchMatchingUsers mo
 -- | Ask if username exists.
 fetchUserExists :: MongoInfo -> Username -> Handler Bool
 fetchUserExists mongoInfo username = liftIO $ DB.fetchUserExists mongoInfo username
+
+-- | Edit user from UserDTO
+editUserHandler :: MongoInfo -> Username -> CreateUserDTO -> Handler LoggedInDTO
+editUserHandler mongoInfo username user = do
+  maybeEdited <- liftIO $ DB.editUser mongoInfo username user
+  case maybeEdited of
+    Right loggedInDTO -> return loggedInDTO
+    Left err -> Handler $ throwE err 
 
 -------------------------------------------------------------------------------
 --                             AUTHENTICATION                                --
@@ -243,6 +255,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
                     :<|> fetchUsersHandler mongoInfo
                     :<|> fetchMatchingUsersHandler mongoInfo
                     :<|> fetchUserExists mongoInfo
+                    :<|> editUserHandler mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo
                     :<|> fetchConversationPreviewsHandler mongoInfo

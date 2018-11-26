@@ -172,6 +172,30 @@ fetchUserExists mongoConf username' = runAction mongoConf fetchAction
         Nothing -> return False
 
 
+-- | Edit user
+editUser :: MongoInfo -> Username -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
+editUser mongoConf username currentUser = runAction mongoConf editAction
+  where
+    editAction :: Action IO (Either ServantErr LoggedInDTO)
+    editAction =
+      if username == (getField @"username" currentUser) then do
+        dbEntry <- getBy (UniqueUsername username)
+        case dbEntry of
+          Just (Entity key user) -> do
+            _ <- delete key
+            maybeInserted <- liftIO (createUser mongoConf currentUser)
+            case maybeInserted of
+              Left txt -> do
+                _ <- Persist.Mongo.insert user
+                return $ Left txt
+              Right dto -> do
+                _ <- liftIO . removeSingleFile . T.unpack $ "frontend/img/users/" <> (userSalt user) <> ".jpg"
+                return $ Right $ dto
+          Nothing ->
+            return $ Left $ err409 { errBody = "This user does not exist in the database" }
+      else
+        return $ Left $ err409 { errBody = "This user does not exist in the database" }
+
 -------------------------------------------------------------------------------
 --                             AUTHENTICATION                                --
 -------------------------------------------------------------------------------
@@ -432,13 +456,13 @@ deleteEverything = do
   content <- listDirectory "frontend/img/users"
   traverse_ removeSingleFile (map ("frontend/img/users/" ++) content)
   return ()
-    where
-      removeSingleFile :: FilePath -> IO ()
-      removeSingleFile path =
-        if path == "frontend/img/users/.gitignore" then
-          return ()
-        else
-          removeFile path
+
+removeSingleFile :: FilePath -> IO ()
+removeSingleFile path =
+  if path == "frontend/img/users/.gitignore" then
+    return ()
+  else
+    removeFile path
 
 deleteEverythingInDB :: IO ()
 deleteEverythingInDB = runAction localMongoInfo action
