@@ -75,9 +75,16 @@ update msg model =
                     ( { model | users = [] }, Cmd.none )
 
         LoadMore _ ->
-            ( { model | pageNum = model.pageNum + 1, loaded = False }
-            , sendGetUsers UsersFetched model.pageNum model.session
-            )
+            let
+                command =
+                    if model.moreUsers then
+                        sendGetUsers UsersFetched model.pageNum model.session
+                    else
+                        Cmd.none
+            in
+                ( { model | pageNum = model.pageNum + 1, loaded = not <| model.moreUsers }
+                , command
+                )
 
 -- SUBSCRIPTIONS
 

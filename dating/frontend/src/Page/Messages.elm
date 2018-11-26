@@ -93,17 +93,22 @@ update msg model =
         HandleInitConvos result ->
             case result of
                 Ok fetchedConvos ->
-                    let
-                        sortedConvos = List.sortWith sortConvos fetchedConvos
-                        username =
-                            if model.chattingWith == "" then
-                                (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
-                            else
-                                model.chattingWith
+                    if List.length fetchedConvos == 0 && model.chattingWith == ""then
+                        ( { model | previews = [], loaded = True }
+                        , Cmd.none )
+                    else
+                        let
+                            sortedConvos = List.sortWith sortConvos fetchedConvos
+                            username =
+                                if model.chattingWith == "" then
+                                    (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
+                                else
+                                    model.chattingWith
 
-                    in
-                        ( { model | previews = sortedConvos, chattingWith = username, loaded = True, loadingConvo = True }
-                        , sendGetMessages HandleGetInitMessages username model 0 pageSize )
+                            finalConvos = prependPreviewIfNotExists sortedConvos username
+                        in
+                            ( { model | previews = finalConvos, chattingWith = username, loaded = True, loadingConvo = True }
+                            , sendGetMessages HandleGetInitMessages username model 0 pageSize )
 
                 Err errResponse ->
                     ( model, Cmd.none )
@@ -111,11 +116,16 @@ update msg model =
         HandleGetConvos result ->
             case result of
                 Ok fetchedConvos ->
-                    let
-                        sortedConvos = List.sortWith sortConvos fetchedConvos
-                    in
-                        ( { model | previews = sortedConvos }
+                    if List.length fetchedConvos == 0 && model.chattingWith == ""then
+                        ( { model | previews = [], loaded = True }
                         , Cmd.none )
+                    else
+                        let
+                            sortedConvos = List.sortWith sortConvos fetchedConvos
+                            finalConvos = prependPreviewIfNotExists sortedConvos model.chattingWith
+                        in
+                            ( { model | previews = finalConvos }
+                            , Cmd.none )
 
                 Err errResponse ->
                     ( model, Cmd.none )
@@ -244,82 +254,97 @@ view model =
     { title = model.title
     , session = model.session
     , kids = Fixed
-        <| El.titledContentLoader model.loaded "Messages"
-            [ div
-                [ classList
-                    [ ( "grid", True )
-                    , ( "l-12", True )
-                    , ( "s-12", True )
-                    ]
-                ]
-                [ Keyed.ul
-                        [ classList
-                            [ ( "convos", True )
-                            , ( "l-3", True )
-                            , ( "s-12", True )
-                            ]
-                        ]
-                        (List.map (viewConvoKeyed model) model.previews)
-                , div
+        <| El.titledContentLoader model.loaded "Messages" <|
+            if model.previews == [] then
+                [ div
                     [ classList
-                        [ ( "chat", True )
-                        , ( "l-9", True )
+                        [ ( "no-conversations", True )
+                        , ( "l-12", True )
+                        , ( "s-12", True )
+                        ]
+                    ]
+                    [ Html.text "You don't have any conversations. Go check your matches and find someone to chat with." ]
+                ]
+            else
+                [ div
+                    [ classList
+                        [ ( "messaging-wrapper", True )
+                        , ( "grid", True )
+                        , ( "no-gap", True )
+                        , ( "l-12", True )
                         , ( "s-12", True )
                         ]
                     ]
                     [ Keyed.ul
+                            [ classList
+                                [ ( "convos", True )
+                                , ( "l-3", True )
+                                , ( "s-12", True )
+                                ]
+                            ]
+                            (List.map (viewConvoKeyed model) model.previews)
+                    , div
                         [ classList
-                            [ ( "messages", True )
-                            , ( "l-12", True )
-                            , ( "l-6", True )
-                            ]
-                        , Attributes.id listId
-                        ]
-                        (viewTopElement model :: (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
-                    , Html.form
-                        [ Events.onSubmit SendMessage
-                        , classList
-                            [ ( "l-12", True )
-                            , ( "l-6", True )
+                            [ ( "chat", True )
+                            , ( "l-9", True )
+                            , ( "s-12", True )
                             ]
                         ]
-                        [ El.simpleInput "text" "Message" model.unsentMessage UnsentMessageChanged False
-                        , El.submitButtonHtml
-                            [ El.iconText "Send" "send" ]
+                        [ Keyed.ul
+                            [ classList
+                                [ ( "messages", True )
+                                , ( "l-12", True )
+                                , ( "l-6", True )
+                                ]
+                            , Attributes.id listId
+                            ]
+                            (viewTopElement model :: (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
+                        , Html.form
+                            [ Events.onSubmit SendMessage
+                            , classList
+                                [ ( "l-12", True )
+                                , ( "l-6", True )
+                                ]
+                            ]
+                            [ El.simpleInput "multiline" "Message" model.unsentMessage UnsentMessageChanged False
+                            , El.submitButtonHtml
+                                [ El.iconText "Send" "send" ]
+                            ]
                         ]
                     ]
                 ]
-            ]
     }
 
 viewTopElement : Model -> (String, Html Msg)
 viewTopElement model =
-    if Tuple.first (Maybe.withDefault (False, []) (Dict.get model.chattingWith model.convos)) then
-        ( "first-element"
-        , div
-            [ classList
-                [ ( "conversation-start", True ) ]
-            ]
-            [ Html.text ("This is your first message with " ++ model.chattingWith) ]
-        )
-    else
-        let
-            icon =
-                if model.loadingConvo then
-                    "more_horiz"
-                else
-                    "keyboard_arrow_up"
-        in
-            ( "first-element"
-            , El.msgButtonFlat
-                [ classList
-                    [ ( "load-more-button", True )
-                    , ( "loading", model.loadingConvo )
+    let
+        element =
+            if Tuple.first (Maybe.withDefault (False, []) (Dict.get model.chattingWith model.convos)) then
+                div
+                    [ classList
+                        [ ( "conversation-start", True ) ]
                     ]
-                ]
-                (LoadMore True)
-                [ El.iconText "Load more" icon ]
-            )
+                    [ Html.text ("This is your first message with " ++ model.chattingWith) ]
+            else
+                let
+                    icon =
+                        if model.loadingConvo then
+                            "more_horiz"
+                        else
+                            "keyboard_arrow_up"
+                in
+                    El.msgButtonFlat
+                        [ classList
+                            [ ( "load-more-button", True )
+                            , ( "loading", model.loadingConvo )
+                            ]
+                        ]
+                        (LoadMore True)
+                        [ El.iconText "Load more" icon ]
+    in
+        ( "first-element"
+        , element
+        )
 
 
 viewConvoKeyed : Model -> ConversationPreview -> (String, Html Msg)
@@ -399,6 +424,7 @@ numberCurrentMessages : Model -> Int
 numberCurrentMessages model =
     List.length (listCurrentMessages model)
 
+
 listCurrentMessages : Model -> List (Message)
 listCurrentMessages model =
     Tuple.second (Maybe.withDefault (False, []) (Dict.get model.chattingWith model.convos))
@@ -427,6 +453,22 @@ sortConvos a b =
 compareMessage : Message -> Message -> Order
 compareMessage a b =
     compare (Time.posixToMillis b.timeStamp) (Time.posixToMillis a.timeStamp)
+
+prependPreviewIfNotExists : List (ConversationPreview) -> String -> List (ConversationPreview)
+prependPreviewIfNotExists convos username =
+    if hasConvoWithUser convos username then
+        convos
+    else
+        (newConvoPreview username) :: convos
+
+hasConvoWithUser : List (ConversationPreview) -> String -> Bool
+hasConvoWithUser convos username =
+    (List.length <| List.filter (\convo -> convo.convoWithUsername == username) convos) == 1
+
+
+newConvoPreview : String -> ConversationPreview
+newConvoPreview username =
+    ConversationPreview username "Write something" False <| Time.millisToPosix 0
 
 
 sendGetConvos : (Result Http.Error (List ConversationPreview) -> msg) -> Model -> Cmd msg
