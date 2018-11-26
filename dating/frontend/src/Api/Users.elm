@@ -265,6 +265,28 @@ getUsers pageNum pageSize userInfo =
             False
         }
 
+postEditUser : UserInfo -> NewUser -> Http.Request UserInfo
+postEditUser userInfo body =
+    Http.request
+        { method =
+            "POST"
+        , headers =
+            [Auth.createAuthHeader userInfo]
+        , url =
+            String.join "/"
+                [ apiLocation
+                , "edit"
+                ]
+        , body =
+            Http.jsonBody (encodeUser body)
+        , expect =
+            Http.expectJson decodeUserInfo
+        , timeout =
+            Nothing
+        , withCredentials =
+            False
+        }
+
 getMatches : UserInfo -> Http.Request (List (User))
 getMatches userInfo =
     Http.request
