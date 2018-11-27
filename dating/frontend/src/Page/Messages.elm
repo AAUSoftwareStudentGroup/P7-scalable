@@ -218,7 +218,7 @@ update msg model =
             ( { model | unsentMessage = new }, Cmd.none )
 
         SendMessage ->
-            if model.attemptedSend then
+            if model.attemptedSend || String.isEmpty model.unsentMessage then
                 ( model, Cmd.none )
             else
                 ( { model | attemptedSend = True }, sendMessage model )
@@ -492,12 +492,9 @@ sendGetMessages responseMsg username model offset numMessages =
 
 sendMessage : Model -> Cmd Msg
 sendMessage model =
-    if String.isEmpty model.unsentMessage then
-        Cmd.none
-    else
-        case model.session of
-            Session.LoggedIn _ _ userInfo ->
-                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.chattingWith)
+    case model.session of
+        Session.LoggedIn _ _ userInfo ->
+            Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.chattingWith)
 
-            Session.Guest _ _ ->
-                Cmd.none
+        Session.Guest _ _ ->
+            Cmd.none
