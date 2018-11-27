@@ -24,6 +24,7 @@ import           Language.Haskell.TH.Syntax
 
 import           SchemaEnums
 
+type Column = [Double]
 
 let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneric = False}
  in PTH.share [PTH.mkPersist mongoSettings] [PTH.persistLowerCase|
@@ -71,4 +72,8 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     time            UTCTime
     deriving Show Read Eq Generic
 
+  QuestionEmbedding sql=question_embeddings
+    timeStamp UTCTime
+    embedding [Column]
+    deriving Eq Show
 |]

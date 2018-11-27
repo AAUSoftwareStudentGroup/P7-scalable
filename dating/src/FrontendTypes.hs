@@ -103,7 +103,9 @@ data AnswerDTO = AnswerDTO
   , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
-
+newtype QuestionEmbeddingDTO = QuestionEmbeddingDTO
+  { embedding :: [[Double]]
+  } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 --------------------------------------------------------------------------------
 --                           ARBITRARY INSTANCES                              --
@@ -167,3 +169,7 @@ instance Arbitrary MessageDTO where
               <$> arbitrary -- autherUsername
               <*> arbitrary -- timeStamp
               <*> arbitrary -- body
+
+instance Arbitrary QuestionEmbeddingDTO where
+  arbitrary = QuestionEmbeddingDTO 
+              <$> arbitrary -- embedding
