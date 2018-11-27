@@ -324,7 +324,7 @@ viewTopElement model =
                     [ classList
                         [ ( "conversation-start", True ) ]
                     ]
-                    [ Html.text ("This is your first message with " ++ model.chattingWith) ]
+                    [ Html.text ("This is the beginning of your conversation with " ++ model.chattingWith) ]
             else
                 let
                     icon =
