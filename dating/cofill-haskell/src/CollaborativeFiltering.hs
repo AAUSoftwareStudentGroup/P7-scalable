@@ -1,4 +1,5 @@
-module CollaborativeFiltering(gradientDescent, mul, Matrix, getRandomNumbers, meanSquareError, toDense) where
+{-# LANGUAGE RecordWildCards #-}
+module CollaborativeFiltering(train, predict, mul, Matrix, getRandomNumbers, meanSquareError, toDense) where
 
 import           Control.Monad                 (void)
 import           Debug.Trace                   (trace)
@@ -8,7 +9,7 @@ import qualified Numeric.LinearAlgebra         as LA
 import           Numeric.LinearAlgebra.Data    (toDense, GMatrix)
 import           Numeric.LinearAlgebra.HMatrix (mul)
 import           System.Random                 (newStdGen, randomRs)
-import Control.Arrow ((&&&))
+import           Control.Arrow ((&&&))
 
 toOneOrZero :: Matrix -> Matrix
 toOneOrZero = cmap (\x -> if x == 0 then 0 else 1)
@@ -21,48 +22,78 @@ type EmbeddingMatrix = Matrix
 type LearningRate = Matrix
 type MinMaxIterations = (Int, Int)
 
+
+data GradientDescentOptions = GradientDescentOptions
+    { iterationsRange   :: MinMaxIterations
+    , threshold         :: Double
+    , initialLearnRate  :: LearningRate
+    , trainItemEmb      :: Bool
+    , answerMatrix      :: Matrix
+    , hasAnswerMatrix   :: Matrix
+    }
+
+
 mkEmbeddinMatrix :: Int -> Int -> IO Matrix
 mkEmbeddinMatrix rows cols = (rows><cols) <$> getRandomNumbers
 
-gradientDescent :: MinMaxIterations -> Double -> LearningRate -> Matrix -> Int -> IO (Matrix, Matrix)
-gradientDescent minMaxIter threshold learningRate answers kValue = do
+predict :: Matrix -> EmbeddingMatrix -> IO Matrix
+predict answerMatrix itemEmb = do 
+    initialUserEmb   <- mkEmbeddinMatrix 1 kValue
+    let (userEmb, _) = gradientDescent options 1 learnRate Nothing initialUserEmb itemEmb
+    return $ mul userEmb itemEmb
+    where
+        learnRate    = 0.0001
+        (kValue, _)  = size itemEmb
+        options      = GradientDescentOptions 
+            { iterationsRange  = (1000,1000) 
+            , threshold        = 1
+            , initialLearnRate = learnRate
+            , trainItemEmb     = False
+            , answerMatrix     = answerMatrix
+            , hasAnswerMatrix  = toOneOrZero answerMatrix } 
+
+
+train :: MinMaxIterations -> Double -> LearningRate -> Matrix -> Int -> IO (EmbeddingMatrix, EmbeddingMatrix)
+train minMaxIter threshold learningRate answers kValue = do
     userEmbedding <- mkEmbeddinMatrix rows kValue
     questEmbedding <- mkEmbeddinMatrix kValue cols
-    return $ gradientDescent' minMaxIter 1 threshold learningRate learningRate Nothing answers (toOneOrZero answers) userEmbedding questEmbedding
+    return $ gradientDescent options 1 learningRate Nothing userEmbedding questEmbedding
     where
         (rows, cols)   = size answers
+        options = GradientDescentOptions 
+            { iterationsRange  = minMaxIter 
+            , threshold        = threshold
+            , initialLearnRate = learningRate
+            , trainItemEmb     = True
+            , answerMatrix     = answers
+            , hasAnswerMatrix  = toOneOrZero answers } 
 
-gradientDescent' ::
-    MinMaxIterations
+
+gradientDescent ::
+    GradientDescentOptions 
     -> Int
-    -> Double
-    -> LearningRate
     -> LearningRate
     -> Maybe Double
-    -> Matrix
-    -> Matrix
-    -> Matrix
-    -> Matrix
+    -> EmbeddingMatrix
+    -> EmbeddingMatrix
     -> (Matrix, Matrix)
-gradientDescent' iterRange iter threshold alpha alphaInitial preMse a aHasValue u q =
-    if continue iterRange iter threshold mse preMse
-    then gradientDescent' iterRange (iter+1) threshold newAlp alphaInitial (Just mse) a aHasValue u' q'
-    else (u, q)
+gradientDescent options@GradientDescentOptions{..} iteration learningRate preMse userEmb itemEmb =
+    if continue iterationsRange iteration threshold mse preMse
+    then gradientDescent options (iteration+1) newAlp (Just mse) userEmb' itemEmb'
+    else (userEmb, itemEmb)
   where
-    guess  = mul u q
-    guess' = guess * aHasValue
-    error  = guess' - a
-    mse    = meanSquareError (a - guess') $ sumElements aHasValue
-    u'     = u - tr' (mul q (tr' error)) * alpha
-    q'     = q - mul (tr' u) error * alpha
-    newAlp = if isSmaller mse preMse then alpha + alphaInitial else alphaInitial
-    arrow  = if isSmaller mse preMse then " ▲  " else "  ▼ "
-    debug  = arrow ++ show iter ++ ": MSE: " ++ show mse
+    guess     = mul userEmb itemEmb * hasAnswerMatrix
+    error     = guess - answerMatrix
+    mse       = meanSquareError (answerMatrix - guess) $ sumElements hasAnswerMatrix
+    userEmb'  = userEmb - tr' (mul itemEmb (tr' error)) * learningRate
+    itemEmb'  = if trainItemEmb then itemEmb - mul (tr' userEmb) error * learningRate else itemEmb
+    newAlp    = if isSmaller mse preMse then learningRate + initialLearnRate else initialLearnRate
+    arrow     = if isSmaller mse preMse then " ▲  " else "  ▼ "
+    debug     = arrow ++ show iteration ++ ": MSE: " ++ show mse
 
 
 data StochasticParameters = StochasticParameters
     { learningRate :: LearningRate
-    , iterations   :: Integer
     , users        :: EmbeddingMatrix
     , items        :: EmbeddingMatrix
     , answers      :: Matrix }
@@ -92,10 +123,3 @@ meanSquareError matrix noOfElements = mean (square matrix)
 
         mean :: Matrix -> Double
         mean matrix = sumElements matrix / noOfElements
-
-
-stochastic :: EmbeddingMatrix -> EmbeddingMatrix -> Matrix -> Matrix
-stochastic = undefined
-
-regular :: EmbeddingMatrix -> EmbeddingMatrix -> Matrix -> Matrix
-regular users items expected = undefined
