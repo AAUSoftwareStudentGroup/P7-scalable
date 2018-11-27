@@ -1,12 +1,14 @@
 module CollaborativeFiltering(gradientDescent, mul, Matrix, getRandomNumbers, meanSquareError, toDense) where
 
-import Control.Monad                 (void)
-import Debug.Trace                   (trace)
-import qualified Numeric.LinearAlgebra as LA
-import Numeric.LinearAlgebra (size, tr', (><), cmap, sumElements)
-import Numeric.LinearAlgebra.HMatrix (mul)
-import Numeric.LinearAlgebra.Data (toDense)
-import System.Random                 (newStdGen, randomRs)
+import           Control.Monad                 (void)
+import           Debug.Trace                   (trace)
+import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
+                                                (><))
+import qualified Numeric.LinearAlgebra         as LA
+import           Numeric.LinearAlgebra.Data    (toDense, GMatrix)
+import           Numeric.LinearAlgebra.HMatrix (mul)
+import           System.Random                 (newStdGen, randomRs)
+import Control.Arrow ((&&&))
 
 toOneOrZero :: Matrix -> Matrix
 toOneOrZero = cmap (\x -> if x == 0 then 0 else 1)
@@ -15,6 +17,7 @@ getRandomNumbers :: IO [Double]
 getRandomNumbers = randomRs (0, 1) <$> newStdGen
 
 type Matrix = LA.Matrix LA.R
+type EmbeddingMatrix = Matrix
 type LearningRate = Matrix
 type MinMaxIterations = (Int, Int)
 
@@ -29,21 +32,21 @@ gradientDescent minMaxIter threshold learningRate answers kValue = do
     where
         (rows, cols)   = size answers
 
-gradientDescent' :: 
-       MinMaxIterations
-    -> Int 
-    -> Double 
+gradientDescent' ::
+    MinMaxIterations
+    -> Int
+    -> Double
     -> LearningRate
-    -> LearningRate 
-    -> Maybe Double 
-    -> Matrix 
-    -> Matrix 
-    -> Matrix 
-    -> Matrix 
+    -> LearningRate
+    -> Maybe Double
+    -> Matrix
+    -> Matrix
+    -> Matrix
+    -> Matrix
     -> (Matrix, Matrix)
 gradientDescent' iterRange iter threshold alpha alphaInitial preMse a aHasValue u q =
     if continue iterRange iter threshold mse preMse
-    then trace debug $ gradientDescent' iterRange (iter+1) threshold newAlp alphaInitial (Just mse) a aHasValue u' q'
+    then gradientDescent' iterRange (iter+1) threshold newAlp alphaInitial (Just mse) a aHasValue u' q'
     else (u, q)
   where
     guess  = mul u q
@@ -56,8 +59,20 @@ gradientDescent' iterRange iter threshold alpha alphaInitial preMse a aHasValue 
     arrow  = if isSmaller mse preMse then " ▲  " else "  ▼ "
     debug  = arrow ++ show iter ++ ": MSE: " ++ show mse
 
+
+data StochasticParameters = StochasticParameters
+    { learningRate :: LearningRate
+    , iterations   :: Integer
+    , users        :: EmbeddingMatrix
+    , items        :: EmbeddingMatrix
+    , answers      :: Matrix }
+
+stochasticGradientDescent :: StochasticParameters -> (EmbeddingMatrix, EmbeddingMatrix)
+stochasticGradientDescent = users &&& items
+
+
 isSmaller :: Double -> Maybe Double -> Bool
-isSmaller _ Nothing = False
+isSmaller _ Nothing  = False
 isSmaller x (Just y) = x < y
 
 continue :: (Int, Int) -> Int -> Double -> Double -> Maybe Double -> Bool
@@ -77,3 +92,10 @@ meanSquareError matrix noOfElements = mean (square matrix)
 
         mean :: Matrix -> Double
         mean matrix = sumElements matrix / noOfElements
+
+
+stochastic :: EmbeddingMatrix -> EmbeddingMatrix -> Matrix -> Matrix
+stochastic = undefined
+
+regular :: EmbeddingMatrix -> EmbeddingMatrix -> Matrix -> Matrix
+regular users items expected = undefined
