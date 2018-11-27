@@ -1,3 +1,6 @@
+$header-height: 64px;
+$footer-height: 64px;
+$main-grid-gap: 32px;
 .no-conversations {
     height: 70vh;
     text-align: center;
@@ -5,6 +8,8 @@
 
 .messaging-wrapper {
     border-top: 1px solid $bg-col-dark;
+    height: calc(100vh - #{$header-height + $footer-height + (2 * $main-grid-gap)} - 2rem);
+    grid-column: span 12;
 }
 
 .chat {
@@ -12,12 +17,52 @@
 }
 
 .convos, .messages {
-    height: 70vh;
+    float: left;
+    height: 100%;
+}
+
+.convos {
+    width: 30%;
     overflow-y: auto;
 }
 
 .messages {
-    padding: 1rem 0.5rem 0 0.5rem;
+    width: 70%;
+    padding: 0rem 0.5rem 0 0.5rem;
+
+    .message-list {
+        overflow-y: scroll;
+        height: calc(100% - 3rem);
+    }
+    .message-input {
+        height: 2rem;
+        position: relative;
+
+        input {
+            width: 100%;
+            text-indent: 1rem;
+            height: 2rem;
+            margin-bottom: 1rem;
+            border-radius: 0.15rem;
+            border: 1px solid $bg-col-light;
+        }
+
+        button {
+            background-color: transparent;
+            position: absolute;
+            color: $pri-col;
+            box-shadow: none;
+            right: 0;
+            top: -0.1rem;
+            padding: 0;
+            padding-right: 1rem;
+
+
+            &:hover {
+                color: $pri-col-light
+            }
+        }
+    }
 
     .conversation-start {
         text-align: center;
