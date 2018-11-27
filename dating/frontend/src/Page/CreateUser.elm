@@ -104,7 +104,7 @@ update msg model =
                     , Cmd.none
                     )
                 Err _ ->
-                    ( { model | checkingUsername = False }
+                    ( model
                     , Cmd.none
                     )
 
