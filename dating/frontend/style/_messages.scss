@@ -26,10 +26,20 @@
 .messages {
     width: 70%;
     padding: 0rem 0.5rem 0 0.5rem;
+    border-left: 1px solid $bg-col-dark;
 
     .message-list {
         overflow-y: scroll;
         height: calc(100% - 3rem);
+
+        &:first-child {
+            padding-top: 1rem;
+        }
+
+        & > * {
+            padding-right: 0.5rem;
+        }
+
     }
     .message-input {
         height: 2rem;
