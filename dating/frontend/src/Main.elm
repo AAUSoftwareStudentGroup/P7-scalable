@@ -16,6 +16,7 @@ import Page.CreateUser as CreateUser
 import Page.Home as Home
 import Page.ListUsers as ListUsers
 import Page.Login as Login exposing (subscriptions)
+import Page.EditUser as EditUser
 import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
@@ -64,6 +65,7 @@ type Page
     | Logout Logout.Model
     | Home Home.Model
     | ListUsers ListUsers.Model
+    | EditUser EditUser.Model
     | Messages Messages.Model
     | Profile Profile.Model
     | Chat Chat.Model
@@ -112,6 +114,9 @@ view model =
         Messages messagesModel ->
             viewContent MessagesMsg (Messages.view messagesModel)
 
+        EditUser editUserModel ->
+            viewContent EditUserMsg (EditUser.view editUserModel)
+
         ListUsers listUsersModel ->
             viewContent ListUsersMsg (ListUsers.view listUsersModel)
 
@@ -157,6 +162,9 @@ subscriptions model =
             Messages messagesModel ->
                 Sub.map MessagesMsg (Messages.subscriptions messagesModel)
 
+            EditUser editUserModel ->
+                Sub.map EditUserMsg (EditUser.subscriptions editUserModel)
+
             ListUsers listUsersModel ->
                 Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
 
@@ -192,6 +200,7 @@ type Msg
   | LoginMsg Login.Msg
   | LogoutMsg Logout.Msg
   | MessagesMsg Messages.Msg
+  | EditUserMsg EditUser.Msg
   | ProfileMsg Profile.Msg
   | ChatMsg Chat.Msg
   | SurveyMsg Survey.Msg
@@ -263,7 +272,6 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
-
         ProfileMsg msg ->
             case model.page of
                 Profile profileModel ->
@@ -275,6 +283,13 @@ update message model =
             case model.page of
                 Messages messagesModel ->
                     stepMessages model (Messages.update msg messagesModel)
+                _ ->
+                    ( model, Cmd.none )
+
+        EditUserMsg msg ->
+            case model.page of
+                EditUser editUserModel ->
+                    stepEditUser model (EditUser.update msg editUserModel)
                 _ ->
                     ( model, Cmd.none )
 
@@ -345,6 +360,9 @@ replacePage page session =
         Messages m ->
              Messages { m | session = session }
 
+        EditUser m ->
+            EditUser { m | session = session }
+
         Chat m ->
              Chat { m | session = session }
 
@@ -404,6 +422,14 @@ stepMessages model ( messagesModel, cmds ) =
     , Cmd.map MessagesMsg cmds
     )
 
+
+stepEditUser : Model -> ( EditUser.Model, Cmd EditUser.Msg ) -> ( Model, Cmd Msg )
+stepEditUser model ( editUserModel, cmds ) =
+    ( { model | page = EditUser editUserModel }
+    , Cmd.map EditUserMsg cmds
+    )
+
+
 stepChat : Model -> ( Chat.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
 stepChat model ( chat, cmds ) =
     ( { model | page = Chat chat }
@@ -455,6 +481,9 @@ getSession model =
         Messages m ->
             m.session
 
+        EditUser m ->
+            m.session
+
         Chat m ->
             m.session
 
@@ -484,6 +513,8 @@ stepUrl url model =
                     (\username -> stepProfile model (Profile.init session username))
                 , route (Parser.s "messages")
                     (stepMessages model (Messages.init session))
+                , route (Parser.s "edit")
+                    (stepEditUser model (EditUser.init session))
                 , route (Parser.s "chat" </> Parser.string)
                     (\username -> stepChat model (Chat.init session username))
                 , route (Parser.s "survey")

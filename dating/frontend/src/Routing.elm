@@ -17,6 +17,7 @@ type Route
     | Logout
     | ListUsers
     | Messages
+    | EditUser
     | Profile String
     | Chat String
     | Survey
@@ -31,6 +32,7 @@ parser =
         , Parser.map CreateUser (s "create-user")
         , Parser.map ListUsers (s "list-users")
         , Parser.map Messages (s "messages")
+        , Parser.map EditUser (s "edit")
         , Parser.map Profile (s "user" </> Parser.string)
         , Parser.map Chat (s "chat" </> Parser.string)
         , Parser.map Survey (s "survey")
@@ -82,6 +84,9 @@ routeToString page =
 
                 Messages ->
                     [ "messages" ]
+
+                EditUser ->
+                    [ "edit" ]
 
                 Profile username ->
                     [ "user", username ]
