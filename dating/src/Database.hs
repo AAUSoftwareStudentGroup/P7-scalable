@@ -261,9 +261,9 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
       maybeConvo <- selectFirst [ConversationMembers `Persist.Mongo.anyEq` from, ConversationMembers `Persist.Mongo.anyEq` to] []
       case maybeConvo of
         Nothing -> do
-          user' <- getBy (UniqueUsername to) 
+          user' <- getBy (UniqueUsername to)
           case user' of
-            Just _ -> void $ insert (mkConversation from to msgToInsert)
+            Just _  -> void $ insert (mkConversation from to msgToInsert)
             Nothing -> return ()
         Just (Entity conversationId _) ->
           update conversationId [ConversationMessages `Persist.Mongo.push` msgToInsert]
@@ -370,6 +370,17 @@ postAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf po
           , userAnswerScore = score'
           , userAnswerTime = currentTime
           }
+
+
+createQuestionEmbedding :: MongoInfo -> QuestionEmbeddingDTO -> IO ()
+createQuestionEmbedding mongoInfo questionEmbeddingDTO = runAction mongoInfo insertAction
+  where
+    insertAction :: Action IO ()
+    insertAction = do
+      currentTime <- liftIO Clock.getCurrentTime
+      let questionEmbedding = QuestionEmbedding currentTime (embedding questionEmbeddingDTO)
+      Persist.Mongo.insert questionEmbedding
+
 
 
 -------------------------------------------------------------------------------
