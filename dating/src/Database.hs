@@ -1,276 +1,475 @@
-{-# LANGUAGE DeriveAnyClass      #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE DerivingStrategies  #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeApplications      #-}
 
 module Database where
 
-import           Control.Monad               (void)
-import           Control.Monad.IO.Class      (MonadIO, liftIO)
-import           Control.Monad.Logger        (LogLevel (..), LoggingT,
-                                              MonadLogger, filterLogger,
-                                              runStdoutLoggingT)
-import           Control.Monad.Reader        (runReaderT, ReaderT)
-import           Data.Aeson.Types            (FromJSON, ToJSON)
-import           Data.ByteString             (ByteString)
-import           Data.ByteString.Char8       (pack, unpack)
-import           Data.Int                    (Int64)
-import           Data.List                   (intersperse, sort, sortBy)
-import           Data.Maybe                  (listToMaybe)
-import           Data.Ord                    (comparing)
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T (pack, unpack)
-import qualified Data.Text.Encoding          (decodeUtf8)
-import           Data.Time.Calendar          (fromGregorian)
-import           Data.Time.Clock             (UTCTime (..), secondsToDiffTime)
-import           Database.Esqueleto
-import           Database.Persist.Postgresql (ConnectionString, SqlPersistT,
-                                              runMigration, withPostgresqlConn)
-import qualified Database.Persist.Sql as P
-import           Database.Redis              (ConnectInfo, Redis, connect,
-                                              connectHost, defaultConnectInfo,
-                                              del, runRedis, setex)
-import qualified Database.Redis              as Redis
-import           Elm                         (ElmType)
-import           GHC.Generics                (Generic)
+import           Codec.Picture                      (saveJpgImage)
+import           Codec.Picture.Jpg                  (decodeJpeg)
+import           Control.Monad                      (void)
+import           Control.Monad.IO.Class             (liftIO)
+import           Crypto.Hash
+import           Data.Bson                          (Document)
+import qualified Data.ByteString.Base64             as Base64
+import qualified Data.ByteString.Lazy.Char8         as LBS
+import           Data.Either                        (rights)
+import           Data.Foldable                      (traverse_)
+import           Data.Generics.Product              (getField)
+import           Data.Semigroup                     ((<>))
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T (pack, unpack)
+import           Data.Text.Encoding                 (encodeUtf8)
+import qualified Data.Time.Clock                    as Clock (getCurrentTime)
+import qualified Database.MongoDB.Admin             as Mongo.Admin
+import qualified Database.MongoDB.Query             as Mongo.Query
+import           Database.Persist
+import           Database.Persist.MongoDB           (Action, (=:))
+import qualified Database.Persist.MongoDB           as Persist.Mongo
+import           Database.Persist.Types             (unHaskellName)
+import qualified Database.Redis                     as Redis
+import           Servant.Server.Internal.ServantErr
+import           System.Directory
+import qualified System.Random                      as Random
+
+import           FrontendTypes
 import           Schema
-import qualified System.Random               as Random
 
-type PGInfo = ConnectionString
-type RedisInfo = ConnectInfo
 
-data Credentials = Credentials { username :: Text, password :: Text}
-  deriving (Eq, Show, Generic, ToJSON, FromJSON, ElmType)
 
-data RecentMessage = RecentMessage {convoWithUsername :: Text, convoWithId :: Int64, imLastAuthor :: Bool, body :: Text, timeStamp :: UTCTime}
-  deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON, ElmType)
+-------------------------------------------------------------------------------
+--                                   TYPES                                   --
+-------------------------------------------------------------------------------
 
-localConnString :: PGInfo
-localConnString = "host=postgres port=5432 user=datingdbuser dbname=datingdb password=datingdbpassword"
+type Username = Text
+type AuthToken = Text
 
-logFilter :: a -> LogLevel -> Bool
-logFilter _ LevelError     = True
-logFilter _ LevelWarn      = True
-logFilter _ LevelInfo      = True
-logFilter _ LevelDebug     = False
-logFilter _ (LevelOther _) = False
 
--- This is IO since in a real application we'd want to configure it.
-fetchPostgresConnection :: IO PGInfo
-fetchPostgresConnection = return localConnString
+type MongoInfo = Persist.Mongo.MongoConf
+type RedisInfo = Redis.ConnectInfo
 
-fetchRedisConnection :: IO RedisInfo
-fetchRedisConnection = return $ defaultConnectInfo {connectHost = "redis"}
+userIndex :: Mongo.Admin.Index
+userIndex = (Mongo.Admin.index "users" ["username" =: (1::Int)]) { Mongo.Admin.iUnique = True, Mongo.Admin.iDropDups = True }
 
-runAction :: PGInfo -> SqlPersistT (LoggingT IO) a -> IO a
-runAction connectionString action =
-  runStdoutLoggingT $ withPostgresqlConn connectionString $ \backend ->
-    runReaderT action backend
+-------------------------------------------------------------------------------
+--                            CONNECTION INFO                                --
+-------------------------------------------------------------------------------
 
-migrateDB :: PGInfo -> IO ()
-migrateDB pgInfo = runAction pgInfo (runMigration migrateAll)
 
-deleteEverythingInDB :: PGInfo -> IO ()
-deleteEverythingInDB pgInfo = runAction pgInfo deleteAction
+-- | Should probably be placed in a file instead
+localMongoInfo :: MongoInfo
+localMongoInfo = conf { Persist.Mongo.mgAuth = Just $ Persist.Mongo.MongoAuth "datingdbuser" "datingdbpassword"
+                      , Persist.Mongo.mgHost = "mongodb"
+                      }
   where
-    deleteAction :: SqlPersistT (LoggingT IO) ()
-    deleteAction = do
-      delete $
-        from $ \(message :: SqlExpr (Entity Message)) ->
-        return ()
-      delete $
-        from $ \(user :: SqlExpr (Entity User)) ->
-        return ()
+    conf = Persist.Mongo.defaultMongoConf "datingdb"
+
+-- | Has type IO because it should fetch the connection string from a file
+fetchMongoInfo :: IO MongoInfo
+fetchMongoInfo = return localMongoInfo
 
 
--- -- DATABASE
+-- | Has IO for same reason as fetchMongoInfo
+fetchRedisInfo :: IO RedisInfo
+fetchRedisInfo = return $ Redis.defaultConnectInfo {Redis.connectHost = "redis"}
 
--- User
 
-createUserPG :: PGInfo -> User -> IO Int64
-createUserPG pgInfo user = do
-  g <- Random.newStdGen
-  let authToken = T.pack $ take 64 $ Random.randomRs ('a', 'z') g
-  let user' = user { userAuthToken = authToken }
-  fromSqlKey <$> runAction pgInfo (insert user')
+-------------------------------------------------------------------------------
+--                                   USERS                                   --
+-------------------------------------------------------------------------------
 
-fetchUserPG :: PGInfo -> Int64 -> IO (Maybe (Entity User))
-fetchUserPG pgInfo uid = runAction pgInfo selectAction
+-- | Create a user if the username is not taken
+createUser :: MongoInfo -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
+createUser mongoConf createUserDTO = runAction mongoConf action
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe (Entity User))
-    selectAction = do
-      usersFound <- select $
-                    from $ \user -> do
-                    where_ (user ^. UserId ==. valkey uid)
-                    return user
-      return $ listToMaybe $ usersFound
-
-fetchAllUsersPG :: PGInfo -> IO [Entity User]
-fetchAllUsersPG pgInfo = runAction pgInfo selectAction
-  where
-    selectAction :: SqlPersistT (LoggingT IO) [Entity User]
-    selectAction = do
-      users <- select $ from $ \user -> return user
-      return users
-
-
-deleteUserPG :: PGInfo -> Int64 -> IO ()
-deleteUserPG pgInfo uid = runAction pgInfo $ do
-  delete $
-    from $ \user -> do
-    where_ (user ^. UserId ==. valkey uid)
-
-
-fetchUserIdByAuthTokenPG :: PGInfo -> ByteString -> IO (Maybe UserId)
-fetchUserIdByAuthTokenPG pgInfo authToken = runAction pgInfo selectAction
-  where
-    authToken' = Data.Text.Encoding.decodeUtf8 authToken
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe (Key User))
-    selectAction = do
-      userIdsFound <-
-        select $
-        from $ \user -> do
-        where_ (user ^. UserAuthToken ==. val authToken')
-        return (user ^. UserId)
-      return $ listToMaybe $ fmap unValue userIdsFound
-
-fetchUserByCredentialsPG :: PGInfo -> Credentials -> IO (Maybe (Entity User))
-fetchUserByCredentialsPG pgInfo (Credentials {username = usr, password = psw}) = runAction pgInfo selectAction
-  where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe (Entity User))
-    selectAction = do
-      userFound <- select $
-                     from $ \user -> do
-                       where_ (user ^. UserUsername ==. val usr &&. user ^. UserPassword ==. val psw)
-                       return user
-      return $ listToMaybe userFound
-
-
--- Conversations
-
-createConversationPG :: PGInfo -> Int64 -> Int64 -> IO ConversationId
-createConversationPG pgInfo ownUserId otherUserId = runAction pgInfo $ insert conversation
-  where
-    members = toMembersTuple ownUserId otherUserId
-    conversation = uncurry Conversation $ members
-
-fetchConversationByUserIdsPG :: PGInfo -> Int64 -> Int64 -> IO (Maybe (Entity Conversation))
-fetchConversationByUserIdsPG pgInfo user1 user2 = runAction pgInfo selectAction
-  where
-    membersTuple = toMembersTuple user1 user2
-    selectAction = listToMaybe <$> (select . from $ (\conv -> do
-                                       where_ (conv ^. ConversationUserOneId ==. val (fst membersTuple) &&.
-                                               conv ^. ConversationUserTwoId ==. val (snd membersTuple))
-                                       return conv))
-
-
-fetchRecentMessagesListPG :: PGInfo -> UserId -> IO [RecentMessage]
-fetchRecentMessagesListPG pgInfo ownUserId = fmap toRecentMessage <$> runAction pgInfo selectAction
-  where
-    ownUserIdInt64 = fromSqlKey ownUserId
-    toRecentMessage :: (Single Text, Single Int64, Single Bool, Single Text, Single UTCTime) -> RecentMessage
-    toRecentMessage (convoWithUsername, convoWithId, imLastAuthor, body, timeStamp) = RecentMessage (unSingle convoWithUsername) (unSingle convoWithId) (unSingle imLastAuthor) (unSingle body) (unSingle timeStamp)
-
-    selectAction :: MonadIO m => ReaderT SqlBackend m [(Single Text, Single Int64, Single Bool, Single Text, Single UTCTime)]
-    selectAction = P.rawSql (T.pack stmt) (replicate 4 (PersistInt64 ownUserIdInt64))
-    stmt = "SELECT users.username convoWithUsername, users.id convoWithId, messages.author_id = ? im_last_author, messages.body, messages.time_stamp " ++
-           "FROM conversations JOIN " ++
-           "messages " ++
-           "ON conversations.id = messages.conversation_id " ++
-           "AND (? = conversations.user_one_id OR ? = conversations.user_two_id) " ++
-           "INNER JOIN ( " ++
-           "  SELECT conversation_id, MAX(time_stamp) maxtstamp " ++
-           "  FROM messages" ++
-           "  GROUP BY conversation_id " ++
-           ") temp " ++
-           "ON messages.conversation_id = temp.conversation_id AND messages.time_stamp = temp.maxtstamp " ++
-           "JOIN users " ++
-           "ON users.id != ? AND (users.id = conversations.user_one_id OR users.id = conversations.user_two_id);"
-
-
-fetchMessagesBetweenPG :: PGInfo -> UserId -> Int64 -> IO [Message]
-fetchMessagesBetweenPG pgInfo ownUserId otherUserIdInt64 = fmap entityVal <$> runAction pgInfo selectAction
-  where
-    ownUserIdInt64 = fromSqlKey ownUserId
-    selectAction :: MonadIO m => ReaderT SqlBackend m [(Entity Message)]
-    selectAction = P.rawSql (T.pack stmt) (PersistInt64 <$> sort [ownUserIdInt64, otherUserIdInt64])
-    stmt = "SELECT ?? " ++
-           "FROM conversations JOIN messages ON conversations.id = messages.conversation_id " ++
-           "JOIN users ON users.id = messages.author_id " ++
-           "WHERE ? = conversations.user_one_id AND ? = conversations.user_two_id " ++
-           "ORDER BY messages.time_stamp DESC; "
-
-getOther :: Text -> [Text] -> Text
-getOther self [] = self
-getOther self (u:[]) = self
-getOther self (u1:u2:rest) = if self == u1 then u2 else u1
-
-userId :: Entity User -> Int64
-userId (Entity id _) = fromSqlKey id
-
-
-toMembersTuple :: Int64 -> Int64 -> (UserId, UserId)
-toMembersTuple userOneId userTwoId = if userOneId <= userTwoId then (userOneId', userTwoId') else (userTwoId', userOneId')
-  where
-    userOneId' = toSqlKey userOneId
-    userTwoId' = toSqlKey userTwoId
-
--- Messages
-
-createMessagePG :: PGInfo -> Int64 -> Message -> IO ()
-createMessagePG pgInfo otherUserId message = void $ runAction pgInfo insertAndMaybeCreateConvo
-  where
-    ownUserId = (fromSqlKey . messageAuthorId) message
-    getAndMaybeCreateConvoId = do
-      maybeConvo <- fetchConversationByUserIdsPG pgInfo ownUserId otherUserId
-      case maybeConvo of
+    action :: Action IO (Either ServantErr LoggedInDTO)
+    action = do
+      authToken' <- liftIO mkAuthToken
+      salt <- liftIO mkAuthToken
+      let newUser = User
+            { userEmail       = getField @"email"       createUserDTO
+            , userPassword    = hashPassword (getField @"password" createUserDTO) salt
+            , userUsername    = getField @"username"    createUserDTO
+            , userGender      = getField @"gender"      createUserDTO
+            , userBirthday    = getField @"birthday"    createUserDTO
+            , userTown        = getField @"town"        createUserDTO
+            , userProfileText = getField @"profileText" createUserDTO
+            , userImage       = "/img/users/" <> salt <> ".jpg"
+            , userAuthToken   = authToken'
+            , userSalt        = salt
+            }
+      canNotBeInserted <- checkUnique newUser
+      case canNotBeInserted of
+        Just a ->
+          if (unHaskellName . fst . head . persistUniqueToFieldNames $ a) == "username" then
+            return $ Left $ err409 { errBody = "A user named \"" <> (LBS.fromStrict . encodeUtf8 $ getField @"username" createUserDTO) <> "\" already exists" }
+          else
+            return $ Left $ err409 { errBody = "A user with email \"" <> (LBS.fromStrict . encodeUtf8 $ getField @"email" createUserDTO) <> "\" already exists" }
         Nothing ->
-          createConversationPG pgInfo ownUserId otherUserId
-        Just (Entity cid _) ->
-          return cid
-
-    insertAndMaybeCreateConvo = do
-      convoId <- liftIO $ getAndMaybeCreateConvoId
-      let message' = message {messageConversationId = convoId}
-      insert message'
-
+          case urlFromBase64EncodedImage (getField @"imageData" createUserDTO) salt of
+            Left a -> return $ Left $ err415 { errBody = a }
+            Right img -> do
+              liftIO img
+              _ <- Persist.Mongo.insert newUser
+              _ <- Mongo.Admin.ensureIndex userIndex
+              return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken'
 
 
-fetchUserIdByUser :: PGInfo -> User -> IO (Maybe Int64)
-fetchUserIdByUser pgInfo user = runAction pgInfo selectAction
+
+urlFromBase64EncodedImage :: Text -> Text -> Either LBS.ByteString (IO())
+urlFromBase64EncodedImage img salt =
+    case (Base64.decode . encodeUtf8 $ img) >>= decodeJpeg of
+      Left _ -> Left "Invalid image, must be a Jpg"
+      Right image -> Right $ saveJpgImage 90 (T.unpack ("/app/user/frontend/img/users/" <> salt <> ".jpg")) image
+
+
+-- | Generate a random authtoken.
+mkAuthToken :: IO Text
+mkAuthToken = do
+  generator <- Random.newStdGen
+  return . T.pack . take 32 $ Random.randomRs ('a', 'z') generator
+
+
+-- | Fetch a user by username
+fetchUser :: MongoInfo -> Username -> IO (Maybe UserDTO)
+fetchUser mongoConf username' = runAction mongoConf fetchAction
   where
-    selectAction :: SqlPersistT (LoggingT IO) (Maybe Int64)
-    selectAction = ((fmap (fromSqlKey . unValue)) . listToMaybe) <$>
-        (select . from $ \(dbUser :: SqlExpr (Entity User)) -> do
-            where_ (dbUser ^. UserUsername ==. val (userUsername user))
-            return (dbUser ^. UserId))
+    fetchAction :: Action IO (Maybe UserDTO)
+    fetchAction = fmap userEntityToUserDTO <$> getBy (UniqueUsername username')
 
 
--- -- REDIS
+-- | Fetch all users
+fetchUsers :: MongoInfo -> Username -> Int -> Int -> IO [UserDTO]
+fetchUsers mongoConf username' offset askedLimit = runAction mongoConf fetchAction
+  where
+    limit = if askedLimit > 30 then 30 else askedLimit
+    fetchAction :: Action IO [UserDTO]
+    fetchAction = fmap userEntityToUserDTO <$> selectList [UserUsername !=. username'] [OffsetBy offset, LimitTo limit]
 
-runRedisAction :: RedisInfo -> Redis a -> IO a
-runRedisAction redisInfo action = do
-  connection <- connect redisInfo
-  runRedis connection action
+
+-- | Find matches for user
+fetchMatchingUsers :: MongoInfo -> Username -> IO [UserDTO]
+fetchMatchingUsers mongoConf username' = runAction mongoConf fetchAction
+  where
+    -- to Mongo.Query.find matches, we previously read from it, so has to be of type IO
+    getMatches :: Username -> IO [Username]
+    getMatches _ = return ["alex duran", "andre heinrich"]
+
+    fetchAction :: Action IO [UserDTO]
+    fetchAction = do
+      matches <- liftIO $ getMatches username'
+      fmap userEntityToUserDTO <$> selectList [UserUsername !=. username', UserUsername <-. matches] []
+
+-- | Return "True" or "False" if user exists
+fetchUserExists :: MongoInfo -> Username -> IO Bool
+fetchUserExists mongoConf username' = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO Bool
+    fetchAction = do
+      mUser <- getBy (UniqueUsername username')
+      case mUser of
+        Just _  -> return  True
+        Nothing -> return False
 
 
--- User
+-- | Edit user
+editUser :: MongoInfo -> Username -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
+editUser mongoConf username currentUser = runAction mongoConf editAction
+  where
+    editAction :: Action IO (Either ServantErr LoggedInDTO)
+    editAction =
+      if username == (getField @"username" currentUser) then do
+        dbEntry <- getBy (UniqueUsername username)
+        case dbEntry of
+          Just (Entity key user) -> do
+            _ <- delete key
+            maybeInserted <- liftIO (createUser mongoConf currentUser)
+            case maybeInserted of
+              Left txt -> do
+                _ <- Persist.Mongo.insert user
+                return $ Left txt
+              Right dto -> do
+                _ <- liftIO . removeSingleFile . T.unpack $ "frontend" <> userImage user
+                return $ Right $ dto
+          Nothing ->
+            return $ Left $ err409 { errBody = "This user does not exist in the database" }
+      else
+        return $ Left $ err409 { errBody = "This user does not exist in the database" }
 
-createUserRedis :: RedisInfo -> Int64 -> Entity User -> IO ()
-createUserRedis redisInfo uid user = runRedisAction redisInfo
-  $ void $ setex (pack . show $ uid) 3600 (pack . show $ user)
+-------------------------------------------------------------------------------
+--                             AUTHENTICATION                                --
+-------------------------------------------------------------------------------
 
-fetchUserRedis :: RedisInfo -> Int64 -> IO (Maybe (Entity User))
-fetchUserRedis redisInfo uid = runRedisAction redisInfo $ do
-  result <- Redis.get (pack . show $ uid)
-  case result of
-    Right (Just userString) -> return $ Just (read . unpack $ userString)
-    _                       -> return Nothing
+fetchUserByCredentials :: MongoInfo -> CredentialDTO -> IO (Maybe LoggedInDTO)
+fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
+  where
+    username' = getField @"username" credentials
+    password' = getField @"password" credentials
 
-deleteUserRedis :: RedisInfo -> Int64 -> IO ()
-deleteUserRedis redisInfo uid = do
-  connection <- connect redisInfo
-  runRedis connection $ do
-    _ <- del [pack . show $ uid]
+    fetchAction :: Action IO (Maybe LoggedInDTO)
+    fetchAction = do
+      maybeEntUser <- selectFirst [UserUsername ==. username'] []
+      case maybeEntUser of
+        Nothing -> return Nothing
+        Just (Entity id' user) ->
+          if hashPassword password' (getField @"userSalt" user) == getField @"userPassword" user
+            then do
+              token <- liftIO mkAuthToken
+              _ <- update id' [UserAuthToken =. token]
+              return $ Just LoggedInDTO
+                { username  = getField @"userUsername"  user
+                , authToken = token
+                }
+            else
+              return Nothing
+
+
+
+fetchUsernameByAuthToken :: MongoInfo -> AuthToken -> IO (Maybe Username)
+fetchUsernameByAuthToken mongoConf authToken' = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO (Maybe Username)
+    fetchAction = do
+
+      maybeEntUser <- getBy (UniqueAuthToken authToken')
+      case maybeEntUser of
+        Nothing              -> return Nothing
+        Just (Entity _ user) -> return . Just $ getField @"userUsername" user
+
+
+removeAuthToken :: MongoInfo -> AuthToken -> IO ()
+removeAuthToken mongoConf token = runAction mongoConf action
+  where
+    action :: Action IO ()
+    action = do
+      maybeEntUser <- getBy (UniqueAuthToken token)
+      case maybeEntUser of
+        Nothing             -> return ()
+        Just (Entity id' _) -> void $ update id' [UserAuthToken =. ""]
+
+
+-------------------------------------------------------------------------------
+--                              CONVERSATIONS                                --
+-------------------------------------------------------------------------------
+
+createMessage :: MongoInfo -> Username -> Username -> CreateMessageDTO -> IO ()
+createMessage mongoConf from to messageDTO = runAction mongoConf action
+  where
+    action :: Action IO ()
+    action = do
+      msgToInsert <- liftIO $ mkMessage from body'
+      maybeConvo <- selectFirst [ConversationMembers `Persist.Mongo.anyEq` from, ConversationMembers `Persist.Mongo.anyEq` to] []
+      case maybeConvo of
+        Nothing -> do
+          user' <- getBy (UniqueUsername to) 
+          case user' of
+            Just _ -> void $ insert (mkConversation from to msgToInsert)
+            Nothing -> return ()
+        Just (Entity conversationId _) ->
+          update conversationId [ConversationMessages `Persist.Mongo.push` msgToInsert]
+
+    body' :: Text
+    body' = getField @"body" messageDTO
+
+    mkConversation :: Username -> Username -> Message -> Conversation
+    mkConversation from' to' msg = conversation
+      where
+        conversation = Conversation
+          { conversationMembers = [from', to']
+          , conversationMessages = [msg]
+          }
+
+    mkMessage :: Username -> Text -> IO Message
+    mkMessage from' body'' = do
+      currentTime <- Clock.getCurrentTime
+      return  Message
+          { messageAuthor = from'
+          , messageTime = currentTime
+          , messageText = body''
+          }
+
+fetchConversation :: MongoInfo -> Username -> Username -> Int -> Int -> IO ConversationDTO
+fetchConversation mongoConf ownUsername otherUsername offset askedLimit = runAction mongoConf fetchAction
+  where
+    limit = if askedLimit > 100 then 100 else askedLimit
+    fetchAction :: Action IO ConversationDTO
+    fetchAction = do
+      maybeDoc <- Mongo.Query.findOne
+        ( ( Mongo.Query.select [ "members" =: (ownUsername::Text), "members" =: (otherUsername::Text) ] "conversations")
+          { Mongo.Query.project = [ "messages" =: [ "$slice" =: [ offset :: Int , limit :: Int ] ] ] }
+        )
+      case maybeDoc of
+        Just doc ->
+          case Persist.Mongo.docToEntityEither doc of
+            Left _ -> return emptyConvoDTO
+            Right convo -> return $ convoEntityToConversationDTO convo otherUsername
+        Nothing -> return emptyConvoDTO
+
+
+    emptyConvoDTO :: ConversationDTO
+    emptyConvoDTO = ConversationDTO otherUsername mempty
+
+
+fetchConversationPreviews :: MongoInfo -> Username -> IO [ConversationPreviewDTO]
+fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [ConversationPreviewDTO]
+    fetchAction = do
+      cursor <- Mongo.Query.find
+        ( ( Mongo.Query.select [ "members" =: (ownUsername::Text) ] "conversations")
+          { Mongo.Query.project = [ "messages" =: [ "$slice" =: (-1::Int) ] ] }
+        )
+      docList <- Mongo.Query.rest cursor
+      return $
+        fmap (conversationEntityToConversationPreviewDTO ownUsername) . rights . fmap Persist.Mongo.docToEntityEither
+        $ docList
+
+
+
+-------------------------------------------------------------------------------
+--                                 Questions                                 --
+-------------------------------------------------------------------------------
+
+
+fetchQuestions :: MongoInfo -> Username -> IO [QuestionDTO]
+fetchQuestions mongoConf username' = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [QuestionDTO]
+    fetchAction = do
+      cursor <- Mongo.Query.find
+        ( ( Mongo.Query.select ["user_answers.username" =: ["$ne" =: username']] "questions")
+          { Mongo.Query.project = ["survey_answers" =: (0::Int), "user_answers" =: (0::Int)]
+          , Mongo.Query.limit = 10
+          }
+        )
+      docList <- Mongo.Query.rest cursor
+      return $ fmap questionToQuestionDTO . rights . fmap Persist.Mongo.docToEntityEither $ docList
+
+
+postAnswer :: MongoInfo -> Username -> AnswerDTO -> IO (Either ServantErr Text)
+postAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf postAction
+  where
+    postAction :: Action IO (Either ServantErr Text)
+    postAction = if response > 5 || response < 1 then return . Left
+      $ err416 { errBody = "answer must be an integer between 1 and 5" }
+      else do
+        answerToInsert <- liftIO $ answerFromAnswerInfo username' response
+        case Persist.Mongo.readMayObjectId id' of
+          Just oId -> do
+            _ <- Mongo.Query.modify
+              ( Mongo.Query.select ["_id" =: oId, "user_answers.username" =: [ "$ne" =: (username'::Text)]] "questions")
+              ["$push" =: ["user_answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
+            return . Right $ "Successfully inserted"
+          Nothing -> return . Left $ err406 { errBody = "No such ID" }
+
+    answerFromAnswerInfo :: Username -> Int -> IO UserAnswer
+    answerFromAnswerInfo name score' = do
+      currentTime <- Clock.getCurrentTime
+      return UserAnswer
+          { userAnswerUsername = name
+          , userAnswerScore = score'
+          , userAnswerTime = currentTime
+          }
+
+
+-------------------------------------------------------------------------------
+--                                 HELPERS                                   --
+-------------------------------------------------------------------------------
+
+--runAction :: MonadIO m => MongoInfo -> Action m b -> m b
+runAction mongoConf action = Persist.Mongo.withConnection mongoConf $
+  \pool -> Persist.Mongo.runMongoDBPoolDef action pool
+
+
+conversationEntityToConversationPreviewDTO :: Text -> Entity Conversation -> ConversationPreviewDTO
+conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversationPreview
+  where
+    members = getField @"conversationMembers" convo
+    message = last $ getField @"conversationMessages" convo
+    conversationPreview = ConversationPreviewDTO
+      { convoWithUsername = if head members == username then last members else head members
+      , isLastAuthor = username == getField @"messageAuthor" message
+      , body = getField @"messageText" message
+      , timeStamp = getField @"messageTime" message
+      }
+
+
+userEntityToUserDTO :: Entity User -> UserDTO
+userEntityToUserDTO (Entity _ user) = UserDTO
+  { username    = userUsername user
+  , gender      = userGender user
+  , birthday    = userBirthday user
+  , town        = userTown user
+  , profileText = userProfileText user
+  , imageUrl    = userImage user
+  }
+
+
+userEntityToLoggedInDTO :: Entity User -> LoggedInDTO
+userEntityToLoggedInDTO (Entity _ user) = LoggedInDTO
+  { username  = getField @"userUsername"  user
+  , authToken = getField @"userAuthToken" user}
+
+convoEntityToConversationDTO :: Entity Conversation -> Text -> ConversationDTO
+convoEntityToConversationDTO (Entity _ convo) username = conversationDTO
+  where
+    conversationDTO = ConversationDTO
+      { convoWithUsername = username
+      , messages = map messageToMessageDTO (conversationMessages convo)
+      }
+
+messageToMessageDTO :: Message -> MessageDTO
+messageToMessageDTO message = messageDTO
+  where
+    messageDTO = MessageDTO
+      { authorUsername = messageAuthor message
+      , timeStamp = messageTime message
+      , body = messageText message
+      }
+
+questionToQuestionDTO :: Entity Question -> QuestionDTO
+questionToQuestionDTO (Entity key q) = QuestionDTO
+  { id = Persist.Mongo.keyToText $ Persist.Mongo.toBackendKey key
+  , question = getField @"questionText" q
+  }
+
+hashPassword :: Text -> Text -> Text
+hashPassword password salt = T.pack $ show hashed
+  where
+    passPlusSalt = encodeUtf8 (password <> salt)
+    hashed = hash passPlusSalt :: Digest SHA3_512
+
+
+getQuestions :: IO [Question]
+getQuestions = runAction localMongoInfo action
+  where
+    entityQuestionToQuestion :: Entity Question -> Question
+    entityQuestionToQuestion (Entity _ q) = q
+    action :: Action IO [Question]
+    action = fmap entityQuestionToQuestion <$> selectList [] []
+
+
+
+deleteEverything :: IO ()
+deleteEverything = do
+  _ <- deleteEverythingInDB
+  content <- listDirectory "frontend/img/users"
+  traverse_ removeSingleFile (map ("frontend/img/users/" ++) content)
+  return ()
+
+removeSingleFile :: FilePath -> IO ()
+removeSingleFile path =
+  if path == "frontend/img/users/.gitignore" then
     return ()
+  else
+    removeFile path
+
+deleteEverythingInDB :: IO ()
+deleteEverythingInDB = runAction localMongoInfo action
+  where
+    action :: Action IO ()
+    action = do
+      _ <- Mongo.Query.delete $ Mongo.Query.select [] "users"
+      _ <- Mongo.Query.delete $ Mongo.Query.select [] "conversations"
+      _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
+      return ()

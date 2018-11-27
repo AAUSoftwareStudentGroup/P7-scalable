@@ -7,7 +7,8 @@
 @import "skeleton";
 @import "helpers";
 @import "forms";
-
+@import "scrollbars";
+@import "messages";
 
 %button {
     @extend %txt-button;
@@ -31,7 +32,13 @@
 .flat-btn {
     @extend %button;
 
+    height: 1rem;
+    line-height: 1rem;
     color: $txt-col-light;
+
+    .material-icons {
+        line-height: 1rem;
+    }
 
     &:hover {
         color: $pri-col;
@@ -61,29 +68,67 @@ button, .btn {
     }
 }
 
-.message {
-    &.author-me {
-        justify-self: right;
-    }
+.toasts {
+    position: fixed;
+    right: 1rem;
+    top: $header-height;
+    z-index: 1;
 
-    &.author-friend {
-        justify-self: left;
+    .toast {
+        margin-top: 1rem;
+        background-color: white;
+        padding: .3rem 1rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid #852929;
+        display: block;
+        border-radius: 0.2rem;
     }
 }
 
-.user-card {
-    height: 5rem;
-    border: 2px solid grey;
-    border-radius: .5rem;
-    box-sizing: content-box;
-    
-    align-items: center;
-    
-    img {
-        height: 4rem;
-        margin: .5rem;
-        border: 2px solid blue;
-        border-radius: 5rem;
+.property {
+    span {
+        display: block;
+    }
+}
 
-    } 
+
+.user-card {
+    @extend %shadow-1;
+
+    .profile-image {
+        width: 100px;
+
+        div {
+            width: 100%;
+            height: 100px;
+            background-position: center;
+            background-size: cover;
+        }
+    }
+
+    .pri-title {
+        margin: 1rem;
+    }
+
+    p {
+        font-size: 0.9rem;
+        line-height: 1.2rem;
+        font-weight: $txt-weight-light;
+        color: $txt-col-dark;
+
+        margin: 0 1rem 1rem 1rem;
+        height: 3.6rem;
+        overflow: hidden;
+    }
+
+    .flat-btn {
+        margin: 0 0
+        1rem -7px;
+    }
+}
+
+
+.preview-image {
+    max-width: 10rem;
+    max-height: 10rem;
 }

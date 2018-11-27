@@ -14,19 +14,19 @@
 
 module Schema where
 
-import           Data.Int                      (Int64)
 import           Data.Text                     (Text)
 import           Data.Time.Calendar            (Day)
 import           Data.Time.Clock               (UTCTime)
-import           Database.Persist              (Entity (..), Key)
+import           Database.Persist.MongoDB
 import qualified Database.Persist.TH           as PTH
-import           Elm                           (ElmType)
-import           Elm.Export.Persist
-import           Elm.Export.Persist.BackendKey ()
 import           GHC.Generics                  (Generic)
+import           Language.Haskell.TH.Syntax
+
 import           SchemaEnums
 
-PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persistLowerCase|
+
+let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneric = False}
+ in PTH.share [PTH.mkPersist mongoSettings] [PTH.persistLowerCase|
   User json sql=users
     email           Text
     password        Text
@@ -35,30 +35,40 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
     birthday        Day
     town            Text
     profileText     Text
+    image           Text
     authToken       Text
+    salt            Text
     UniqueEmail     email
-    UniqueUser      username
+    UniqueUsername  username
     UniqueAuthToken authToken
     deriving Show Read Eq Generic
 
   Conversation json sql=conversations
-    userOneId UserId
-    userTwoId UserId
+    members  [Text]
+    messages [Message]
     deriving Show Read Eq Generic
 
   Message json sql=messages
-    conversationId ConversationId
-    authorId       UserId
-    authorName     Text
-    timeStamp      UTCTime
-    body           Text
+    author   Text
+    time     UTCTime
+    text     Text
     deriving Show Read Eq Generic
+
+  Question json sql=questions
+    text            Text
+    survey_answers  [SurveyAnswer]
+    user_answers    [UserAnswer]
+    deriving Show Read Eq Generic
+
+  SurveyAnswer json sql=survey_answers
+    respondent_id   Int
+    score           Int
+    deriving Show Read Eq Generic
+
+  UserAnswer json sql=user_answers
+    username        Text
+    score           Int
+    time            UTCTime
+    deriving Show Read Eq Generic
+
 |]
-
-instance ElmType User
-instance ElmType Message
-instance ElmType Conversation
-
-deriving instance ElmType UserId
-deriving instance ElmType MessageId
-deriving instance ElmType ConversationId

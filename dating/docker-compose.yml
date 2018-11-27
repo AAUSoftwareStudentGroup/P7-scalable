@@ -1,34 +1,5 @@
 version: '3'
 services:
-    postgres:
-        restart: always
-        image: postgres:9.6
-        ports:
-          - "5432:5432"
-        environment:
-          - POSTGRES_USER=datingdbuser
-          - POSTGRES_PASSWORD=datingdbpassword
-          - POSTGRES_DB=datingdb
-        volumes:
-          - ./docker/postgres/data:/var/lib/postgresql
-
-    mongodb:
-        image: 'bitnami/mongodb:latest'
-        user: root
-        ports:
-            - "27017:27017"
-        environment:
-            - MONGODB_ROOT_PASSWORD=strangerdanger
-            - MONGODB_USERNAME=datingdbuser
-            - MONGODB_PASSWORD=datingdbpassword
-            - MONGODB_DATABASE=datingdb
-        volumes:
-            - ./docker/mongodb/data:/bitnami
-
-    redis:
-      image: redis:4.0
-      ports:
-        - "6379:6379"
     dating:
         build: ./
         image: dating
@@ -38,33 +9,40 @@ services:
         ports:
            - "1234:1234"
 
-    nginx:
-        build: ./docker/nginx
-        image: nginx
-        ports:
-          - "8002:80"
-
-
-    caddy:
-      image: abiosoft/caddy
-      ports:
-        - "80:80"
-#        - "443:443"
-      volumes:
-        - "./frontend:/srv/elm-frontend"
-        - "./docker/caddy/Caddyfile:/etc/Caddyfile"
-
     elm:
         build: ./docker/elm
         image: elm
         volumes:
             - ./frontend/:/opt/app
-        ports:
-            - "8001:8000"
-        #command: "bash -c \"ls -lah ./**/*.elm\""
-        command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.js --debug\\\"\""
+        command: "bash -c \"shopt -s globstar; onchange ./src/ \\\"elm make src/Main.elm --output main.dev.js --debug\\\" \\\"elm make src/Main.elm --output main.prod.js --optimize\\\" \"" 
+
+    caddy:
+      image: abiosoft/caddy
+      ports:
+        - "80:80"
+      volumes:
+        - "./frontend:/srv/elm-frontend"
+        - "./docker/caddy/Caddyfile:/etc/Caddyfile"
+
     sass:
       image: larryprice/sass
       volumes:
         - ./frontend/style:/src
 
+    redis:
+      image: redis:4.0
+
+    mongodb:
+        image: 'bitnami/mongodb:latest'
+        user: root
+        ports:
+            - "8020:27017"
+        environment:
+            - MONGODB_ROOT_PASSWORD=strangerdanger
+            - MONGODB_USERNAME=datingdbuser
+            - MONGODB_PASSWORD=datingdbpassword
+            - MONGODB_DATABASE=datingdb
+        volumes:
+            - ./docker/mongodb/data:/bitnami
+        logging:
+            driver: "none"

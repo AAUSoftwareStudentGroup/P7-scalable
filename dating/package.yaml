@@ -15,16 +15,17 @@ library:
   - Database
   - Schema
   - SchemaEnums
-  - Authentication
+  - FrontendTypes
   dependencies:
   - base >=4.7 && <5
   - wai
   - aeson
   - monad-logger
+  - bson
   - mtl
   - persistent
-  - persistent-postgresql
   - persistent-template
+  - persistent-mongoDB
   - servant
   - servant-client
   - servant-elm
@@ -34,18 +35,27 @@ library:
   - warp
   - hedis
   - bytestring
-  - elm-export
   - wai-cors
   - time
   - cookie
   - containers
   - http-client
-  - esqueleto
-  - elm-export-persistent
-  - servant-elm
   - servant-foreign
   - random
+  - network
+  - template-haskell
+  - generic-lens
+  - lens
+  - mongoDB
+  - QuickCheck
+  - quickcheck-text
+  - quickcheck-instances
+  - cryptonite
+  - JuicyPixels
+  - base64-bytestring
+  - strict
   - hmatrix
+  - directory
 executables:
   dating:
     main: Main.hs
@@ -54,6 +64,12 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    #- -Wall
+    #- -fno-warn-orphans
+    #- -Wcompat
+    #- -Wincomplete-record-updates
+    #- -Wincomplete-uni-patterns
+    #- -Wredundant-constraints
     dependencies:
     - base
     - dating
@@ -65,9 +81,15 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Wcompat
+    - -Wincomplete-record-updates
+    - -Wincomplete-uni-patterns
+    - -Wredundant-constraints
     dependencies:
     - base
     - hspec
+    - QuickCheck
     - http-client
     - http-client-tls
     - monad-logger

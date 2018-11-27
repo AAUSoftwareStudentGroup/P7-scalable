@@ -8,8 +8,11 @@ import Validate exposing (Validator, Valid)
 import Http
 import String
 
-import DatingApi as Api exposing (User, Credentials)
-import Session exposing (Session, Details)
+
+import Api.Authentication exposing (UserInfo, Credentials)
+import Api.Users exposing (User)
+import Session exposing (Session, PageType(..), Details)
+import Common as Common
 import Routing exposing (Route(..))
 import UI.Elements as El
 
@@ -18,13 +21,13 @@ import UI.Elements as El
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , errors : List (Error)
+    { session   : Session
+    , title     : String
+    , errors    : List (Error)
     , attemptedSubmission: Bool
-    , username : String
-    , password : String
-    , response : Maybe String
+    , username  : String
+    , password  : String
+    , response  : Maybe String
     }
 
 type alias Error =
@@ -56,8 +59,7 @@ init session =
 type Msg
     = FormFieldChanged FormField String
     | Submitted
-    | HandleUserLogin (Result Http.Error User)
-
+    | HandleUserLogin (Result Http.Error UserInfo)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -80,11 +82,25 @@ update msg model =
 
         HandleUserLogin result ->
             case result of
-                Ok user ->
-                    ( model, Session.login user )
+                Ok userInfo ->
+                    ( model, Session.login userInfo )
 
                 Err errResponse ->
-                    ( handleErrorResponse model errResponse, Cmd.none )
+                    case errResponse of
+                        Http.BadUrl url ->
+                            ( { model | session = Session.addNotification model.session ("Bad url: " ++ url) }, Cmd.none )
+
+                        Http.BadPayload _ _ ->
+                            ( { model | session = Session.addNotification model.session "Invalid data sent to server" }, Cmd.none )
+
+                        Http.Timeout ->
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
+
+                        Http.NetworkError ->
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
+
+                        Http.BadStatus statusResponse ->
+                            ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
 
 
 setField : Model -> FormField -> String -> Model
@@ -113,38 +129,9 @@ credsFromValidForm validForm =
         Credentials model.username model.password
 
 
-sendLogin : (Result Http.Error User -> msg) -> Credentials -> Cmd msg
+sendLogin : (Result Http.Error UserInfo -> msg) -> Credentials -> Cmd msg
 sendLogin responseMsg creds =
-    Http.send responseMsg (Api.postLogin creds)
-
-
-handleErrorResponse : Model -> Http.Error -> Model
-handleErrorResponse model errResponse =
-    case errResponse of
-        Http.BadUrl url ->
-            { model | response = Just <| "Bad url: " ++ url }
-
-        Http.BadPayload _ _ ->
-            { model | response = Just "Bad payload" }
-
-        Http.Timeout ->
-            { model | response = Just "Timeout" }
-
-        Http.NetworkError ->
-            { model | response = Just "Networkerror" }
-
-        Http.BadStatus statusResponse ->
-            { model | response = Just <| "Badstatus" ++ .body statusResponse }
-
-
-responseToString : Maybe String -> String
-responseToString r =
-    case r of
-        Just msg ->
-            msg
-
-        Nothing ->
-            ""
+    Http.send responseMsg (Api.Users.postLogin creds)
 
 
 -- SUBSCRIPTIONS
@@ -161,20 +148,20 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.contentWithHeader "Sign in"
+    , kids = Scrollable
+        <| El.titledContent "Sign in"
             [ Html.form [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )
                             , ( "s-12", True )
                             ]
+                        --, Events.onSubmit (FuckNotifications "Test")
                         , Events.onSubmit Submitted
                         ]
-                [ El.validatedInput Username "text" "Username" model.username FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Password "password" "Password" model.password FormFieldChanged model.errors model.attemptedSubmission
+                [ El.validatedInput Username "text" "Username" model.username FormFieldChanged True model.errors model.attemptedSubmission
+                , El.validatedInput Password "password" "Password" model.password FormFieldChanged True model.errors model.attemptedSubmission
                 , El.submitButton "Sign in"
                 ]
-            , Html.text (responseToString model.response)
             ]
     }
 

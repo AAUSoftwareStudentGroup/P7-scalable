@@ -1,14 +1,23 @@
 http://api.dating.local {
-    cors
-    proxy / 0.0.0.0:8002
+
+    cors / {
+	    allowed_headers   *
+	    exposed_headers   *
+    }
+
+    proxy / dating:1234
+    log / stdout "{remote} - [{when}] {status} {method} 	API{uri}"
     tls off
 }
 
 http://dating.local {
     cors
     tls off
-    
+
+    gzip
+
     root /srv/elm-frontend
+    log / stdout "{remote} - [{when}] {status} {method} 	ELM{uri}"
 
     rewrite {
         to {path} {path}/ /index.html?path={path}

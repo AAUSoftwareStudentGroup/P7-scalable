@@ -1,0 +1,160 @@
+Q1	I get angry easily.
+Q2	I am filled with doubts about things.
+Q3	I feel others' emotions.
+Q4	I respect authority.
+Q5	I carry out my plans.
+Q6	I like order.
+Q7	I make friends easily.
+Q8	I take charge.
+Q9	I am quick to understand things.
+Q10	I enjoy the beauty of nature.
+Q11	I'd be interested in taking a sail-boat around the world.
+Q12	I like horror movies.
+Q13	I have traveled alone in a foreign country.
+Q14	I think the holocaust has been exaggerated.
+Q15	I am a feminist.
+Q16	I would not want my children to be gay/lesbian.
+Q17	I hate feminists.
+Q18	I believe in evolution.
+Q19	I think the government assassinates its own citizens.
+Q20	I do not respect copyright laws.
+Q21	There are important biological brain differences between men and women.
+Q22	I like to watch figure skating.
+Q23	I think alien life exists in the universe.
+Q24	I started drinking alcohol at a young age.
+Q25	I do not support drinking age laws.
+Q26	I'm interested in psychedelic drugs.
+Q27	I laugh at people who do stupid things and get hurt.
+Q28	I think the police are corrupt.
+Q29	I think spanking children is reasonable.
+Q30	I make sexual jokes.
+Q31	I like guns.
+Q32	I don't think PTSD is real.
+Q33	I think all drugs ought to be legalized.
+Q34	I would use counterfeit money if I could get away with it.
+Q35	I laugh at jokes that would offend some people.
+Q36	I have set fuel or chemicals on fire for fun.
+Q37	I do not like the idea of genetically engineered foods.
+Q38	I hope mankind makes contact with aliens within my lifetime.
+Q39	I am frequently overcome with giggles.
+Q40	I think vegetarianism is stupid.
+Q41	I believe that we should be tough on crime.
+Q42	I like to explore old mines.
+Q43	I think college fraternities ought to be banned.
+Q44	I support the death penalty.
+Q45	I think "that is what she said" jokes are funny.
+Q46	I have smoked a lot of marijuana in my life.
+Q47	I think there are some things science can't explain.
+Q48	I like pranks.
+Q49	I seldom joke around.
+Q50	I would never associate with criminals.
+Q51	I think poverty in Africa is mostly the fault of European colonialism.
+Q52	I like to drink alcohol.
+Q53	I think there are too many safety regulations in the work place.
+Q54	I am disgusted by obesity.
+Q55	I think archery is a cool hobby.
+Q56	I make jokes that offend some people.
+Q57	I love flowers.
+Q58	I like tattoos.
+Q59	I think intelligence is genetic.
+Q60	I want to be cremated when I die.
+Q61	I don't like libertarians.
+Q62	I worry about technology robbing us of our humanity.
+Q63	I wish magic were real.
+Q64	I support conservative politicians.
+Q65	I kind of hope society collapses sometimes.
+Q66	I have thought about dying my hair.
+Q67	I think political correctness is a problem.
+Q68	I am disgusted by cigarette smoking.
+Q69	I expect artificial intelligence to be developed within my lifetime.
+Q70	I enjoy setting off fireworks.
+Q71	I speak more than one language.
+Q72	I enjoy watching terrible movies to laugh at them.
+Q73	I would be open to dating a transsexual person.
+Q74	I take deviant positions.
+Q75	I attend protests.
+Q76	I'd boo a performance I did not like.
+Q77	I worry about falling victim to a scam.
+Q78	I watch movies with subtitles.
+Q79	I believe in sexual modesty.
+Q80	I believe that religion is foolish.
+Q81	I think horoscopes are fun.
+Q82	I sometimes litter.
+Q83	I think vampires are stupid.
+Q84	I am interested in conspiracy theories.
+Q85	I think I have seen a ghost.
+Q86	I eat at fast food restaurants.
+Q87	I like to talk about food and restaurants.
+Q88	I think hitchhiking should be illegal.
+Q89	I do not enjoy watching dance performances.
+Q90	I think most people are unintelligent.
+Q91	I often make jokes about politics.
+Q92	I have been kicked out of a place.
+Q93	I'd help my mother get away with murder if she needed my help.
+Q94	I'm interested in ballet shows.
+Q95	I have always wanted to be rich.
+Q96	I look down upon those who suffer from depression.
+Q97	I think cosplay (dressing up as fiction characters) is stupid.
+Q98	I think the Olympics Games are a waste of money.
+Q99	I believe in an eye for an eye.
+Q100	I have considered suicide.
+Q101	I believe that people are essentially evil.
+Q102	Spirituality is important to me.
+Q103	I have played a lot of video games.
+Q104	I swear a lot.
+Q105	I go to coffee shops.
+Q106	I love children's movies.
+Q107	I'd enjoy working on a submarine.
+Q108	I think everyone should to go to college.
+Q109	I like stand-up comedy.
+Q110	I enjoy movies about sports.
+Q111	I have kept a personal journal.
+Q112	I like death metal music.
+Q113	I am nerdy.
+Q114	I try to undermine gender stereotypes with my behavior.
+Q115	I playfully insult people.
+Q116	I think there are too many tests in school.
+Q117	I gamble with money sometimes.
+Q118	I yell at inanimate objects.
+Q119	I believe in a universal power or God.
+Q120	I doubt reports of so-called "mystical experiences."
+Q121	I like super hero movies.
+Q122	I like to talk about other people I know (gossip).
+Q123	I like rap music.
+Q124	I hate people.
+Q125	I want to own an expensive car.
+Q126	I think fishing is a cool hobby.
+Q127	I like heist films.
+Q128	I watch a lot comedy videos on the internet.
+Q129	I respect authority.
+Q130	I like to be weird.
+Q131	I would like to be a hacker.
+Q132	I would never get plastic surgery.
+Q133	I believe people should fend for themselves.
+Q134	I'd be interested in going to Mars, even if it was a one way trip.
+Q135	I have hit rock bottom.
+Q136	I worry the corporations are destroying the environment.
+Q137	I would prefer watching a comedy show to visiting a museum.
+Q138	I do not enjoy movies that do not have a villain.
+Q139	I would like to be a race-car driver.
+Q140	I am a high status person.
+Q141	I would enjoy living in the old wild west.
+Q142	I give to charity.
+Q143	I use facebook every day.
+Q144	I like to go camping and hiking.
+Q145	I believe that there are universal truths.
+Q146	I like to play boardgames.
+Q147	I would enjoy being a dentist.
+Q148	I greet people with hugs.
+Q149	I often chew gum.
+Q150	I like abstract art.
+Q151	I would enjoy being a fighter pilot.
+Q152	I like art films.
+Q153	I enjoy feeling blue.
+Q154	I would like to climb Mt. Everest.
+Q155	I do not like concerts.
+Q156	I like to go to fancy parties.
+Q157	I feel nature is more powerful than humans.
+Q158	I am interested in fashion.
+Q159	I would want to learn to play the flute.
+Q160	I get mad at people when they make a mistake and make a mess.

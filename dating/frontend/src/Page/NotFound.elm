@@ -2,7 +2,7 @@ module Page.NotFound exposing (Content(..), Messages, Model, createModel, Msg(..
 
 import Html exposing (Html, div)
 import Routing exposing (..)
-import Session exposing (Session, Details)
+import Session exposing (Session, Details, PageType(..))
 
 
 
@@ -10,9 +10,9 @@ import Session exposing (Session, Details)
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , content : Content
+    { session   : Session
+    , title     : String
+    , content   : Content
     }
 
 
@@ -67,6 +67,6 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        [ Html.text "This page was not found" ]
+    , kids = Scrollable
+        <| [ Html.text "This page was not found" ]
     }

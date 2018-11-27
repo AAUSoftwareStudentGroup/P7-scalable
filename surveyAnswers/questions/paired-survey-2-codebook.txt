@@ -1,0 +1,160 @@
+F2Q1	I worry about things.
+F2Q2	I get angry easily.
+F2Q3	I often feel blue.
+F2Q4	I am easily intimidated.
+F2Q5	I often eat too much.
+F2Q6	I panic easily.
+F2Q7	I make friends easily.
+F2Q8	I love large parties.
+F2Q9	I take charge.
+F2Q10	I am always busy.
+F2Q11	I love excitement.
+F2Q12	I radiate joy.
+F2Q13	I have a vivid imagination.
+F2Q14	I believe in the importance of art.
+F2Q15	I experience my emotions intensely.
+F2Q16	I prefer variety to routine.
+F2Q17	I like to solve complex problems.
+F2Q18	I tend to vote for liberal political candidates.
+F2Q19	I trust others.
+F2Q20	I would never cheat on my taxes.
+F2Q21	I make people feel welcome.
+F2Q22	I am easy to satisfy.
+F2Q23	I dislike being the center of attention.
+F2Q24	I sympathize with the homeless.
+F2Q25	I complete tasks successfully.
+F2Q26	I like order.
+F2Q27	I try to follow the rules.
+F2Q28	I go straight for the goal.
+F2Q29	I get chores done right away.
+F2Q30	I avoid mistakes.
+F2Q31	I slam doors.
+F2Q32	I get annoyed by people kissing in public.
+F2Q33	I am interested in science fiction.
+F2Q34	I'd be interested in taking a sail-boat around the world.
+F2Q35	I do things that others find strange.
+F2Q36	I would enjoy living in Ancient Rome.
+F2Q37	I was an outcast in school.
+F2Q38	I don't like black and white movies.
+F2Q39	I do not like poetry.
+F2Q40	I played sports in high school.
+F2Q41	I can name nearly all the countries in the world.
+F2Q42	I give money to the homeless.
+F2Q43	I think the media is biased.
+F2Q44	I have never not wanted to have children.
+F2Q45	I spend a lot of time on the internet.
+F2Q46	I am interested in economics.
+F2Q47	I think most people are boring.
+F2Q48	I have a deep voice.
+F2Q49	I would enjoy being a farmer.
+F2Q50	I would enjoy counselling the suicidal.
+F2Q51	I start fights.
+F2Q52	I often make puns.
+F2Q53	I like to knit.
+F2Q54	I get teased a lot.
+F2Q55	I know how to program computers.
+F2Q56	I take care to recycle.
+F2Q57	I am pleasure-seeking.
+F2Q58	I could run a mile (1.6km) without stopping.
+F2Q59	Sexual jokes make me uncomfortable.
+F2Q60	I would enjoy taking a painting class.
+F2Q61	I have travelled alone in a foreign country.
+F2Q62	I usually end up laughing if the people around me are laughing.
+F2Q63	I jump up and down in excitement sometimes.
+F2Q64	I don't hesitate to criticize others.
+F2Q65	I would enjoy working on a ship.
+F2Q66	I have never yelled at anyone.
+F2Q67	I would enjoy being a CEO.
+F2Q68	I do things out of revenge.
+F2Q69	I am masculine.
+F2Q70	I am wearing headphones most of the time.
+F2Q71	I demand perfection in others.
+F2Q72	I would never watch a romantic comedy.
+F2Q73	I do not think much about sex.
+F2Q74	I like to play sports.
+F2Q75	I look forward to each new day.
+F2Q76	I do crossword puzzles sometimes.
+F2Q77	I care about justice.
+F2Q78	I get obsessed with TV shows.
+F2Q79	I do not trust doctors.
+F2Q80	I trust in luck.
+F2Q81	I laugh a lot.
+F2Q82	I would enjoy being a librarian.
+F2Q83	I judge people by their appearance.
+F2Q84	I am happy with my life.
+F2Q85	I wanted to be in the air force as a child.
+F2Q86	I am not interested in theoretical discussions.
+F2Q87	I make puns.
+F2Q88	I did not work very hard in school.
+F2Q89	I treat all people equally.
+F2Q90	I send birthday greetings.
+F2Q91	I make self-deprecating jokes all the time.
+F2Q92	I like to wrestle with people.
+F2Q93	I shower every day.
+F2Q94	I am very sarcastic.
+F2Q95	I hate classical music.
+F2Q96	I enjoy intellectual games.
+F2Q97	I have a rich vocabulary.
+F2Q98	I would enjoy dropping everything and going to live on a sailboat.
+F2Q99	I often tell embarrassing stories about myself.
+F2Q100	I like people who are musical.
+F2Q101	I enjoy playing trivia games.
+F2Q102	I am considered to be kind of eccentric.
+F2Q103	I like to take and share pictures of my life.
+F2Q104	I wish that I could be part of a revolution.
+F2Q105	I am super cool.
+F2Q106	I pay attention to internet memes.
+F2Q107	I memorizes pop-song lyrics.
+F2Q108	I know a bunch about celebrities.
+F2Q109	I donate money to fundraisers.
+F2Q110	I think gambling is stupid.
+F2Q111	I am very protective of my property.
+F2Q112	I dislike being complimented.
+F2Q113	I think the idea of replacing food with a meal replacement shake is crazy.
+F2Q114	I rebel against rules.
+F2Q115	I am not rude, just socially awkward.
+F2Q116	I can do some physical stunts (e.g. back-flip).
+F2Q117	I would not enjoy visiting an art gallery.
+F2Q118	I treat people as inferiors.
+F2Q119	My hands shake sometimes.
+F2Q120	I would be interested in being a homicide detective.
+F2Q121	I often take on a teacher role with people I know.
+F2Q122	I worry about people taking my ideas.
+F2Q123	I let others do the work in groups.
+F2Q124	I rarely look for a deeper meaning in things.
+F2Q125	I like gruesome movies.
+F2Q126	I put up with anything.
+F2Q127	I have some chronic medical issues.
+F2Q128	I am bothered by bad grammar.
+F2Q129	I would never go to therapy.
+F2Q130	I'm interested in sky diving.
+F2Q131	I own a lot of stuff.
+F2Q132	I avoid philosophical discussions.
+F2Q133	I like to criticize how unrealistic movies are.
+F2Q134	I hang pictures or posters on my wall.
+F2Q135	I am always in the moment.
+F2Q136	I am very attractive to the opposite sex.
+F2Q137	There are some things I would never try.
+F2Q138	I am filled with doubts about things.
+F2Q139	I would enjoy being a school teacher.
+F2Q140	I know the periodic table of the elements well.
+F2Q141	I act wild and crazy.
+F2Q142	I would enjoy being a veterinarian.
+F2Q143	I love to go on crazy adventures.
+F2Q144	I am attached to conventional ways.
+F2Q145	I feel a lot of empathy.
+F2Q146	I could live with never having children.
+F2Q147	I don't think meditation is worthwhile.
+F2Q148	I sometimes ruin my jokes by laughing in the middle of them.
+F2Q149	I yell at people.
+F2Q150	I spend hours alone with my hobbies.
+F2Q151	I would enjoy taking a painting class.
+F2Q152	My room is messy.
+F2Q153	I rush into things.
+F2Q154	I take a long time to reply to messages.
+F2Q155	I am a very heavy sleeper.
+F2Q156	I am a feminist.
+F2Q157	I have smoked a lot of marijuana in my life.
+F2Q158	I eat a lot of ice cream.
+F2Q159	I only want to be friends with a small percentage of people.
+F2Q160	I don't really like live music.

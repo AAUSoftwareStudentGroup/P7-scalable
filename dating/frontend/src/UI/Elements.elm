@@ -4,23 +4,48 @@ module UI.Elements exposing (..)
 import Html exposing (Html, Attribute, div)
 import Html.Attributes as Attributes exposing (class, classList, src)
 import Html.Events as Events
+import Html.Lazy as Lazy
+import Json.Decode as Decode
 import String.Extra exposing (toSentenceCase)
 
 import Routing exposing (Route(..))
-import Session exposing (Session)
+import Session exposing (Details, PageType(..), Session, Notification)
+import Api.Types exposing (Gender(..), Image)
+import Api.Users exposing (User)
 
 import Random
 
 
-site : (a -> msg) -> List (Html a) -> Session -> List (Html msg)
-site toMsg children session =
-    [ div [class "main-wrapper" ]
-        [ header session
-        , content toMsg children
-        , footer
-        ]
-    ]
+site : Session.Details msgA -> (msgA -> msgB) -> List (Html msgB)
+site details toMsg =
+    let
+        session = details.session
+        body =
+            case details.kids of
+                Scrollable children ->
+                    Lazy.lazy2 content toMsg children
+                Fixed children ->
+                    Lazy.lazy2 fixedContent toMsg children
 
+    in
+        [ Lazy.lazy toasts session
+        , div [ class "main-wrapper" ]
+            [ Lazy.lazy header session
+            , body
+            , footer
+            ]
+        ]
+
+toasts : Session -> Html msg
+toasts session =
+    div [ class "toasts" ]
+        (List.map toast (Session.getNotifications session))
+
+
+toast : Notification -> Html msg
+toast notification =
+    Html.p [ class "toast" ]
+        [ Html.text notification ]
 
 header : Session -> Html msg
 header session =
@@ -40,7 +65,11 @@ header session =
 
 headerLogo : Html msg
 headerLogo =
-    div [ class "l-6" ]
+    div [ classList
+            [ ( "l-6", True )
+            , ( "s-8", True )
+            ]
+        ]
         [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
             [ Html.i [ class "material-icons" ]
                 [ Html.text "favorite" ]
@@ -53,7 +82,10 @@ headerNav : Session -> Html msg
 headerNav session =
     Html.nav
         [ classList
-            [ ( "l-6", True ) ]
+            [ ( "l-6", True )
+            , ( "s-4", True )
+            , ( "closed", True )
+            ]
         ]
         [ Html.ul []
             (headerNavLinks session)
@@ -63,14 +95,15 @@ headerNav session =
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
-        Session.LoggedIn _ userInfo ->
-            [ headerNavLink (Routing.routeToString Messages) "Messages"
+        Session.LoggedIn _ _ userInfo ->
+            [ headerNavLink (Routing.routeToString Survey) "Survey"
+            , headerNavLink (Routing.routeToString Messages) "Messages"
             , headerNavLink (Routing.routeToString ListUsers) "All users"
-            , headerNavLink (Routing.routeToString (Profile userInfo.userId)) "My profile"
+            , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
-        Session.Guest _ ->
+        Session.Guest _ _ ->
             [ headerNavLink (Routing.routeToString CreateUser) "Sign up"
             , headerNavLink (Routing.routeToString Login) "Sign in"
             ]
@@ -104,44 +137,108 @@ content toMsg children =
     )
 
 
-contentWithHeader : String -> List (Html msg) -> List (Html msg)
-contentWithHeader heading contents =
-    [ Html.h1 [ class "l-12"]
+fixedContent : (a -> msg) -> List (Html a) -> Html msg
+fixedContent toMsg children =
+    Html.map toMsg (
+        div [ classList
+                [ ( "content-container", True )
+                , ( "fixed", True )
+                , ( "grid", True )
+                ]
+            ]
+            children
+    )
+
+
+titledContent : String -> List (Html msg) -> List (Html msg)
+titledContent heading contents =
+    [ Html.h1
+        [ classList
+            [ ( "content-title", True )
+            , ( "l-12", True )
+            , ( "s-12", True )
+            ]
+        ]
         [ Html.text heading ]
     ] ++ contents
 
 
-userCard : String -> Int -> Html msg
-userCard username userId =
-    Html.li 
-        [ classList [ ( "user-card", True )
-                    , ( "l-12", True )
-                    , ( "s-12", True )
-                    , ( "grid", True )
+titledContentLoader : Bool -> String -> List (Html msg) -> List (Html msg)
+titledContentLoader isLoaded heading contents =
+    if isLoaded then
+        titledContent heading contents
+    else
+        titledContent heading loader
+
+loader : List (Html msg)
+loader =
+    [ div [ class "loading-spinner" ] [] ]
+
+userCard : User -> Html msg
+userCard user =
+    let
+        username = user.username
+        gender = Api.Types.genderToString user.gender
+        age = "23"
+        bio = user.profileText
+    in
+        Html.li
+            [ classList [ ( "user-card", True )
+                        , ( "l-4", True )
+                        , ( "s-12", True )
+                        ]
+            ]
+            [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile username)) ]
+                [ div [ Attributes.style "background-image" ("url(" ++ user.image ++ ")") ] [] ]
+            , div [ class "pri-title" ]
+                [ Html.h2 []
+                    [ Html.text (toSentenceCase username) ]
+                , Html.h3 []
+                    [ Html.text (gender ++ " - " ++ age) ]
+                ]
+            , Html.p []
+                [ Html.text bio ]
+            , linkButtonFlat
+                [ classList
+                    [ ("l-2", True)
+                    , ("s-2", True)
                     ]
-        ]
-        [ Html.a [ Attributes.href (Routing.routeToString (Profile userId)) ]
-                 [ Html.img [ src ("https://randomuser.me/api/portraits/men/"++(String.fromInt userId)++".jpg") ] [] ]
-        , Html.span 
-            [ classList [ ("l-7", True), ("s-7", True) ] ] 
-            [ Html.text (toSentenceCase username) ]
-        , linkButtonFlat
-            [ classList
-                [ ("l-2", True)
-                , ("s-2", True)
                 ]
-            ]
-            (Routing.routeToString (Profile userId))
-            [ iconText "Profile" "perm_identity" ]
-        , linkButtonFlat
-            [ classList
-                [ ("l-2", True)
-                , ("s-2", True)
+                (Routing.routeToString (Profile username))
+                [ iconText "Profile" "perm_identity" ]
+            , linkButtonFlat
+                [ classList
+                    [ ("l-2", True)
+                    , ("s-2", True)
+                    ]
                 ]
+                (Routing.routeToString (Chat username))
+                [ iconText "Chat" "chat" ]
             ]
-            (Routing.routeToString (Chat userId))
-            [ iconText "Chat" "chat" ]
-        ]
+
+
+avatarUrl : User -> String
+avatarUrl user =
+    let
+        genderString =
+            case user.gender of
+                Male ->
+                    "men"
+                Female ->
+                    "women"
+                Other ->
+                    "lego"
+        maxId =
+            case user.gender of
+                Male ->
+                    100
+                Female ->
+                    100
+                Other ->
+                    9
+    in
+        "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ user.username ++ ".jpg"
+
 
 iconText : String -> String -> Html msg
 iconText label iconName =
@@ -153,21 +250,33 @@ iconText label iconName =
 materialIcon : String -> Html msg
 materialIcon iconName = 
     Html.i [ class "material-icons" ]
-        [Html.text iconName ]
+        [ Html.text iconName ]
 
 
 textProperty : String -> String -> Html msg
 textProperty labelText propertyText =
-    div []
-        [ Html.text labelText
-        , Html.text propertyText
+    div
+        [ classList
+            [ ( "property", True )
+            , ( "l-6", True )
+            ]
         ]
-
+        [ Html.span []
+            [ Html.text labelText ]
+        , Html.span []
+            [ Html.text propertyText ]
+        ]
 
 paragraphProperty : String -> String -> Html msg
 paragraphProperty labelText propertyText =
-    div []
-        [ Html.text labelText
+    div
+        [ classList
+            [ ( "property", True )
+            , ( "l-12", True )
+            ]
+        ]
+        [ Html.span []
+            [ Html.text labelText ]
         , Html.p []
             [ Html.text propertyText ]
         ]
@@ -185,12 +294,12 @@ linkButtonFlat attributes url children =
 
 msgButton : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
 msgButton attributes msg children =
-    Html.a ([ class "btn", Events.onClick msg ] ++ attributes)
+    Html.div ([ class "btn", Events.onClick msg ] ++ attributes)
         children
 
 msgButtonFlat : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
 msgButtonFlat attributes msg children =
-    Html.a ([ class "flat-btn", Events.onClick msg ] ++ attributes)
+    Html.div ([ class "flat-btn", Events.onClick msg ] ++ attributes)
         children
 
 link : String -> String -> Html msg
@@ -198,20 +307,24 @@ link url caption =
     Html.a [ Attributes.href url ]
         [ Html.text caption ]
 
-validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> List ((fieldType, String)) -> Bool -> Html msg
-validatedInput field typ caption value toMsg errors showErrors =
+validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Html msg
+validatedInput field typ caption value toMsg required errors showErrors =
     let
         relevantErrors = List.filter (\( f, _ ) -> f == field) errors
+        empty = value == ""
+        valid = relevantErrors == []
     in
         div [ classList
                 [ ( "input-group", True )
                 , ( "l-6", True )
                 , ( "s-12", True )
+                , ( "empty", empty )
+                , ( "valid", valid )
                 , ( "valid", relevantErrors == [] )
                 ]
             ]
             [ Html.label []
-                [ simpleInput typ caption value (toMsg field)
+                [ simpleInput typ caption value (toMsg field) required
                 , Html.span [ class "label" ]
                     [ Html.text caption ]
                 , Html.span [ class "border" ] []
@@ -224,6 +337,38 @@ validatedInput field typ caption value toMsg errors showErrors =
                 ]
                 [ severestFieldError relevantErrors ]
             ]
+
+asyncValidatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Bool -> Html msg
+asyncValidatedInput field typ caption value toMsg required errors showErrors pending =
+    let
+        relevantErrors = List.filter (\( f, _ ) -> f == field) errors
+        empty = value == ""
+        valid = relevantErrors == []
+    in
+        div [ classList
+                [ ( "input-group", True )
+                , ( "l-6", True )
+                , ( "s-12", True )
+                , ( "empty", empty )
+                , ( "valid", valid )
+                , ( "pending", pending )
+                ]
+            ]
+            [ Html.label []
+                [ simpleInput typ caption value (toMsg field) required
+                , Html.span [ class "label" ]
+                    [ Html.text caption ]
+                , Html.span [ class "border" ] []
+                ]
+            , Html.span
+                [ classList
+                    [ ( "errors", True )
+                    , ( "hidden", not showErrors )
+                    ]
+                ]
+                [ severestFieldError relevantErrors ]
+            ]
+
 
 
 severestFieldError : List ((fieldtype, String)) -> Html msg
@@ -263,12 +408,48 @@ radio caption toMsg model value =
         ]
 
 
-simpleInput : String -> String -> String -> (String -> msg) -> Html msg
-simpleInput typ placeholder value toMsg =
+simpleInput : String -> String -> String -> (String -> msg) -> Bool -> Html msg
+simpleInput typ placeholder value toMsg required =
     if typ == "multiline" then
         Html.textarea [ Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
     else
-        Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
+        Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Attributes.required required, Events.onInput toMsg ] []
+
+
+imageInput : String -> msg -> Maybe Image -> Html msg
+imageInput caption imageSelectedMsg maybeImage =
+    let
+        imagePreview =
+            case maybeImage of
+                Just image ->
+                    imageElement image [("preview-image", True)]
+                Nothing ->
+                    Html.text ""
+    in
+        div
+        [ classList
+            [ ( "image-input-group", True )
+            , ( "l-6", True )
+            , ( "l-12", True )
+            ]
+        ]
+        [ Html.input
+            [ Attributes.type_ "file"
+            , Attributes.accept "image/*"
+            , Events.on "change" (Decode.succeed imageSelectedMsg)
+            ]
+            []
+        , imagePreview
+        ]
+
+imageElement : Image -> List (String, Bool) -> Html msg
+imageElement image classes =
+  Html.img
+    [ Attributes.src image.contents
+    , Attributes.title image.filename
+    , classList classes
+    ]
+    []
 
 
 submitButton : String -> Html msg

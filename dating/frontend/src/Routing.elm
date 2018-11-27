@@ -1,10 +1,11 @@
-module Routing exposing (Route(..), fromUrl, href, replaceUrl, pushUrl, routeToString)
+module Routing exposing (Route(..), href, replaceUrl, goToLogin, pushUrl, routeToString)
 
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string, int)
+import Url.Parser as Parser exposing ((</>), (<?>), Parser, oneOf, s)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
+
 
 -- ROUTING
 
@@ -16,8 +17,9 @@ type Route
     | Logout
     | ListUsers
     | Messages
-    | Profile Int
-    | Chat Int
+    | Profile String
+    | Chat String
+    | Survey
 
 
 parser : Parser (Route -> a) a
@@ -25,12 +27,13 @@ parser =
     oneOf
         [ Parser.map Home Parser.top
         , Parser.map Login (s "login")
-        , Parser.map Login (s "logout")
+        , Parser.map Logout (s "logout")
         , Parser.map CreateUser (s "create-user")
-        , Parser.map ListUsers (s "list-users")  
+        , Parser.map ListUsers (s "list-users")
         , Parser.map Messages (s "messages")
-        , Parser.map Profile (s "user" </> int)
-        , Parser.map Chat (s "chat" </> int)
+        , Parser.map Profile (s "user" </> Parser.string)
+        , Parser.map Chat (s "chat" </> Parser.string)
+        , Parser.map Survey (s "survey")
         ]
 
 
@@ -42,24 +45,17 @@ href : Route -> Attribute msg
 href targetRoute =
     Attr.href (routeToString targetRoute)
 
-
 replaceUrl : Nav.Key -> String -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key route
 
+goToLogin : Nav.Key -> Cmd msg
+goToLogin key =
+    replaceUrl key (routeToString Login)
+
 pushUrl : Nav.Key -> String -> Cmd msg
 pushUrl key route =
     Nav.pushUrl key route
-
-fromUrl : Url -> Maybe Route
-fromUrl url =
-    -- The RealWorld spec treats the fragment like a path.
-    -- This makes it *literally* the path, so we can proceed
-    -- with parsing as if it had been a normal path all along.
-    { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
-        |> Parser.parse parser
-
-
 
 -- INTERNAL
 
@@ -71,8 +67,9 @@ routeToString page =
             case page of
                 Home ->
                     []
+
                 CreateUser ->
-                    ["create-user"]
+                    [ "create-user" ]
 
                 Login ->
                     [ "login" ]
@@ -82,15 +79,30 @@ routeToString page =
 
                 ListUsers ->
                     [ "list-users" ]
-                
+
                 Messages ->
                     [ "messages" ]
 
-                Profile id ->
-                    [ "user", String.fromInt id ]
+                Profile username ->
+                    [ "user", username ]
 
-                Chat idFriend ->
-                    [ "chat", String.fromInt idFriend ]
+                Chat username ->
+                    [ "chat", username ]
 
+                Survey ->
+                    [ "survey" ]
     in
-    "/" ++ String.join "/" pieces
+        "/" ++ String.join "/" pieces
+
+
+
+
+
+
+
+
+
+
+
+
+

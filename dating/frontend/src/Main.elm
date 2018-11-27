@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Element exposing (..)
 import Html exposing (Html)
 import Url
-import Url.Parser as Parser exposing ((</>), Parser, custom, fragment, map, oneOf, s, top)
+import Url.Parser as Parser exposing ((</>), Parser, top)
 import Url.Parser.Query as Query
 import Json.Encode as Encode
 import Json.Decode as Decode
@@ -13,18 +13,23 @@ import Time as Time
 import Http as Http
 
 import Page.CreateUser as CreateUser
+import Page.Home as Home
 import Page.ListUsers as ListUsers
+import Page.Login as Login exposing (subscriptions)
 import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
+import Page.Survey as Survey
 import Page.Login as Login
 import Page.Logout as Logout
 import Page.Chat as Chat
 import Url
 import Session exposing (Session)
-import DatingApi as DatingApi exposing (Message, getRecentMessages)
+import Api.Messages exposing (ConversationPreview)
 import Routing as Routing
 import UI.Elements as El
+
+
 
 -- MAIN
 
@@ -40,6 +45,8 @@ main =
         , onUrlRequest = LinkClicked
         }
 
+
+
 -- MODEL
 
 
@@ -49,33 +56,46 @@ type alias Model =
     , numMessages : Int
     }
 
+
 type Page
     = NotFound NotFound.Model
     | CreateUser CreateUser.Model
     | Login Login.Model
     | Logout Logout.Model
+    | Home Home.Model
     | ListUsers ListUsers.Model
     | Messages Messages.Model
     | Profile Profile.Model
     | Chat Chat.Model
+    | Survey Survey.Model
 
 
 init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeValue url key =
-    stepUrl url
-        { key = key
-        , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-        , numMessages = 0}
-
+    if String.startsWith "path=" (Maybe.withDefault "" url.query) then
+        (
+            { key = key
+            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
+            , numMessages = 0
+            },
+            Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
+        )
+    else
+        stepUrl url
+            { key = key
+            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
+            , numMessages = 0
+            }
 
 
 -- VIEW
+
 
 view : Model -> Browser.Document Msg
 view model =
     case model.page of
         NotFound notFoundModel ->
-            viewContent NotFoundMsg  (NotFound.view notFoundModel)
+            viewContent NotFoundMsg (NotFound.view notFoundModel)
 
         CreateUser createUserModel ->
             viewContent CreateUserMsg (CreateUser.view createUserModel)
@@ -85,6 +105,9 @@ view model =
 
         Logout logoutModel ->
             viewContent LogoutMsg (Logout.view logoutModel)
+
+        Home homeModel ->
+            viewContent HomeMsg (Home.view homeModel)
 
         Messages messagesModel ->
             viewContent MessagesMsg (Messages.view messagesModel)
@@ -98,15 +121,19 @@ view model =
         Profile profileModel ->
             viewContent ProfileMsg (Profile.view profileModel)
 
+        Survey surveyModel ->
+            viewContent SurveyMsg (Survey.view surveyModel)
+
 
 viewContent : (a -> msg) -> Session.Details a -> Browser.Document msg
 viewContent toMsg details =
     { title = details.title
-    , body = El.site toMsg details.kids details.session
+    , body = El.site details toMsg
     }
 
 
 -- SUBSCRIPTIONS
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -124,6 +151,9 @@ subscriptions model =
             Logout logoutModel ->
                 Sub.map LogoutMsg (Logout.subscriptions logoutModel)
 
+            Home homeModel ->
+                Sub.map HomeMsg (Home.subscriptions homeModel)
+
             Messages messagesModel ->
                 Sub.map MessagesMsg (Messages.subscriptions messagesModel)
 
@@ -136,10 +166,16 @@ subscriptions model =
             Chat chatModel ->
                 Sub.map ChatMsg (Chat.subscriptions chatModel)
 
+            Survey surveyModel ->
+                Sub.map SurveyMsg (Survey.subscriptions surveyModel)
+
         , Session.onChange SessionChanged (Session.getNavKey (getSession model))
 
       --, Time.every 1000 GetNumMessages
     ]
+
+
+
 
 
 -- UPDATE
@@ -151,16 +187,19 @@ type Msg
   | UrlChanged Url.Url
   | NotFoundMsg NotFound.Msg
   | CreateUserMsg CreateUser.Msg
+  | HomeMsg Home.Msg
   | ListUsersMsg ListUsers.Msg
   | LoginMsg Login.Msg
   | LogoutMsg Logout.Msg
   | MessagesMsg Messages.Msg
   | ProfileMsg Profile.Msg
   | ChatMsg Chat.Msg
+  | SurveyMsg Survey.Msg
   | SessionChanged Session
   | LogOutClicked
   | GetNumMessages Time.Posix
-  | HandleGetMessages (Result Http.Error (List Message))
+  | HandleGetMessages (Result Http.Error (List ConversationPreview))
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
@@ -211,24 +250,33 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
+        HomeMsg msg ->
+            case model.page of
+                Home homeModel ->
+                    stepHome model (Home.update msg homeModel)
+                _ -> ( model, Cmd.none )
+
         ListUsersMsg msg ->
             case model.page of
                 ListUsers listUsersModel ->
                     stepListUsers model (ListUsers.update msg listUsersModel)
-                _ -> ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
 
         ProfileMsg msg ->
             case model.page of
                 Profile profileModel ->
                     stepProfile model (Profile.update msg profileModel)
-                _ -> ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
         MessagesMsg msg ->
             case model.page of
                 Messages messagesModel ->
                     stepMessages model (Messages.update msg messagesModel)
-                _ -> ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
         ChatMsg msg ->
             case model.page of
@@ -236,13 +284,19 @@ update message model =
                     stepChat model (Chat.update msg chat)
                 _ -> ( model, Cmd.none )
 
+        SurveyMsg msg ->
+            case model.page of
+                Survey surveyModel ->
+                    stepSurvey model (Survey.update msg surveyModel)
+                _ -> ( model, Cmd.none )
+
         SessionChanged session ->
             case session of
-                Session.Guest key ->
+                Session.Guest key _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.Home)
                     )
-                Session.LoggedIn key _ ->
+                Session.LoggedIn key _ _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
                     )
@@ -257,10 +311,10 @@ update message model =
         HandleGetMessages result ->
             case result of
                 Ok fetchedMessages ->
-                    Debug.log (Debug.toString fetchedMessages) ( {model | numMessages = (Debug.log "length: "(List.length fetchedMessages)) }, Cmd.none)
+                    ( {model | numMessages = List.length fetchedMessages }, Cmd.none)
 
                 Err errResponse ->
-                    Debug.log (Debug.toString errResponse) ( model, Cmd.none )
+                    ( model, Cmd.none )
 
 
 
@@ -279,6 +333,9 @@ replacePage page session =
         Logout m ->
             Logout { m | session = session }
 
+        Home m ->
+             Home { m | session = session }
+
         ListUsers m ->
              ListUsers { m | session = session }
 
@@ -291,12 +348,17 @@ replacePage page session =
         Chat m ->
              Chat { m | session = session }
 
+        Survey m ->
+             Survey { m | session = session }
+
+
 
 stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )
 stepNotFound model ( notFoundModel, cmds ) =
     ( { model | page = NotFound notFoundModel }
     , Cmd.map NotFoundMsg cmds
     )
+
 
 stepCreateUser : Model -> ( CreateUser.Model, Cmd CreateUser.Msg ) -> ( Model, Cmd Msg )
 stepCreateUser model ( createUserModel, cmds ) =
@@ -316,17 +378,25 @@ stepLogout model ( logoutModel, cmds ) =
     , Cmd.map LogoutMsg cmds
     )
 
+stepHome : Model -> ( Home.Model, Cmd Home.Msg ) -> ( Model, Cmd Msg )
+stepHome model (homeModel, cmds) =
+    ( { model | page = Home homeModel}
+    , Cmd.map HomeMsg cmds
+    )
+
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
-stepListUsers model (listUsersModel, cmds) =
-    ( { model | page = ListUsers listUsersModel}
+stepListUsers model ( listUsersModel, cmds ) =
+    ( { model | page = ListUsers listUsersModel }
     , Cmd.map ListUsersMsg cmds
     )
 
+
 stepProfile : Model -> ( Profile.Model, Cmd Profile.Msg ) -> ( Model, Cmd Msg )
-stepProfile model (profileModel, cmds) =
+stepProfile model ( profileModel, cmds ) =
     ( { model | page = Profile profileModel }
     , Cmd.map ProfileMsg cmds
     )
+
 
 stepMessages : Model -> ( Messages.Model, Cmd Messages.Msg ) -> ( Model, Cmd Msg )
 stepMessages model ( messagesModel, cmds ) =
@@ -340,13 +410,20 @@ stepChat model ( chat, cmds ) =
     , Cmd.map ChatMsg cmds
     )
 
-sendGetMessages : (Result Http.Error (List Message) -> msg) -> Session -> Cmd msg
+sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
-        Session.LoggedIn _ userInfo ->
-            Http.send responseMsg (getRecentMessages userInfo)
-        Session.Guest _ ->
+        Session.LoggedIn _ _ userInfo ->
+            Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
+        Session.Guest _ _ ->
             Cmd.none
+
+stepSurvey : Model -> ( Survey.Model, Cmd Survey.Msg ) -> ( Model, Cmd Msg )
+stepSurvey model ( surveyModel, cmds ) =
+    ( { model | page = Survey surveyModel }
+    , Cmd.map SurveyMsg cmds
+    )
+
 
 
 -- SESSION
@@ -366,6 +443,9 @@ getSession model =
         Logout m ->
             m.session
 
+        Home m ->
+            m.session
+
         ListUsers m ->
             m.session
 
@@ -378,6 +458,9 @@ getSession model =
         Chat m ->
             m.session
 
+        Survey m ->
+            m.session
+
 
 stepUrl : Url.Url -> Model -> ( Model, Cmd Msg )
 stepUrl url model =
@@ -385,32 +468,30 @@ stepUrl url model =
         session =
             getSession model
 
-        queryToPathUrl =
-            { url | path = Maybe.withDefault ("path="++url.path) url.query, query = Nothing}
-
         parser =
-            s "path=" </>
-            oneOf
-                [ route (s "Main.elm")
-                    (stepLogin model (Login.init session))
-                , route (s "create-user")
+            Parser.oneOf
+                [ route top
+                    (stepHome model (Home.init session))
+                , route (Parser.s "create-user")
                     (stepCreateUser model (CreateUser.init session))
-                , route (s "login")
+                , route (Parser.s "login")
                     (stepLogin model (Login.init session))
-                , route (s "logout")
+                , route (Parser.s "logout")
                     (stepLogout model (Logout.init session))
-                , route (s "list-users")
-                    ( stepListUsers model (ListUsers.init session))
-                , route (s "user" </> Parser.int)
-                    (\id -> stepProfile model (Profile.init session (Debug.log "idParsed" id)))
-                , route (s "messages")
+                , route (Parser.s "list-users")
+                    (stepListUsers model (ListUsers.init session))
+                , route (Parser.s "user" </> Parser.string)
+                    (\username -> stepProfile model (Profile.init session username))
+                , route (Parser.s "messages")
                     (stepMessages model (Messages.init session))
-                , route (s "chat" </> Parser.int)
-                    (\idFriend -> stepChat model (Chat.init session idFriend))
+                , route (Parser.s "chat" </> Parser.string)
+                    (\username -> stepChat model (Chat.init session username))
+                , route (Parser.s "survey")
+                    (stepSurvey model (Survey.init session))
                 ]
 
     in
-        case Parser.parse parser (Debug.log "queryToPathUrl:" queryToPathUrl) of
+        case Parser.parse parser {url | path = Maybe.withDefault url.path (Url.percentDecode url.path)} of
             Just answer ->
                 answer
 

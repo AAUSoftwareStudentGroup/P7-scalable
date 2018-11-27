@@ -1,4 +1,4 @@
-port module Session exposing (Session(..), Details, getNavKey, getUserId, getUsername, onChange, login, logout, createSessionFromLocalStorageValue)
+port module Session exposing (Session(..), PageType(..), Notification, Details, getNavKey, getUsername, getUserToken, addNotification, getNotifications, onChange, login, logout, createSessionFromLocalStorageValue)
 
 import Browser.Navigation as Nav
 import Html exposing (Html)
@@ -6,67 +6,91 @@ import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
 
-import DatingApi as Api exposing (User, UserInfo)
-
+import Api.Users
+import Api.Authentication exposing (Token, UserInfo)
 
 -- TYPES
 type Session
-    = LoggedIn Nav.Key UserInfo
-    | Guest Nav.Key
+    = LoggedIn Nav.Key (List Notification) UserInfo
+    | Guest Nav.Key (List Notification)
 
+type PageType msg
+    = Scrollable (List (Html msg))
+    | Fixed (List (Html msg))
+
+type alias Notification = String
 
 type alias Details msg =
     { title : String
     , session : Session
-    , kids : List (Html msg)
+    , kids : PageType msg
     }
 
 
 empty : Nav.Key -> Session
-empty key = Guest key
+empty key = Guest key []
 
 getNavKey : Session -> Nav.Key
 getNavKey session =
     case session of
-        LoggedIn key _ ->
+        LoggedIn key _ _ ->
             key
 
-        Guest key ->
+        Guest key _ ->
             key
 
 getUserInfo : Session -> Maybe UserInfo
 getUserInfo session =
     case session of
-        LoggedIn _ userInfo ->
+        LoggedIn _ _ userInfo ->
             Just userInfo
 
-        Guest _ ->
-            Nothing
-
-getUserId : Session -> Maybe Int
-getUserId session =
-    case session of
-        LoggedIn _ userInfo ->
-            Just userInfo.userId
-        Guest _ ->
+        Guest _ _ ->
             Nothing
 
 
 getUsername : Session -> Maybe String
 getUsername session =
     case session of
-        LoggedIn _ userInfo ->
+        LoggedIn _ _ userInfo ->
             Just userInfo.username
-        Guest _ ->
+        Guest _ _ ->
             Nothing
+
+getUserToken : Session -> Token
+getUserToken session =
+    case session of
+        LoggedIn _ _ userInfo ->
+            userInfo.authToken
+
+        Guest _ _ ->
+            ""
+
+addNotification : Session -> Notification -> Session
+addNotification session notification =
+    case session of
+        LoggedIn nav notifications userInfo ->
+            LoggedIn nav (notification :: notifications) userInfo
+
+        Guest nav notifications ->
+            Guest nav (notification :: notifications)
+
+getNotifications : Session -> List Notification
+getNotifications session =
+    case session of
+        LoggedIn _ notifications _ ->
+            notifications
+
+        Guest _ notifications ->
+            notifications
 
 -- PERSISTENCE
 
 port storeLocally : Maybe Encode.Value -> Cmd msg
 
-login : User -> Cmd msg
-login user =
-    storeLocally (Just (encodeUserInfo (userInfoFromUser user)))
+login : UserInfo -> Cmd msg
+login userInfo =
+    storeLocally (Just (Api.Users.encodeUserInfo userInfo))
 
 
 logout : Cmd msg
@@ -78,7 +102,7 @@ port onStoreChange : (Maybe Encode.Value -> msg) -> Sub msg
 
 onChange : (Session -> msg) -> Nav.Key -> Sub msg
 onChange toMsg key =
-    onStoreChange (\value -> toMsg (Debug.log "Changed token" (createSessionFromLocalStorageValue value key)))
+    onStoreChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
 
 
 -- HELPERS
@@ -87,37 +111,17 @@ createSessionFromLocalStorageValue : Maybe Encode.Value -> Nav.Key -> Session
 createSessionFromLocalStorageValue maybeValue key =
   case maybeValue of
       Nothing ->
-        Guest key
+        Guest key []
 
       Just encodedSession ->
           case (decodeLocalStorageSession encodedSession) of
               Err _ ->
-                  Guest key
+                  Guest key []
               Ok token ->
-                  LoggedIn key token
+                  LoggedIn key [] token
 
 
 decodeLocalStorageSession : Encode.Value -> Result Decode.Error UserInfo
 decodeLocalStorageSession val =
     Decode.decodeValue Decode.string val
-      |> Result.andThen(\str -> Decode.decodeString userInfoDecoder str)
-
-
-userInfoFromUser : User -> UserInfo
-userInfoFromUser user =
-    UserInfo user.userId user.userAuthToken user.userUsername
-
-userInfoDecoder : Decoder UserInfo
-userInfoDecoder =
-    succeed UserInfo
-        |> required "userId" Decode.int
-        |> required "authToken" Decode.string
-        |> required "userUsername" Decode.string
-
-encodeUserInfo : UserInfo -> Encode.Value
-encodeUserInfo userInfo =
-    Encode.object
-        [ ( "userId", Encode.int userInfo.userId )
-        , ( "authToken", Encode.string userInfo.authToken )
-        , ( "userUsername", Encode.string userInfo.username )
-        ]
+      |> Result.andThen(\str -> Decode.decodeString Api.Users.decodeUserInfo str)

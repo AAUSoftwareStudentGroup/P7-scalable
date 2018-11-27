@@ -58,23 +58,24 @@ $txt-weight-bold: 800;
 
 %txt-title {
     font-size: $txt-size-1;
-    line-height: $txt-lh-1;
+    line-height: $txt-size-1;
     font-weight: $txt-weight-light;
     color: $txt-col-dark;
 }
 
 %txt-heading {
     font-size: $txt-size-2;
-    line-height: $txt-lh-2;
+    line-height: $txt-lh-5;
     font-weight: $txt-weight-light;
     color: $txt-col-dark;
 }
 
+
 %txt-subheading {
-    font-size: $txt-size-3;
-    line-height: $txt-lh-3;
-    font-weight: $txt-weight-medium;
-    color: $txt-col-dark;
+    font-size: 1rem;
+    line-height: 1rem;
+    font-weight: $txt-weight-regular;
+    color: $txt-col-light;
 }
 
 %txt-paragraph {
@@ -109,7 +110,7 @@ $txt-weight-bold: 800;
 %txt-label {
     font-size: $txt-size-6;
     line-height: $txt-lh-6;
-    font-weight: $txt-weight-medium;
+    font-weight: $txt-weight-regular;
     color: $txt-col-light;
 }
 
@@ -135,7 +136,7 @@ html {
 
     p {
         @extend %txt-paragraph;
-        padding: 10px 0;
+        //padding: 10px 0;
     }
 
     input {

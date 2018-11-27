@@ -1,0 +1,66 @@
+.conversation-with {
+    @extend %txt-heading;
+}
+
+.conversation-last-message {
+    @extend %txt-subheading;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.messages, .convos {
+    height: 70vh;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.conversation {
+    margin-bottom: 1rem;
+    cursor: pointer;
+
+    &.active span {
+        font-weight: 500;
+    }
+
+    span {
+        display: block;
+    }
+}
+
+.message {
+    width: 100%;
+    clear: both;
+
+    div {
+        max-width: 40%;
+        margin-bottom: 0.2rem;
+        padding: 0.6rem;
+        border-radius: 0.8rem;
+        overflow-wrap: break-word;
+    }
+
+    &.author-me div {
+        @extend %txt-white;
+        border-radius: 0.8em 0.2em 0.2em 0.8em;
+        float: right;
+        background-color: $pri-col-light;
+    }
+    &.author-friend div {
+        border-radius: 0.2em 0.8em 0.8em 0.2em;
+        float: left;
+        background-color: $bg-col-light;
+    }
+
+    &.is-first-in-group.author-me div     { border-top-right-radius: 0.8em; }
+    &.is-last-in-group.author-me div      { border-bottom-right-radius: 0.8em; }
+    &.is-first-in-group.author-friend div { border-top-left-radius: 0.8em; }
+    &.is-last-in-group.author-friend div  { border-bottom-left-radius: 0.8em; }
+}
+
+.messages {
+    li {
+        margin-bottom: 1rem;
+    }
+}

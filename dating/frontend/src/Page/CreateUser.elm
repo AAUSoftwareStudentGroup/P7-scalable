@@ -1,8 +1,7 @@
 module Page.CreateUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import DatingApi as Api exposing (Gender(..), User)
 import Html exposing (Html, div)
-import Html.Attributes as Attributes exposing (class, classList)
+import Html.Attributes as Attributes exposing (class, classList, style, attribute)
 import Html.Events as Events exposing (onClick)
 import Validate exposing (Validator, Valid)
 import String
@@ -10,8 +9,13 @@ import Http
 
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
-import Session exposing (Session)
+import Session exposing (Session, PageType(..))
+import Ports.FileUploadPort exposing (FilePortData, fileSelected, fileContentRead)
 import UI.Elements as El
+
+import Api.Types exposing (Gender(..), Image)
+import Api.Authentication exposing (UserInfo)
+import Api.Users exposing (NewUser)
 
 
 
@@ -19,24 +23,27 @@ import UI.Elements as El
 
 
 type alias Model =
-    { session : Session
-    , title : String
-    , response : Maybe String
-    , errors : List (Error)
-    , attemptedSubmission: Bool
-    , email : String
-    , username : String
+    { session   : Session
+    , title     : String
+    , errors    : List (Error)
+    , attemptedSubmission : Bool
+    , checkingUsername : Bool
+    , usernameOk : Bool
+    , email     : String
+    , username  : String
     , password1 : String
     , password2 : String
-    , gender : Gender
-    , birthday : String
-    , city : String
-    , bio : String
+    , gender    : Gender
+    , birthday  : String
+    , city      : String
+    , bio       : String
+    , mImage    : Maybe Image
     }
 
 
 type alias Error =
     ( FormField, String )
+
 
 type FormField
     = Email
@@ -50,7 +57,7 @@ type FormField
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( updateErrors (Model session "New user" Nothing [] False "" "" "" "" Male "" "" "")
+    ( updateErrors (Model session "New user" [] False False False "" "" "" "" Male "" "" "" Nothing)
     , Cmd.none
     )
 
@@ -61,20 +68,63 @@ init session =
 type Msg
     = FormFieldChanged FormField String
     | GenderChanged Gender
+    | UsernameChecked (Result Http.Error Bool)
+    | FileSelected
+    | FileRead FilePortData
     | Submitted
-    | HandleUserCreated (Result Http.Error Int)
+    | HandleUserCreated (Result Http.Error UserInfo)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FormFieldChanged field value ->
-            ( updateErrors <| setField model field value
-            , Cmd.none
-            )
+            case field of
+                Username ->
+                    if value == "" then
+                        ( updateErrors <| setField model field value
+                        , Cmd.none
+                        )
+                    else
+                        ( updateErrors <| setField { model | checkingUsername = True } field value
+                        , sendCheckUsername UsernameChecked value
+                        )
+                _ ->
+                    ( updateErrors <| setField model field value
+                    , Cmd.none
+                    )
 
         GenderChanged newGender ->
             ( { model | gender = newGender }, Cmd.none )
+
+        UsernameChecked result ->
+            case result of
+                Ok alreadyExists ->
+                    ( updateErrors <| { model | checkingUsername = False, usernameOk = not alreadyExists }
+                    , Cmd.none
+                    )
+                Err _ ->
+                    ( { model | checkingUsername = False }
+                    , Cmd.none
+                    )
+
+        FileSelected ->
+            ( model
+            , fileSelected ()
+            )
+
+        FileRead portData ->
+            let
+                image = Just (Image portData.contents portData.fileName)
+            in
+                if portData.error == "" then
+                    ( { model | mImage = image }
+                    , Cmd.none
+                    )
+                else
+                    ( { model | mImage = Nothing, session = Session.addNotification model.session portData.error }
+                    , Cmd.none
+                    )
 
         Submitted ->
             case Validate.validate modelValidator model of
@@ -89,25 +139,26 @@ update msg model =
 
         HandleUserCreated result ->
             case result of
-                Ok uid ->
-                    ( model, Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Login) )
+                Ok userInfo ->
+                    ( model, Session.login userInfo)
 
                 Err errResponse ->
                     case errResponse of
                         Http.BadUrl url ->
-                            ( { model | response = Just <| "Bad url: " ++ url }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session ("Bad url: " ++ url) }, Cmd.none )
 
                         Http.BadPayload _ _ ->
-                            ( { model | response = Just "bad payload" }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session "Invalid data sent to server" }, Cmd.none )
 
                         Http.Timeout ->
-                            ( { model | response = Just "timeout" }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
 
                         Http.NetworkError ->
-                            ( { model | response = Just "networkerror (server probably crashed)" }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
 
                         Http.BadStatus statusResponse ->
-                            ( { model | response = Just <| "badstatus" ++ .body statusResponse }, Cmd.none )
+                            ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
+
 
 
 setField : Model -> FormField -> String -> Model
@@ -142,19 +193,35 @@ updateErrors model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    fileContentRead FileRead
 
-userFromValidForm : Valid Model -> User
+userFromValidForm : Valid Model -> NewUser
 userFromValidForm validForm =
     userFromModel (Validate.fromValid validForm)
 
-userFromModel : Model -> User
-userFromModel { email, password1, username, gender, birthday, city, bio } =
-    User email password1 username gender birthday city 0 bio "token"
 
-sendCreateUser : (Result Http.Error Int -> msg) -> User -> Cmd msg
+userFromModel : Model -> NewUser
+userFromModel { email, password1, username, gender, birthday, city, bio, mImage } =
+    NewUser email password1 username gender birthday city bio (encodeMaybeImage mImage)
+
+encodeMaybeImage : Maybe Image -> String
+encodeMaybeImage mImg =
+    case mImg of
+        Just img ->
+         case List.head <| List.drop 1 (String.split "base64," img.contents) of
+             Just a -> a
+             Nothing -> ""
+        Nothing -> ""
+
+
+sendCheckUsername : (Result Http.Error (Bool) -> msg) -> String -> Cmd msg
+sendCheckUsername responseMsg username =
+    Http.send responseMsg (Api.Users.getUserAlreadyExists username)
+
+
+sendCreateUser : (Result Http.Error (UserInfo) -> msg) -> NewUser -> Cmd msg
 sendCreateUser responseMsg user =
-    Http.send responseMsg (Api.postUsers user)
+    Http.send responseMsg (Api.Users.postUsers user)
 
 
 responseToString : Maybe String -> String
@@ -173,33 +240,31 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids =
-        El.contentWithHeader model.title
+    , kids = Scrollable
+        <| El.titledContent model.title
             [ Html.form [ classList
                             [ ( "grid", True )
                             , ( "l-12", True )
                             ]
                         , Events.onSubmit Submitted
                         ]
-                [ El.validatedInput Email "email" "Email" model.email FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Username "text" "Username"  model.username FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Password1 "password" "Password" model.password1 FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput City "text" "City" model.city FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Bio "text" "Description" model.bio FormFieldChanged model.errors model.attemptedSubmission
-                , El.validatedInput Birthday "date" "Birthday" model.birthday FormFieldChanged model.errors model.attemptedSubmission
+                [ El.validatedInput Email "email" "Email" model.email FormFieldChanged True model.errors model.attemptedSubmission
+                , El.asyncValidatedInput Username "text" "Username"  model.username FormFieldChanged True model.errors model.attemptedSubmission model.checkingUsername
+                , El.validatedInput Password1 "password" "Password" model.password1 FormFieldChanged True model.errors model.attemptedSubmission
+                , El.validatedInput Password2 "password" "Repeat password"  model.password2 FormFieldChanged True model.errors model.attemptedSubmission
+                , El.validatedInput City "text" "City" model.city FormFieldChanged True model.errors model.attemptedSubmission
+                , El.validatedInput Bio "text" "Description" model.bio FormFieldChanged True model.errors model.attemptedSubmission
+                , El.validatedInput Birthday "date" "Birthday" model.birthday FormFieldChanged True model.errors model.attemptedSubmission
                 , El.labelledRadio "Gender" GenderChanged model.gender
                     [ ( "Male", Male )
                     , ( "Female", Female )
                     , ( "Other", Other )
                     ]
+                , El.imageInput "Profile picture" FileSelected model.mImage
                 , El.submitButton "Sign up"
                 ]
-            , Html.text (responseToString model.response)
             ]
     }
-
-
 
 -- VALIDATION
 
@@ -210,7 +275,7 @@ modelValidator =
         , Validate.ifInvalidEmail .email (\_ -> ( Email, "Please enter a valid email" ))
 
         , Validate.ifBlank .username ( Username, "Please enter a username" )
-        , Validate.ifFalse (\model -> isUsernameValid model) ( Username, "Username already in use" )
+        , Validate.ifFalse (\model -> model.usernameOk) ( Username, "Username already in use" )
 
         , Validate.ifBlank .password1 ( Password1, "Please enter a password" )
         , Validate.ifBlank .password2 ( Password2, "Please repeat your password" )
@@ -224,14 +289,6 @@ modelValidator =
 
         , Validate.ifBlank .bio ( Bio, "Please write a short description" )
         ]
-
-
-isUsernameValid : Model -> Bool
-isUsernameValid model =
-    if model.username == "Bargsteen2" then
-        False
-    else
-        True
 
 
 doPasswordsMatch : Model -> Bool
@@ -267,3 +324,4 @@ isDateValid model =
         day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
     in
         year <= 2000
+

@@ -8,13 +8,13 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
         <link href="/style/style.css" rel="stylesheet">
 
-        <script src="main.js"></script>
+        <script src="main.prod.js"></script>
     </head>
     <body>
         <script>
-            var storageKey = "session";
-            var flags = localStorage.getItem(storageKey);
-            var app = Elm.Main.init({flags: flags});
+            const storageKey = "session";
+            const flags = localStorage.getItem(storageKey);
+            const app = Elm.Main.init({flags: flags});
 
             app.ports.storeLocally.subscribe(function(val) {
                 if (val === null) {
@@ -29,14 +29,182 @@
                 }, 0);
             });
 
-            // Whenever localStorage changes in another tab, report it if necessary.
+            // Whenever localStorage changes in another tab, report it
             window.addEventListener("storage", function(event) {
                 console.log(event);
                 if (event.storageArea === localStorage) {
                     console.log('Calling onStoreChange!');
                     app.ports.onStoreChange.send(event.newValue);
                 }
-            }, false);
+            });
+
+
+            app.ports.fileSelected.subscribe(function () {
+                const node = document.querySelector('input[type="file"]');
+                    if (!node) {
+                        return;
+                    }
+
+                const file = node.files[0];
+
+                // If something other than an image is selected
+                if (file.type.split('/')[0] !== 'image') {
+                    // Remove it
+                    node.value = '';
+
+                    // And send an error to Elm
+                    app.ports.fileContentRead.send({
+                        error: 'Unsupported file type',
+                        contents: '',
+                        fileName: ''
+                    });
+
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                // Connect our FileReader with the file that was selected in our `input` node.
+                reader.readAsDataURL(file);
+
+                // FileReader API is event based. Once a file is selected
+                // it fires events. We hook into the `onload` event for our reader.
+                reader.onload = (function(event) {
+                    // The event carries the `target`. The `target` is the file
+                    // that was selected. The result is base64 encoded contents of the file.
+                    const base64encoded = event.target.result;
+
+                    function imageToDataUri(img, width, height) {
+
+                        // create an off-screen canvas
+                        var canvas = document.createElement('canvas'),
+                            ctx = canvas.getContext('2d');
+
+                        // set its dimension to target size
+                        canvas.width = width;
+                        // canvas.height = height;
+                        canvas.height = img.height*(width/img.width);
+
+                        // draw source image into the off-screen canvas:
+                        ctx.drawImage(img, 0, 0, width, img.height*(width/img.width));
+
+                        // encode image to data-uri with base64 version of compressed image
+                        return canvas.toDataURL('image/jpeg', 0.9);
+                    }
+                    var image = new Image();
+                    image.onload = function() {
+                        const resizedBase64encoded = imageToDataUri(image, 512,512);
+                        
+                        // We call the `fileContentRead` port with the file data
+                        // which will be sent to our Elm runtime via Subscriptions.
+                        app.ports.fileContentRead.send({
+                            error: '',
+                            contents: resizedBase64encoded,
+                            fileName: file.name
+                        });
+                    };
+                    image.src = base64encoded;
+
+                });
+            });
+
+            function getWindowHeight() {
+                const body = document.body;
+                const html = document.documentElement;
+
+                return Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+            }
+
+            const offset = 350;
+            let timeout;
+            let loading = false;
+            let lastHeight = 0;
+
+            function handleScrollDownUsers() {
+                clearTimeout(timeout);
+
+                timeout = setTimeout(function() {
+                    const triggerHeight = getWindowHeight() - window.innerHeight - offset;
+
+                    if (loading) {
+                        if (triggerHeight > lastHeight) {
+                            loading = false;
+                        } else {
+                            return;
+                        }
+                    }
+
+                    if (window.scrollY >= triggerHeight) {
+                        loading = true;
+
+                        app.ports.loadMore.send(true);
+                    }
+
+                    lastHeight = triggerHeight;
+                }, 100);
+            }
+
+            function handleScrollUpMessages() {
+                clearTimeout(timeout);
+
+                timeout = setTimeout(function() {
+                    const triggerHeight = 30;
+                    const el = document.querySelector('.messages');
+                    console.log(loading);
+
+                    if (loading) {
+                        if (el.scrollHeight > lastHeight) {
+                            loading = false;
+                        } else {
+                            return;
+                        }
+                    }
+
+                    if (el.scrollTop <= triggerHeight) {
+                        loading = true;
+
+                        app.ports.loadMore.send(true);
+                    }
+
+                    lastHeight = el.scrollHeight;
+                }, 100);
+            }
+
+            let eventListener = null;
+
+            setInterval(function () {
+                const messages = document.querySelector('.messages');
+
+                if (messages === null) {
+                    eventListener = null;
+                    lastHeight = 0;
+                }
+
+                if (eventListener === null && messages !== null) {
+                    eventListener = messages.addEventListener("scroll", handleScrollUpMessages);
+                }
+            }, 250);
+
+            // Listen for scroll events
+            window.addEventListener("scroll", handleScrollDownUsers);
+        </script>
+
+        <script>
+            const navEl = document.querySelector('header nav');
+
+            document.querySelector('header .logo').addEventListener('click', function (e) {
+                document.body.classList.remove('disableScroll');
+                navEl.classList.add('closed');
+            });
+
+            navEl.addEventListener('click', function (e) {
+                const targetTag = e.target.tagName;
+
+                if (targetTag === 'NAV' || targetTag === 'A') {
+                    document.body.classList.toggle('disableScroll');
+                    navEl.classList.toggle('closed');
+                }
+            });
         </script>
     </body>
 </html>
