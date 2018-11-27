@@ -256,57 +256,28 @@ view model =
     , kids = Fixed
         <| El.titledContentLoader model.loaded "Messages" <|
             if model.previews == [] then
-                [ div
-                    [ classList
-                        [ ( "no-conversations", True )
-                        , ( "l-12", True )
-                        , ( "s-12", True )
-                        ]
-                    ]
-                    [ Html.text "You don't have any conversations. Go check your matches and find someone to chat with." ]
-                ]
+                [ viewNoMessages ]
             else
                 [ div
-                    [ classList
-                        [ ( "messaging-wrapper", True )
-                        , ( "grid", True )
-                        , ( "no-gap", True )
-                        , ( "l-12", True )
-                        , ( "s-12", True )
-                        ]
-                    ]
-                    [ Keyed.ul
-                            [ classList
-                                [ ( "convos", True )
-                                , ( "l-3", True )
-                                , ( "s-12", True )
-                                ]
-                            ]
-                            (List.map (viewConvoKeyed model) model.previews)
-                    , div
-                        [ classList
-                            [ ( "chat", True )
-                            , ( "l-9", True )
-                            , ( "s-12", True )
-                            ]
-                        ]
+                    [ class "messaging-wrapper" ]
+                    [ div
+                        [ class "convos" ]
                         [ Keyed.ul
-                            [ classList
-                                [ ( "messages", True )
-                                , ( "l-12", True )
-                                , ( "l-6", True )
-                                ]
+                            [ class "convo-list" ]
+                            (List.map (viewConvoKeyed model) model.previews)
+                        ]
+                    , div
+                        [ class "messages" ]
+                        [ Keyed.ul
+                            [ class "message-list"
                             , Attributes.id listId
                             ]
                             (viewTopElement model :: (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
                         , Html.form
                             [ Events.onSubmit SendMessage
-                            , classList
-                                [ ( "l-12", True )
-                                , ( "l-6", True )
-                                ]
+                            , class "message-input"
                             ]
-                            [ El.simpleInput "multiline" "Message" model.unsentMessage UnsentMessageChanged False
+                            [ El.simpleInput "text" "Message" model.unsentMessage UnsentMessageChanged False
                             , El.submitButtonHtml
                                 [ El.iconText "Send" "send" ]
                             ]
@@ -314,6 +285,17 @@ view model =
                     ]
                 ]
     }
+
+viewNoMessages : Html Msg
+viewNoMessages =
+    div
+    [ classList
+        [ ( "no-conversations", True )
+        , ( "l-12", True )
+        , ( "s-12", True )
+        ]
+    ]
+    [ Html.text "You don't have any conversations. Go check your matches and find someone to chat with." ]
 
 viewTopElement : Model -> (String, Html Msg)
 viewTopElement model =
@@ -468,7 +450,7 @@ hasConvoWithUser convos username =
 
 newConvoPreview : String -> ConversationPreview
 newConvoPreview username =
-    ConversationPreview username "Write something" False <| Time.millisToPosix 0
+    ConversationPreview username "No messages" False <| Time.millisToPosix 0
 
 
 sendGetConvos : (Result Http.Error (List ConversationPreview) -> msg) -> Model -> Cmd msg
