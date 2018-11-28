@@ -44,11 +44,11 @@ init session initUsername =
         model = initModel session
     in
         case session of
-            Session.Guest _ _ ->
+            Session.Guest _ _ _ ->
                 ( model
                 , Routing.goToLogin (Session.getNavKey session)
                 )
-            Session.LoggedIn _ _ userInfo ->
+            Session.LoggedIn _ _ _ userInfo ->
                 ( { model | usernameSelf = userInfo.username, chattingWith = Maybe.withDefault "" initUsername }
                 , sendGetConvos HandleInitConvos model
                 )
@@ -78,16 +78,16 @@ update msg model =
 
         GetConvos _ ->
             case (model.session) of
-                Session.Guest _ _ ->
+                Session.Guest _ _ _ ->
                     ( model, Cmd.none)
-                Session.LoggedIn _ _ userInfo ->
+                Session.LoggedIn _ _ _ userInfo ->
                     ( model, sendGetConvos HandleGetConvos model)
 
         GetNewMessages _ ->
             case (model.session) of
-                Session.Guest _ _ ->
+                Session.Guest _ _ _ ->
                     ( model, Cmd.none)
-                Session.LoggedIn _ _ userInfo ->
+                Session.LoggedIn _ _ _ userInfo ->
                     ( model, sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize)
 
         HandleInitConvos result ->
@@ -456,27 +456,27 @@ newConvoPreview username =
 sendGetConvos : (Result Http.Error (List ConversationPreview) -> msg) -> Model -> Cmd msg
 sendGetConvos responseMsg model =
     case model.session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
 
 
 sendGetMessages : (Result Http.Error Conversation -> msg) -> String -> Model -> Int -> Int -> Cmd msg
 sendGetMessages responseMsg username model offset numMessages =
     case model.session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getMessagesFromUsername userInfo username (-1 * (offset + numMessages)) numMessages)
 
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
 
 
 sendMessage : Model -> Cmd Msg
 sendMessage model =
     case model.session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.chattingWith)
 
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none

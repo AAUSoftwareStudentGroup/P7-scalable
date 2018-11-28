@@ -13,7 +13,7 @@ import Session exposing (Session, PageType(..))
 import Ports.FileUploadPort exposing (FilePortData, fileSelected, fileContentRead)
 import UI.Elements as El
 
-import Api.Types exposing (Gender(..), Image)
+import Api.Types exposing (Gender(..), Image, dateToString)
 import Api.Authentication exposing (UserInfo)
 import Api.Users exposing (User, EditUserDTO)
 
@@ -57,11 +57,11 @@ emptyModel session =
 init : Session -> ( Model, Cmd Msg )
 init session =
     case session of
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             ( emptyModel session
             , Routing.goToLogin (Session.getNavKey session)
             )
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             ( updateErrors (emptyModel session)
             , sendGetUser HandleGetUser userInfo.username session
             )
@@ -86,7 +86,7 @@ update msg model =
         HandleGetUser result ->
             case result of
                 Ok { username, gender, birthday, town, profileText, image } ->
-                    ( updateErrors { model | gender = (False, gender), birthday = (False, birthday), city = (False, town), bio = (False, profileText), loaded = True }, Cmd.none )
+                    ( updateErrors { model | gender = (False, gender), birthday = (False, dateToString birthday), city = (False, town), bio = (False, profileText), loaded = True }, Cmd.none )
                 Err errResponse ->
                     ( model
                     , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home )
@@ -229,20 +229,20 @@ encodeMaybeImage mImg =
 sendEditUser : (Result Http.Error (UserInfo) -> msg) -> EditUserDTO -> Session -> Cmd msg
 sendEditUser responseMsg user session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Users.postEditUser userInfo user)
 
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
 
 
 sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
 sendGetUser responseMsg username session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Users.getUserByUsername userInfo username)
 
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
 
 

@@ -10,7 +10,9 @@ import Url.Parser.Query as Query
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Time as Time
+import Date exposing (Date)
 import Http as Http
+import Task exposing (Task)
 
 import Page.CreateUser as CreateUser
 import Page.Home as Home
@@ -72,20 +74,31 @@ type Page
 
 init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeValue url key =
-    if String.startsWith "path=" (Maybe.withDefault "" url.query) then
+    --if String.startsWith "path=" (Maybe.withDefault "" url.query) then
         (
             { key = key
             , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
             , numMessages = 0
             },
-            Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
+            Cmd.batch 
+                [ Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
+                , Task.perform RecieveDate (Date.today)
+                ]
         )
-    else
-        stepUrl url
-            { key = key
-            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-            , numMessages = 0
-            }
+    --else
+    --    let
+    --        (model, cmd) = stepUrl url
+    --            { key = key
+    --            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
+    --            , numMessages = 0
+    --            }
+    --        newCmd = Cmd.batch 
+    --            [Task.perform RecieveDate (Date.today)
+    --            , cmd
+    --            ]
+    --    in
+    --        (model, Debug.log "" newCmd)
+                
 
 
 -- VIEW
@@ -199,6 +212,7 @@ type Msg
   | LogOutClicked
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List ConversationPreview))
+  | RecieveDate Date
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -292,11 +306,11 @@ update message model =
 
         SessionChanged session ->
             case session of
-                Session.Guest key _ ->
+                Session.Guest key _ _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.Home)
                     )
-                Session.LoggedIn key _ _ ->
+                Session.LoggedIn key _ _ _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
                     )
@@ -315,6 +329,12 @@ update message model =
 
                 Err errResponse ->
                     ( model, Cmd.none )
+
+        RecieveDate now ->
+            let
+                newSession = Session.setNow (getSession model) now
+            in
+                ({model | page = replacePage model.page newSession}, Cmd.none)
 
 
 
@@ -415,9 +435,9 @@ stepEditUser model ( editUserModel, cmds ) =
 sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
-        Session.Guest _ _ ->
+        Session.Guest _ _ _  ->
             Cmd.none
 
 
@@ -502,7 +522,7 @@ stepUrl url model =
 
             Nothing ->
                 ( { model | page = NotFound (NotFound.createModel session) }
-                , Cmd.none
+                , Date.today |> Task.perform RecieveDate
                 )
 
 route : Parser a b -> a -> Parser (b -> c) c

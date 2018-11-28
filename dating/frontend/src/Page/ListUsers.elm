@@ -14,6 +14,7 @@ import String exposing (toUpper)
 import String.Extra exposing (toSentenceCase)
 import List exposing (map)
 import Url
+import Date exposing (Date)
 
 import Api.Users exposing (User)
 import Session exposing (Session, PageType(..), Details)
@@ -45,11 +46,11 @@ initModel session
 init : Session -> ( Model, Cmd Msg )
 init session =
     case session of
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             ( initModel session
             , Routing.goToLogin (Session.getNavKey session)
             )
-        Session.LoggedIn _ _ _ ->
+        Session.LoggedIn _ _ _ _ ->
             ( initModel session
             , sendGetUsers UsersFetched startPage session
             )
@@ -141,13 +142,13 @@ view model =
 
 showUser : Session -> User -> Html Msg
 showUser session user =
-    El.userCard user
+    El.userCard user <| Session.getNow session
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Int -> Session -> Cmd msg
 sendGetUsers responseMsg pageNum session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Users.getUsers userInfo pageNum usersPerPage)
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
