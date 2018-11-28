@@ -8,8 +8,8 @@
         <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
         <link href="/style/style.css" rel="stylesheet">
 
-        <script src="main.dev.js"></script>
-        <!-- <script src="main.prod.js"></script> -->
+        <!-- <script src="main.dev.js"></script> -->
+        <script src="main.prod.js"></script>
     </head>
     <body>
         <script>
@@ -145,6 +145,9 @@
                 }, 100);
             }
 
+
+            /*
+
             function handleScrollUpMessages() {
                 clearTimeout(timeout);
 
@@ -171,9 +174,8 @@
             }
 
             let eventListener = null;
-
             setInterval(function () {
-                const messages = document.querySelector('.messages');
+                const messages = document.querySelector('.message-list');
 
                 if (messages === null) {
                     eventListener = null;
@@ -184,6 +186,7 @@
                     eventListener = messages.addEventListener("scroll", handleScrollUpMessages);
                 }
             }, 250);
+            */
 
             // Listen for scroll events
             window.addEventListener("scroll", handleScrollDownUsers);

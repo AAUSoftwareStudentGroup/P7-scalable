@@ -208,12 +208,18 @@ maybeToEither e = maybe (Left e) Right
 -- | Creates a new message between two users
 createMessageHandler :: MongoInfo -> Username -> Username -> CreateMessageDTO -> Handler ()
 createMessageHandler mongoInfo ownUsername otherUsername msgDTO =
-  liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
+  if ownUsername == otherUsername then
+    Handler $ throwE $ err409 { errBody = "Cannot chat with yourself" }
+  else
+    liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
 
 -- | Fetches all messages between two users.
 fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Int -> Int -> Handler ConversationDTO
 fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername offset limit =
-  liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername offset limit
+  if ownUsername == otherUsername then
+    Handler $ throwE $ err409 { errBody = "Cannot chat with yourself"}
+  else
+    liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername offset limit
 
 -- | Fetches an overview of conversations for one user.
 fetchConversationPreviewsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]
