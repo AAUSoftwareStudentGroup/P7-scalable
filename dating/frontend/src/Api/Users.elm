@@ -28,12 +28,12 @@ type alias NewUser =
     }
 
 type alias EditUserDTO =
-    { password      : String
-    , gender        : Gender
-    , birthday      : String
-    , town          : String
-    , profileText   : String
-    , image         : String
+    { password      : Maybe String
+    , gender        : Maybe Gender
+    , birthday      : Maybe String
+    , town          : Maybe String
+    , profileText   : Maybe String
+    , image         : Maybe String
     }
 
 type alias User =
@@ -107,14 +107,22 @@ encodeNewUser user =
 
 encodeEditUser : EditUserDTO -> Encode.Value
 encodeEditUser user =
-   Encode.object
-       [ ( "password", Encode.string user.password )
-       , ( "gender", encodeGender user.gender )
-       , ( "birthday", Encode.string user.birthday )
-       , ( "town", Encode.string user.town )
-       , ( "profileText", Encode.string user.profileText )
-       , ( "imageData", Encode.string user.image )
-       ]
+    Encode.object
+        [ ( "password", encodeMaybe Encode.string user.password )
+        , ( "gender", encodeMaybe encodeGender user.gender )
+        , ( "birthday", encodeMaybe Encode.string user.birthday )
+        , ( "town", encodeMaybe Encode.string user.town )
+        , ( "profileText", encodeMaybe Encode.string user.profileText )
+        , ( "imageData", encodeMaybe Encode.string user.image )
+        ]
+
+encodeMaybe : (dataType -> Encode.Value) -> Maybe dataType -> Encode.Value
+encodeMaybe encoder maybeData =
+    case maybeData of
+        Just data ->
+            encoder data
+        Nothing ->
+            Encode.null
 
 encodeUserInfo : UserInfo -> Encode.Value
 encodeUserInfo userInfo =
