@@ -8,7 +8,7 @@ import Http
 import String
 
 import Api.Users exposing (User, emptyUser)
-import Api.Types exposing (Gender(..))
+import Api.Types exposing (Gender(..), dateToString)
 import Routing exposing (Route(..))
 import Session exposing (Session, Details, PageType(..))
 import UI.Elements as El
@@ -20,7 +20,6 @@ type alias Model =
     , loaded    : Bool
     , user      : User
     }
-
 
 emptyModel : Session -> Model
 emptyModel session =
@@ -34,11 +33,11 @@ type Msg
 init : Session -> String -> ( Model, Cmd Msg )
 init session username =
     case session of
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             ( emptyModel session
             , Routing.goToLogin (Session.getNavKey session)
             )
-        Session.LoggedIn _ _ _ ->
+        Session.LoggedIn _ _ _ _ ->
             ( emptyModel session
             , sendGetUser HandleGetUser username session
             )
@@ -79,7 +78,7 @@ view model =
                 ]
                 [ showImg model.user
                 , El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
-                , El.textProperty "Birthday" model.user.birthday
+                , El.textProperty "Birthday" <| dateToString model.user.birthday
                 , El.textProperty "Town" model.user.town
                 , El.paragraphProperty "Description" model.user.profileText
                 , chatButton model.user.username model.session
@@ -112,8 +111,8 @@ chatButton username session =
 sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
 sendGetUser responseMsg username session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Users.getUserByUsername username userInfo)
 
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none

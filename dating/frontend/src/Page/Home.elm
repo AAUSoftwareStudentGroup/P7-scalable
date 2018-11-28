@@ -42,11 +42,11 @@ initModel session
 init : Session -> ( Model, Cmd Msg )
 init session =
     case session of
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             ( initModel session
             , Cmd.none
             )
-        Session.LoggedIn _ _ _ ->
+        Session.LoggedIn _ _ _ _ ->
             ( initModel session
             , Cmd.none
             )
@@ -80,9 +80,9 @@ view model =
     let
         text =
             case model.session of
-                Session.LoggedIn _ _ userInfo ->
+                Session.LoggedIn _ _ _ userInfo ->
                     userInfo.username
-                Session.Guest _ _ ->
+                Session.Guest _ _ _ ->
                     "Welcome to Functional Dating"
     in
         { title = "Home"

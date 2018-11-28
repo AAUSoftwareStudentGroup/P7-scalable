@@ -1,4 +1,4 @@
-module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
+module Api.Users exposing (NewUser, User, getAge, postUsers, postLogin, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -6,6 +6,7 @@ import Json.Decode.Pipeline as Pipeline
 import Http
 import String
 import Url
+import Date exposing(Date, diff, Unit(..))
 
 import Api.Types exposing (Gender(..))
 import Api.Authentication as Auth exposing (UserInfo, Token, Credentials)
@@ -30,17 +31,33 @@ type alias NewUser =
 type alias User =
     { username      : String
     , gender        : Gender
-    , birthday      : String
+    , birthday      : Date
     , town          : String
     , profileText   : String
     , image         : String
     }
 
-
 emptyUser : User
 emptyUser =
-    User "" Other "" "" "" ""
+    User "" Other (Date.fromOrdinalDate 0 1) "" "" ""
 
+
+getAge : User -> Date -> Int
+getAge user now =
+    Date.diff Years user.birthday now
+
+encodeDate : Date -> Encode.Value
+encodeDate date =
+    Encode.string (Api.Types.dateToString date)
+
+decodeDate : String -> Decoder Date
+decodeDate fieldName =
+    Decode.field fieldName Decode.string
+        |> Decode.andThen decodeDateHelper
+
+decodeDateHelper : String -> Decoder Date
+decodeDateHelper str =
+    Decode.succeed <| (Api.Types.stringToDate str)
 
 encodeGender : Gender -> Encode.Value
 encodeGender g =
@@ -108,7 +125,7 @@ decodeUser =
     Decode.succeed User
         |> Pipeline.required "username" Decode.string
         |> Pipeline.custom decodeGender
-        |> Pipeline.required "birthday" Decode.string
+        |> Pipeline.custom (decodeDate "birthday")
         |> Pipeline.required "town" Decode.string
         |> Pipeline.required "profileText" Decode.string
         |> Pipeline.required "imageUrl" Decode.string

@@ -10,7 +10,9 @@ import Url.Parser.Query as Query
 import Json.Encode as Encode
 import Json.Decode as Decode
 import Time as Time
+import Date exposing (Date)
 import Http as Http
+import Task exposing (Task)
 
 import Page.CreateUser as CreateUser
 import Page.Home as Home
@@ -76,7 +78,10 @@ init maybeValue url key =
             , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
             , numMessages = 0
             },
-            Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
+            Cmd.batch 
+                [ Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
+                , Date.today |> Task.perform ReceiveDate
+                ]
         )
     else
         stepUrl url
@@ -190,6 +195,7 @@ type Msg
   | LogOutClicked
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List ConversationPreview))
+  | ReceiveDate Date
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -277,11 +283,11 @@ update message model =
 
         SessionChanged session ->
             case session of
-                Session.Guest key _ ->
+                Session.Guest key _ _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.Home)
                     )
-                Session.LoggedIn key _ _ ->
+                Session.LoggedIn key _ _ _ ->
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
                     )
@@ -300,6 +306,12 @@ update message model =
 
                 Err errResponse ->
                     ( model, Cmd.none )
+
+        ReceiveDate now ->
+            let
+                newSession = Session.setNow (getSession model) now
+            in
+                ({model | page = replacePage model.page newSession}, Cmd.none)
 
 
 
@@ -389,9 +401,9 @@ stepMessages model ( messagesModel, cmds ) =
 sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
-        Session.Guest _ _ ->
+        Session.Guest _ _ _  ->
             Cmd.none
 
 stepSurvey : Model -> ( Survey.Model, Cmd Survey.Msg ) -> ( Model, Cmd Msg )
@@ -470,7 +482,7 @@ stepUrl url model =
 
             Nothing ->
                 ( { model | page = NotFound (NotFound.createModel session) }
-                , Cmd.none
+                , Date.today |> Task.perform ReceiveDate
                 )
 
 route : Parser a b -> a -> Parser (b -> c) c
