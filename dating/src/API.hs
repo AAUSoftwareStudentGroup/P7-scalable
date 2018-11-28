@@ -65,7 +65,7 @@ type UserAPI =
           :> Get '[JSON] Bool
   :<|>  -- Edit User
   "edit"  :> AuthProtect "cookie-auth"
-          :> ReqBody '[JSON] CreateUserDTO
+          :> ReqBody '[JSON] EditUserDTO
           :> Post '[JSON] LoggedInDTO
 
 type AuthAPI =
@@ -141,7 +141,7 @@ fetchUserExists :: MongoInfo -> Username -> Handler Bool
 fetchUserExists mongoInfo username = liftIO $ DB.fetchUserExists mongoInfo username
 
 -- | Edit user from UserDTO
-editUserHandler :: MongoInfo -> Username -> CreateUserDTO -> Handler LoggedInDTO
+editUserHandler :: MongoInfo -> Username -> EditUserDTO -> Handler LoggedInDTO
 editUserHandler mongoInfo username user = do
   maybeEdited <- liftIO $ DB.editUser mongoInfo username user
   case maybeEdited of

@@ -28,16 +28,13 @@ def readfile(file):
 userid = 0
 questions = {}
 
-for i in range(1,2):
+for i in range(1,6):
 	quest_text = readfile(f"questions/paired-survey-{i}-codebook.txt")
 	user_answers = readfile(f"answers/paired-survey-{i}-responses.csv")
 	for answer in user_answers[1:]:
 		answer = answer.split("\t")[4:]
 
 		for j in range(0, len(quest_text)):
-			if(j == 25):
-				break
-			
 			txt = quest_text[j].split("\t")[1].strip()
 			if(txt not in questions):
 				questions[txt] = {}
