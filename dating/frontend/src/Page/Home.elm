@@ -81,9 +81,9 @@ view model =
         text =
             case model.session of
                 Session.LoggedIn _ _ userInfo ->
-                    userInfo.username
+                    "Hello " ++ userInfo.username ++ ". Welcome back to Functional Dating!"
                 Session.Guest _ _ ->
-                    "Welcome to Functional Dating"
+                    "Welcome to Functional Dating! Create a user to find love!"
     in
         { title = "Home"
         , session = model.session
