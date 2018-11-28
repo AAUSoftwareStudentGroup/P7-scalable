@@ -230,7 +230,8 @@ update msg model =
                     , sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize )
 
                 Err _ ->
-                    ( { model | attemptedSend = False }, Cmd.none )
+                    ( { model | attemptedSend = False, session = Session.addNotification model.session ("Failed to send message") }
+                    , Cmd.none )
 
         LoadMore _ ->
             ( { model | loadingConvo = True }
