@@ -97,7 +97,7 @@ headerNavLinks session =
     case session of
         Session.LoggedIn _ _ userInfo ->
             [ headerNavLink (Routing.routeToString Survey) "Survey"
-            , headerNavLink (Routing.routeToString Messages) "Messages"
+            , headerNavLink (Routing.routeToString (Messages "")) "Messages"
             , headerNavLink (Routing.routeToString ListUsers) "All users"
             , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
@@ -212,7 +212,7 @@ userCard user =
                     , ("s-2", True)
                     ]
                 ]
-                (Routing.routeToString (Chat username))
+                (Routing.routeToString (Messages username))
                 [ iconText "Chat" "chat" ]
             ]
 

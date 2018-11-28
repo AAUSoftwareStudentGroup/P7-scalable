@@ -105,7 +105,7 @@ chatButton username session =
     else
         El.linkButton
             []
-            (Routing.routeToString (Chat username))
+            (Routing.routeToString (Messages username))
             [ Html.text "chat" ]
 
 

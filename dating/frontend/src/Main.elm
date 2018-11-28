@@ -22,7 +22,6 @@ import Page.Profile as Profile
 import Page.Survey as Survey
 import Page.Login as Login
 import Page.Logout as Logout
-import Page.Chat as Chat
 import Url
 import Session exposing (Session)
 import Api.Messages exposing (ConversationPreview)
@@ -66,7 +65,6 @@ type Page
     | ListUsers ListUsers.Model
     | Messages Messages.Model
     | Profile Profile.Model
-    | Chat Chat.Model
     | Survey Survey.Model
 
 
@@ -115,9 +113,6 @@ view model =
         ListUsers listUsersModel ->
             viewContent ListUsersMsg (ListUsers.view listUsersModel)
 
-        Chat chatModel ->
-            viewContent ChatMsg (Chat.view chatModel)
-
         Profile profileModel ->
             viewContent ProfileMsg (Profile.view profileModel)
 
@@ -163,9 +158,6 @@ subscriptions model =
             Profile profileModel ->
                 Sub.map ProfileMsg (Profile.subscriptions profileModel)
 
-            Chat chatModel ->
-                Sub.map ChatMsg (Chat.subscriptions chatModel)
-
             Survey surveyModel ->
                 Sub.map SurveyMsg (Survey.subscriptions surveyModel)
 
@@ -193,7 +185,6 @@ type Msg
   | LogoutMsg Logout.Msg
   | MessagesMsg Messages.Msg
   | ProfileMsg Profile.Msg
-  | ChatMsg Chat.Msg
   | SurveyMsg Survey.Msg
   | SessionChanged Session
   | LogOutClicked
@@ -278,12 +269,6 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
-        ChatMsg msg ->
-            case model.page of
-                Chat chat ->
-                    stepChat model (Chat.update msg chat)
-                _ -> ( model, Cmd.none )
-
         SurveyMsg msg ->
             case model.page of
                 Survey surveyModel ->
@@ -345,9 +330,6 @@ replacePage page session =
         Messages m ->
              Messages { m | session = session }
 
-        Chat m ->
-             Chat { m | session = session }
-
         Survey m ->
              Survey { m | session = session }
 
@@ -404,12 +386,6 @@ stepMessages model ( messagesModel, cmds ) =
     , Cmd.map MessagesMsg cmds
     )
 
-stepChat : Model -> ( Chat.Model, Cmd Chat.Msg ) -> ( Model, Cmd Msg )
-stepChat model ( chat, cmds ) =
-    ( { model | page = Chat chat }
-    , Cmd.map ChatMsg cmds
-    )
-
 sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
@@ -455,9 +431,6 @@ getSession model =
         Messages m ->
             m.session
 
-        Chat m ->
-            m.session
-
         Survey m ->
             m.session
 
@@ -483,9 +456,9 @@ stepUrl url model =
                 , route (Parser.s "user" </> Parser.string)
                     (\username -> stepProfile model (Profile.init session username))
                 , route (Parser.s "messages")
-                    (stepMessages model (Messages.init session))
-                , route (Parser.s "chat" </> Parser.string)
-                    (\username -> stepChat model (Chat.init session username))
+                    (stepMessages model (Messages.init session Nothing))
+                , route (Parser.s "messages" </> Parser.string)
+                    (\username -> stepMessages model (Messages.init session (Just username)))
                 , route (Parser.s "survey")
                     (stepSurvey model (Survey.init session))
                 ]
