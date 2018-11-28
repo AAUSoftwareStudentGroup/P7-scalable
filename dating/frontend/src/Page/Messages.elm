@@ -230,7 +230,7 @@ update msg model =
                     , sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | attemptedSend = False }, Cmd.none )
 
         LoadMore _ ->
             ( { model | loadingConvo = True }
