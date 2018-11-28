@@ -4,7 +4,7 @@ import TestColFil (runEverything)
 import DataTransformation (toAssocMatrix)
 import DataLoad (loadRatings)
 
-import CollaborativeFiltering (gradientDescent, mul, toDense)
+import CollaborativeFiltering (train, predict, mul, toDense)
 
 main :: IO ()
 main = do 
@@ -19,5 +19,5 @@ main = do
         let learnRate  = 0.0000001
         let kValue     = 7
 
-        (u, q) <- gradientDescent minMaxIter threshold learnRate matrix kValue
+        (u, q) <- train minMaxIter threshold learnRate matrix kValue
         print $ mul u q

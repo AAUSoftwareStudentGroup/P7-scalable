@@ -46,6 +46,6 @@ runner = do
     let alpha = 0.0000001
     let threshold = 0.01
         
-    guess <- uncurry mul <$> gradientDescent (50, 1000) threshold alpha fastAiAnswers 5
+    guess <- uncurry mul <$> train (50, 1000) threshold alpha fastAiAnswers 5
     return $ meanSquareError (fastAiAnswers - guess) (15*15)
             
