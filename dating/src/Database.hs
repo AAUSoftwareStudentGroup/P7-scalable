@@ -379,7 +379,7 @@ createQuestionEmbedding mongoInfo questionEmbeddingDTO = runAction mongoInfo ins
     insertAction = do
       currentTime <- liftIO Clock.getCurrentTime
       let questionEmbedding = QuestionEmbedding currentTime (embedding questionEmbeddingDTO)
-      Persist.Mongo.insert questionEmbedding
+      void $ Persist.Mongo.insert questionEmbedding
 
 
 
