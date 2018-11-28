@@ -1,4 +1,4 @@
-module Api.Questions exposing (Question, Answer, getQuestions, postAnswer)
+module Api.Questions exposing (Question, Answer, getQuestions, createAnswer)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -59,8 +59,8 @@ getQuestions userInfo =
             False
         }
 
-postAnswer : UserInfo -> Answer -> Http.Request (String.String)
-postAnswer userInfo answer =
+createAnswer : UserInfo -> Answer -> Http.Request (String.String)
+createAnswer userInfo answer =
      Http.request
          { method =
              "POST"

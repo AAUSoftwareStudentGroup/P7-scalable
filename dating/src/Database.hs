@@ -37,9 +37,9 @@ import           Schema
 
 
 
--------------------------------------------------------------------------------
---                                   TYPES                                   --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                   TYPES                                   -}
+{-----------------------------------------------------------------------------}
 
 type Username = Text
 type AuthToken = Text
@@ -51,9 +51,9 @@ type RedisInfo = Redis.ConnectInfo
 userIndex :: Mongo.Admin.Index
 userIndex = (Mongo.Admin.index "users" ["username" =: (1::Int)]) { Mongo.Admin.iUnique = True, Mongo.Admin.iDropDups = True }
 
--------------------------------------------------------------------------------
---                            CONNECTION INFO                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                            CONNECTION INFO                                -}
+{-----------------------------------------------------------------------------}
 
 
 -- | Should probably be placed in a file instead
@@ -74,9 +74,9 @@ fetchRedisInfo :: IO RedisInfo
 fetchRedisInfo = return $ Redis.defaultConnectInfo {Redis.connectHost = "redis"}
 
 
--------------------------------------------------------------------------------
---                                   USERS                                   --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                   USERS                                   -}
+{-----------------------------------------------------------------------------}
 
 -- | Create a user if the username is not taken
 createUser :: MongoInfo -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
@@ -173,12 +173,12 @@ fetchUserExists mongoConf username' = runAction mongoConf fetchAction
 
 
 -- | Edit user
-editUser :: MongoInfo -> Username -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
-editUser mongoConf username currentUser = runAction mongoConf editAction
+updateUser :: MongoInfo -> Username -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
+updateUser mongoConf username currentUser = runAction mongoConf editAction
   where
     editAction :: Action IO (Either ServantErr LoggedInDTO)
     editAction =
-      if username == (getField @"username" currentUser) then do
+      if username == getField @"username" currentUser then do
         dbEntry <- getBy (UniqueUsername username)
         case dbEntry of
           Just (Entity key user) -> do
@@ -190,15 +190,15 @@ editUser mongoConf username currentUser = runAction mongoConf editAction
                 return $ Left txt
               Right dto -> do
                 _ <- liftIO . removeSingleFile . T.unpack $ "frontend" <> userImage user
-                return $ Right $ dto
+                return $ Right dto
           Nothing ->
             return $ Left $ err409 { errBody = "This user does not exist in the database" }
       else
         return $ Left $ err409 { errBody = "This user does not exist in the database" }
 
--------------------------------------------------------------------------------
---                             AUTHENTICATION                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                             AUTHENTICATION                                -}
+{-----------------------------------------------------------------------------}
 
 fetchUserByCredentials :: MongoInfo -> CredentialDTO -> IO (Maybe LoggedInDTO)
 fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
@@ -248,9 +248,9 @@ removeAuthToken mongoConf token = runAction mongoConf action
         Just (Entity id' _) -> void $ update id' [UserAuthToken =. ""]
 
 
--------------------------------------------------------------------------------
---                              CONVERSATIONS                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                              CONVERSATIONS                                -}
+{-----------------------------------------------------------------------------}
 
 createMessage :: MongoInfo -> Username -> Username -> CreateMessageDTO -> IO ()
 createMessage mongoConf from to messageDTO = runAction mongoConf action
@@ -284,8 +284,8 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
       currentTime <- Clock.getCurrentTime
       return  Message
           { messageAuthor = from'
-          , messageTime = currentTime
-          , messageText = body''
+          , messageTimeStamp = currentTime
+          , messageBody = body''
           }
 
 fetchConversation :: MongoInfo -> Username -> Username -> Int -> Int -> IO ConversationDTO
@@ -326,9 +326,9 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
 
 
 
--------------------------------------------------------------------------------
---                                 Questions                                 --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                 Questions                                 -}
+{-----------------------------------------------------------------------------}
 
 
 fetchQuestions :: MongoInfo -> Username -> IO [QuestionDTO]
@@ -346,8 +346,8 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
       return $ fmap questionToQuestionDTO . rights . fmap Persist.Mongo.docToEntityEither $ docList
 
 
-postAnswer :: MongoInfo -> Username -> AnswerDTO -> IO (Either ServantErr Text)
-postAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf postAction
+createAnswer :: MongoInfo -> Username -> AnswerDTO -> IO (Either ServantErr Text)
+createAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf postAction
   where
     postAction :: Action IO (Either ServantErr Text)
     postAction = if response > 5 || response < 1 then return . Left
@@ -362,13 +362,14 @@ postAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf po
             return . Right $ "Successfully inserted"
           Nothing -> return . Left $ err406 { errBody = "No such ID" }
 
-    answerFromAnswerInfo :: Username -> Int -> IO UserAnswer
+    answerFromAnswerInfo :: Username -> Int -> IO Answer
     answerFromAnswerInfo name score' = do
       currentTime <- Clock.getCurrentTime
-      return UserAnswer
-          { userAnswerUsername = name
-          , userAnswerScore = score'
-          , userAnswerTime = currentTime
+      return Answer
+          { answerAnswerer = name
+          , answerScore = score'
+          , answerTimeStamp = currentTime
+          , answerIsPredicted = False
           }
 
 
@@ -383,9 +384,9 @@ createQuestionEmbedding mongoInfo questionEmbeddingDTO = runAction mongoInfo ins
 
 
 
--------------------------------------------------------------------------------
---                                 HELPERS                                   --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                 HELPERS                                   -}
+{-----------------------------------------------------------------------------}
 
 --runAction :: MonadIO m => MongoInfo -> Action m b -> m b
 runAction mongoConf action = Persist.Mongo.withConnection mongoConf $
@@ -400,8 +401,8 @@ conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversat
     conversationPreview = ConversationPreviewDTO
       { convoWithUsername = if head members == username then last members else head members
       , isLastAuthor = username == getField @"messageAuthor" message
-      , body = getField @"messageText" message
-      , timeStamp = getField @"messageTime" message
+      , body = getField @"messageBody" message
+      , timeStamp = getField @"messageTimeStamp" message
       }
 
 
@@ -434,14 +435,14 @@ messageToMessageDTO message = messageDTO
   where
     messageDTO = MessageDTO
       { authorUsername = messageAuthor message
-      , timeStamp = messageTime message
-      , body = messageText message
+      , timeStamp = messageTimeStamp message
+      , body = messageBody message
       }
 
 questionToQuestionDTO :: Entity Question -> QuestionDTO
 questionToQuestionDTO (Entity key q) = QuestionDTO
   { id = Persist.Mongo.keyToText $ Persist.Mongo.toBackendKey key
-  , question = getField @"questionText" q
+  , question = getField @"questionBody" q
   }
 
 hashPassword :: Text -> Text -> Text

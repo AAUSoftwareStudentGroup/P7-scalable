@@ -37,9 +37,9 @@ import           FrontendTypes
 import           Schema
 
 
------------------------------------------------------------------------
---                                API                                --
------------------------------------------------------------------------
+{---------------------------------------------------------------------}
+{-                                API                                -}
+{---------------------------------------------------------------------}
 -- | The API.
 type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI :<|> QuestionAPI
 
@@ -107,9 +107,9 @@ datingAPI :: Proxy DatingAPI
 datingAPI = Proxy :: Proxy DatingAPI
 
 
--------------------------------------------------------------------------------
---                                  USERS                                    --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                  USERS                                    -}
+{-----------------------------------------------------------------------------}
 
 -- | Creates a user in the db.
 createUserHandler :: MongoInfo -> CreateUserDTO -> Handler LoggedInDTO
@@ -141,16 +141,16 @@ fetchUserExists :: MongoInfo -> Username -> Handler Bool
 fetchUserExists mongoInfo username = liftIO $ DB.fetchUserExists mongoInfo username
 
 -- | Edit user from UserDTO
-editUserHandler :: MongoInfo -> Username -> CreateUserDTO -> Handler LoggedInDTO
-editUserHandler mongoInfo username user = do
-  maybeEdited <- liftIO $ DB.editUser mongoInfo username user
+updateUserHandler :: MongoInfo -> Username -> CreateUserDTO -> Handler LoggedInDTO
+updateUserHandler mongoInfo username user = do
+  maybeEdited <- liftIO $ DB.updateUser mongoInfo username user
   case maybeEdited of
     Right loggedInDTO -> return loggedInDTO
-    Left err -> Handler $ throwE err 
+    Left err          -> Handler $ throwE err
 
--------------------------------------------------------------------------------
---                             AUTHENTICATION                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                             AUTHENTICATION                                -}
+{-----------------------------------------------------------------------------}
 
 
 -- | Returns an LoggedInDTO when given correct credentials
@@ -201,9 +201,9 @@ maybeToEither :: a -> Maybe b -> Either a b
 maybeToEither e = maybe (Left e) Right
 
 
--------------------------------------------------------------------------------
---                              CONVERSATIONS                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                              CONVERSATIONS                                -}
+{-----------------------------------------------------------------------------}
 
 -- | Creates a new message between two users
 createMessageHandler :: MongoInfo -> Username -> Username -> CreateMessageDTO -> Handler ()
@@ -221,9 +221,9 @@ fetchConversationPreviewsHandler mongoInfo ownUsername =
   liftIO $ DB.fetchConversationPreviews mongoInfo ownUsername
 
 
--------------------------------------------------------------------------------
---                                 Questions                                 --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                 Questions                                 -}
+{-----------------------------------------------------------------------------}
 
 fetchQuestionsHandler :: MongoInfo -> Username -> Handler [QuestionDTO]
 fetchQuestionsHandler mongoInfo username =
@@ -232,15 +232,15 @@ fetchQuestionsHandler mongoInfo username =
 
 createAnswerHandler :: MongoInfo -> Username -> AnswerDTO -> Handler ()
 createAnswerHandler mongoInfo username answer = do
-  maybePostAnswer <- liftIO $ DB.postAnswer mongoInfo username answer
+  maybePostAnswer <- liftIO $ DB.createAnswer mongoInfo username answer
   case maybePostAnswer of
     Right a  -> return ()
     Left err -> Handler $ throwE err
 
 
--------------------------------------------------------------------------------
---                          COMBINATION OF PARTS                             --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                          COMBINATION OF PARTS                             -}
+{-----------------------------------------------------------------------------}
 
 -- | Specifies the handler functions for each endpoint. Has to be in the right order.
 datingServer :: MongoInfo -> RedisInfo -> Server DatingAPI
@@ -255,7 +255,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
                     :<|> fetchUsersHandler mongoInfo
                     :<|> fetchMatchingUsersHandler mongoInfo
                     :<|> fetchUserExists mongoInfo
-                    :<|> editUserHandler mongoInfo
+                    :<|> updateUserHandler mongoInfo
 
     messageHandlers =    createMessageHandler mongoInfo
                     :<|> fetchConversationPreviewsHandler mongoInfo
@@ -264,7 +264,7 @@ datingServer mongoInfo redisInfo = userHandlers :<|> authHandlers :<|> messageHa
     questionHandlers =   fetchQuestionsHandler mongoInfo
                     :<|> createAnswerHandler mongoInfo
 
--- | Serves the API on port 1234
+-- | Serves the API
 runServer :: IO ()
 runServer = do
   mongoInfo <- DB.fetchMongoInfo

@@ -129,7 +129,7 @@ sendAnswer : (Result Http.Error (String.String) -> msg) -> Session -> Answer -> 
 sendAnswer responseMsg session answer =
     case session of
         Session.LoggedIn _ _ userInfo ->
-            Http.send responseMsg (Api.Questions.postAnswer userInfo answer)
+            Http.send responseMsg (Api.Questions.createAnswer userInfo answer)
         Session.Guest _ _ ->
             Cmd.none
 
