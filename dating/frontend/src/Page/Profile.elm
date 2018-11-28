@@ -82,6 +82,7 @@ view model =
                 , El.textProperty "Town" model.user.town
                 , El.paragraphProperty "Description" model.user.profileText
                 , chatButton model.user.username model.session
+                , editButton model.user.username model.session
                 ]
             ]
     }
@@ -107,12 +108,22 @@ chatButton username session =
             (Routing.routeToString (Messages username))
             [ Html.text "chat" ]
 
+editButton : String -> Session -> Html msg
+editButton username session =
+    if Just username == Session.getUsername session then
+        El.linkButton
+            []
+            (Routing.routeToString EditUser)
+            [ Html.text "Edit" ]
+    else
+        Html.text ""
+
 
 sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
 sendGetUser responseMsg username session =
     case session of
         Session.LoggedIn _ _ _ userInfo ->
-            Http.send responseMsg (Api.Users.getUserByUsername username userInfo)
+            Http.send responseMsg (Api.Users.getUserByUsername userInfo username)
 
         Session.Guest _ _ _ ->
             Cmd.none

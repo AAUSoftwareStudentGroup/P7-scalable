@@ -29,7 +29,7 @@
     border-left: 1px solid $bg-col-dark;
 
     .message-list {
-        overflow-y: scroll;
+        overflow-y: auto;
         height: calc(100% - 3rem);
 
         &:first-child {

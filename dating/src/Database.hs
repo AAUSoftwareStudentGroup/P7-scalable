@@ -14,6 +14,7 @@ import           Data.Bson                          (Document)
 import qualified Data.ByteString.Base64             as Base64
 import qualified Data.ByteString.Lazy.Char8         as LBS
 import           Data.Either                        (rights)
+import qualified Data.Maybe                         as Maybe
 import           Data.Foldable                      (traverse_)
 import           Data.Generics.Product              (getField)
 import           Data.Semigroup                     ((<>))
@@ -172,6 +173,48 @@ fetchUserExists mongoConf username' = runAction mongoConf fetchAction
         Nothing -> return False
 
 
+-- | Edit user
+editUser :: MongoInfo -> Username -> EditUserDTO -> IO (Either ServantErr LoggedInDTO)
+editUser mongoConf username newFields = runAction mongoConf editAction
+  where
+    editAction :: Action IO (Either ServantErr LoggedInDTO)
+    editAction = do
+      dbEntry <- getBy (UniqueUsername username)
+      case dbEntry of
+        Just (Entity key user) ->
+          case (getField @"imageData" newFields) of
+            Just base64 -> 
+              case urlFromBase64EncodedImage base64 (getField @"userSalt" user) of
+                Left txt -> return $ Left $ err415 { errBody = txt }
+                Right img -> do
+                  liftIO img
+                  _ <- update key $ updatedValues newFields (getField @"userSalt" user) --return $ Right $ somefunc key
+                  return $ Right $ userEntityToLoggedInDTO (Entity key user)
+            Nothing -> do
+            _ <- update key $ updatedValues newFields (getField @"userSalt" user)
+            return $ Right $ userEntityToLoggedInDTO (Entity key user)
+        Nothing -> return $ Left $ err409 { errBody = "This user does not exist in the database" }
+
+    updatedValues :: EditUserDTO -> Text -> [Update User]
+    updatedValues fields' salt = updates
+      where
+        password = case (getField @"password" fields') of 
+          Just newpass -> Just (UserPassword =. (hashPassword newpass salt))
+          Nothing -> Nothing
+        gender =  case (getField @"gender" fields') of
+          Just a -> Just (UserGender =. a)
+          Nothing -> Nothing
+        birthday = case (getField @"birthday" fields') of
+          Just a -> Just (UserBirthday =. a)
+          Nothing -> Nothing
+        town = case (getField @"town" fields') of
+          Just a -> Just (UserTown =. a)
+          Nothing -> Nothing
+        profileText = case (getField @"profileText" fields') of
+          Just a -> Just (UserProfileText =. a)
+          Nothing -> Nothing
+        updates = Maybe.catMaybes [password, gender, birthday, town, profileText]
+
 -------------------------------------------------------------------------------
 --                             AUTHENTICATION                                --
 -------------------------------------------------------------------------------
@@ -236,7 +279,11 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
       msgToInsert <- liftIO $ mkMessage from body'
       maybeConvo <- selectFirst [ConversationMembers `Persist.Mongo.anyEq` from, ConversationMembers `Persist.Mongo.anyEq` to] []
       case maybeConvo of
-        Nothing -> void $ insert (mkConversation from to msgToInsert)
+        Nothing -> do
+          user' <- getBy (UniqueUsername to) 
+          case user' of
+            Just _ -> void $ insert (mkConversation from to msgToInsert)
+            Nothing -> return ()
         Just (Entity conversationId _) ->
           update conversationId [ConversationMessages `Persist.Mongo.push` msgToInsert]
 
@@ -428,13 +475,13 @@ deleteEverything = do
   content <- listDirectory "frontend/img/users"
   traverse_ removeSingleFile (map ("frontend/img/users/" ++) content)
   return ()
-    where
-      removeSingleFile :: FilePath -> IO ()
-      removeSingleFile path =
-        if path == "frontend/img/users/.gitignore" then
-          return ()
-        else
-          removeFile path
+
+removeSingleFile :: FilePath -> IO ()
+removeSingleFile path =
+  if path == "frontend/img/users/.gitignore" then
+    return ()
+  else
+    removeFile path
 
 deleteEverythingInDB :: IO ()
 deleteEverythingInDB = runAction localMongoInfo action

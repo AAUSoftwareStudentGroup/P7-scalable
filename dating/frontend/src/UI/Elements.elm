@@ -323,7 +323,6 @@ validatedInput field typ caption value toMsg required errors showErrors =
                 , ( "s-12", True )
                 , ( "empty", empty )
                 , ( "valid", valid )
-                , ( "valid", relevantErrors == [] )
                 ]
             ]
             [ Html.label []

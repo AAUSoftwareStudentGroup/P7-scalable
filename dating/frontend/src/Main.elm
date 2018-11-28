@@ -18,6 +18,7 @@ import Page.CreateUser as CreateUser
 import Page.Home as Home
 import Page.ListUsers as ListUsers
 import Page.Login as Login exposing (subscriptions)
+import Page.EditUser as EditUser
 import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
@@ -65,6 +66,7 @@ type Page
     | Logout Logout.Model
     | Home Home.Model
     | ListUsers ListUsers.Model
+    | EditUser EditUser.Model
     | Messages Messages.Model
     | Profile Profile.Model
     | Survey Survey.Model
@@ -72,7 +74,7 @@ type Page
 
 init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeValue url key =
-    if String.startsWith "path=" (Maybe.withDefault "" url.query) then
+    --if String.startsWith "path=" (Maybe.withDefault "" url.query) then
         (
             { key = key
             , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
@@ -80,15 +82,23 @@ init maybeValue url key =
             },
             Cmd.batch 
                 [ Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
-                , Date.today |> Task.perform ReceiveDate
+                , Task.perform RecieveDate (Date.today)
                 ]
         )
-    else
-        stepUrl url
-            { key = key
-            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-            , numMessages = 0
-            }
+    --else
+    --    let
+    --        (model, cmd) = stepUrl url
+    --            { key = key
+    --            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
+    --            , numMessages = 0
+    --            }
+    --        newCmd = Cmd.batch 
+    --            [Task.perform RecieveDate (Date.today)
+    --            , cmd
+    --            ]
+    --    in
+    --        (model, Debug.log "" newCmd)
+                
 
 
 -- VIEW
@@ -114,6 +124,9 @@ view model =
 
         Messages messagesModel ->
             viewContent MessagesMsg (Messages.view messagesModel)
+
+        EditUser editUserModel ->
+            viewContent EditUserMsg (EditUser.view editUserModel)
 
         ListUsers listUsersModel ->
             viewContent ListUsersMsg (ListUsers.view listUsersModel)
@@ -157,6 +170,9 @@ subscriptions model =
             Messages messagesModel ->
                 Sub.map MessagesMsg (Messages.subscriptions messagesModel)
 
+            EditUser editUserModel ->
+                Sub.map EditUserMsg (EditUser.subscriptions editUserModel)
+
             ListUsers listUsersModel ->
                 Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
 
@@ -189,13 +205,14 @@ type Msg
   | LoginMsg Login.Msg
   | LogoutMsg Logout.Msg
   | MessagesMsg Messages.Msg
+  | EditUserMsg EditUser.Msg
   | ProfileMsg Profile.Msg
   | SurveyMsg Survey.Msg
   | SessionChanged Session
   | LogOutClicked
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List ConversationPreview))
-  | ReceiveDate Date
+  | RecieveDate Date
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -260,7 +277,6 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
-
         ProfileMsg msg ->
             case model.page of
                 Profile profileModel ->
@@ -272,6 +288,13 @@ update message model =
             case model.page of
                 Messages messagesModel ->
                     stepMessages model (Messages.update msg messagesModel)
+                _ ->
+                    ( model, Cmd.none )
+
+        EditUserMsg msg ->
+            case model.page of
+                EditUser editUserModel ->
+                    stepEditUser model (EditUser.update msg editUserModel)
                 _ ->
                     ( model, Cmd.none )
 
@@ -307,7 +330,7 @@ update message model =
                 Err errResponse ->
                     ( model, Cmd.none )
 
-        ReceiveDate now ->
+        RecieveDate now ->
             let
                 newSession = Session.setNow (getSession model) now
             in
@@ -341,6 +364,9 @@ replacePage page session =
 
         Messages m ->
              Messages { m | session = session }
+
+        EditUser m ->
+            EditUser { m | session = session }
 
         Survey m ->
              Survey { m | session = session }
@@ -398,6 +424,14 @@ stepMessages model ( messagesModel, cmds ) =
     , Cmd.map MessagesMsg cmds
     )
 
+
+stepEditUser : Model -> ( EditUser.Model, Cmd EditUser.Msg ) -> ( Model, Cmd Msg )
+stepEditUser model ( editUserModel, cmds ) =
+    ( { model | page = EditUser editUserModel }
+    , Cmd.map EditUserMsg cmds
+    )
+
+
 sendGetMessages : (Result Http.Error (List ConversationPreview) -> msg) -> Session -> Cmd msg
 sendGetMessages responseMsg session =
     case session of
@@ -405,6 +439,7 @@ sendGetMessages responseMsg session =
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
         Session.Guest _ _ _  ->
             Cmd.none
+
 
 stepSurvey : Model -> ( Survey.Model, Cmd Survey.Msg ) -> ( Model, Cmd Msg )
 stepSurvey model ( surveyModel, cmds ) =
@@ -443,6 +478,9 @@ getSession model =
         Messages m ->
             m.session
 
+        EditUser m ->
+            m.session
+
         Survey m ->
             m.session
 
@@ -471,6 +509,8 @@ stepUrl url model =
                     (stepMessages model (Messages.init session Nothing))
                 , route (Parser.s "messages" </> Parser.string)
                     (\username -> stepMessages model (Messages.init session (Just username)))
+                , route (Parser.s "edit")
+                    (stepEditUser model (EditUser.init session))
                 , route (Parser.s "survey")
                     (stepSurvey model (Survey.init session))
                 ]
@@ -482,7 +522,7 @@ stepUrl url model =
 
             Nothing ->
                 ( { model | page = NotFound (NotFound.createModel session) }
-                , Date.today |> Task.perform ReceiveDate
+                , Date.today |> Task.perform RecieveDate
                 )
 
 route : Parser a b -> a -> Parser (b -> c) c
