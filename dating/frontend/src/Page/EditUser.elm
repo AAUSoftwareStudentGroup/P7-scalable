@@ -137,7 +137,8 @@ update msg model =
         HandleUserUpdated result ->
             case result of
                 Ok userInfo ->
-                    ( model, Session.login userInfo)
+                    ( model
+                    , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString (Profile userInfo.username)))
 
                 Err errResponse ->
                     case errResponse of
