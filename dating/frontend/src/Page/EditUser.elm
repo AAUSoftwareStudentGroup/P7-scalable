@@ -289,7 +289,11 @@ view model =
                         , ( "Other", Other )
                         ]
                     , El.imageInput "Profile picture" FileSelected model.mImage
-                    , El.submitButton "Update"
+                    , El.submitButton
+                        [ ( "l-8", True)
+                        , ( "s-4", True )
+                        , ( "right", True ) ]
+                        "Update"
                     ]
                 ]
         }

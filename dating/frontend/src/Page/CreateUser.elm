@@ -262,7 +262,11 @@ view model =
                     , ( "Other", Other )
                     ]
                 , El.imageInput "Profile picture" FileSelected model.mImage
-                , El.submitButton "Sign up"
+                , El.submitButton
+                    [ ( "l-8", True)
+                    , ( "s-4", True)
+                    , ( "right", True ) ]
+                    "Sign up"
                 ]
             ]
     }

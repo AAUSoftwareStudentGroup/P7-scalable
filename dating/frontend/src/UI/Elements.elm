@@ -421,28 +421,41 @@ simpleInput typ placeholder value toMsg required =
 imageInput : String -> msg -> Maybe Image -> Html msg
 imageInput caption imageSelectedMsg maybeImage =
     let
-        imagePreview =
+        noImage =
             case maybeImage of
                 Just image ->
-                    imageElement image [("preview-image", True)]
+                    False
                 Nothing ->
-                    Html.text ""
+                    True
+        imageURI =
+            case maybeImage of
+                Just image ->
+                    "url(" ++ image.contents ++ ")"
+                Nothing ->
+                    ""
     in
         div
         [ classList
             [ ( "image-input-group", True )
-            , ( "l-6", True )
-            , ( "l-12", True )
+            , ( "no-image", noImage )
+            , ( "l-4", True )
+            , ( "s-8", True )
+            ]
+        , Attributes.style "background-image" imageURI
+        ]
+        [ div []
+            [ Html.label [ class "btn" ]
+                [ iconText "Choose a file" "image"
+                , Html.input
+                    [ Attributes.type_ "file"
+                    , Attributes.accept "image/*"
+                    , Events.on "change" (Decode.succeed imageSelectedMsg)
+                    ]
+                    []
+                ]
             ]
         ]
-        [ Html.input
-            [ Attributes.type_ "file"
-            , Attributes.accept "image/*"
-            , Events.on "change" (Decode.succeed imageSelectedMsg)
-            ]
-            []
-        , imagePreview
-        ]
+
 
 imageElement : Image -> List (String, Bool) -> Html msg
 imageElement image classes =
@@ -454,26 +467,22 @@ imageElement image classes =
     []
 
 
-submitButton : String -> Html msg
-submitButton caption =
+submitButton : List (String, Bool) -> String -> Html msg
+submitButton classes caption =
     Html.button
         [ Attributes.type_ "submit"
         , classList
-            [ ( "btn", True )
-            , ( "l-12", True )
-            , ( "right", True )
-            ]
+            ([ ( "btn", True )
+            ] ++ classes)
         ]
         [ Html.text caption ]
 
-submitButtonHtml : List (Html msg) -> Html msg
-submitButtonHtml children =
+submitButtonHtml : List (String, Bool) -> List (Html msg) -> Html msg
+submitButtonHtml classes children =
     Html.button
         [ Attributes.type_ "submit"
         , classList
-            [ ( "btn", True )
-            , ( "l-12", True )
-            , ( "right", True )
-            ]
+            ([ ( "btn", True )
+            ] ++ classes)
         ]
         children

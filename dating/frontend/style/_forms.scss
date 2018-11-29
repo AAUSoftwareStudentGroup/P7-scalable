@@ -205,9 +205,22 @@
 }
 
 .image-input-group {
+    position: relative;
+    padding-bottom: 75%;
+    background-color: $bg-col-light;
+    background-size: cover;
+
+    &.no-image {
+        border: 4px dashed $pri-col-dark;
+    }
+
+    & > div {
+        text-align: center;
+        position: relative;
+        top: calc(50% - 1.4rem);
+    }
 
     input {
-        width: 100%;
+        display: none;
     }
 }
-

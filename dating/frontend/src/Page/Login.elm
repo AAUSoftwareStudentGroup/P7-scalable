@@ -159,7 +159,10 @@ view model =
                         ]
                 [ El.validatedInput Username "text" "Username" model.username FormFieldChanged True model.errors model.attemptedSubmission
                 , El.validatedInput Password "password" "Password" model.password FormFieldChanged True model.errors model.attemptedSubmission
-                , El.submitButton "Sign in"
+                , El.submitButton
+                    [ ( "l-12", True)
+                    , ( "right", True) ]
+                    "Sign in"
                 ]
             ]
     }
