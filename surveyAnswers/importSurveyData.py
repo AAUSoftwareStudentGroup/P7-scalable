@@ -87,13 +87,13 @@ def getCorrelation(questions):
 	return correlationDict
 
 
-def saveQuestions(quest):
+def saveQuestions(quest, filename):
 
 	'''with open("questions.csv", 'w') as f:
 		for key in quest:
 			f.write(f"{quest[key]}; {key};\n")
 	'''
-	with open("questions.json", 'w') as f:
+	with open(filename, 'w') as f:
 		f.write("[")
 		first = True
 		
@@ -154,14 +154,17 @@ def fixCorreFile3():
 			newLine = newLine.strip()
 			f.write(newLine + "\n")
 
-#fixCorreFile3()
-#fixAnswerFile3()
-#fixAnswerFile5()
+def fixOriginalFiles():
+	fixCorreFile3()
+	fixAnswerFile3()
+	fixAnswerFile5()
 
-quest, answers = convertToList()
+def createDicsAndQuestions():
+	quest, answers = convertToList()
+	correlation = getCorrelation(quest)
 
-correlation = getCorrelation(quest)
+	saveNestedDict("correlations.csv", correlation)
+	saveQuestions(quest, "questions.json")
+	saveNestedDict("answers.csv", answers)
 
-saveNestedDict("correlations.csv", correlation)
-saveQuestions(quest)
-saveNestedDict("answers.csv", answers)
+	return "questions.json"
