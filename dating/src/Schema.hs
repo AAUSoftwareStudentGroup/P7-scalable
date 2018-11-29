@@ -55,7 +55,8 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     deriving Show Eq Generic
 
   Question sql=questions
-    body    Text
+    index   Int
+    text    Text
     answers [Answer]
     deriving Show Eq Generic
 
