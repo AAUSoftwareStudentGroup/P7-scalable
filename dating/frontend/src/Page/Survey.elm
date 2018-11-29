@@ -120,17 +120,23 @@ getFirstQuestion questions =
 sendGetQuestions : (Result Http.Error (List Question) -> msg) -> Session -> Cmd msg
 sendGetQuestions responseMsg session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Questions.getQuestions userInfo)
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
 
 sendAnswer : (Result Http.Error (String.String) -> msg) -> Session -> Answer -> Cmd msg
 sendAnswer responseMsg session answer =
     case session of
+<<<<<<< HEAD
         Session.LoggedIn _ _ userInfo ->
             Http.send responseMsg (Api.Questions.createAnswer userInfo answer)
         Session.Guest _ _ ->
+=======
+        Session.LoggedIn _ _ _ userInfo ->
+            Http.send responseMsg (Api.Questions.postAnswer userInfo answer)
+        Session.Guest _ _ _ ->
+>>>>>>> develop
             Cmd.none
 
 createAnswer : Int -> String -> Answer

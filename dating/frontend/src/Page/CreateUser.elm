@@ -6,6 +6,7 @@ import Html.Events as Events exposing (onClick)
 import Validate exposing (Validator, Valid)
 import String
 import Http
+import Date exposing (Unit(..))
 
 import Session exposing (Session, Details)
 import Routing exposing (Route(..))
@@ -104,7 +105,7 @@ update msg model =
                     , Cmd.none
                     )
                 Err _ ->
-                    ( { model | checkingUsername = False }
+                    ( model
                     , Cmd.none
                     )
 
@@ -298,30 +299,13 @@ doPasswordsMatch model =
 
 isDateValidFormat : Model -> Bool
 isDateValidFormat model =
-    let
-        date = model.birthday
-        dateLength = String.length date
-        year = Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
-        month = Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
-        day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
-
-        separators = String.slice 4 5 date ++ String.slice 7 8 date
-
-        isYearNice = year >= 0 && year <= 9999
-        isMonthNice = month >= 0 && month <= 12
-        isDayNice = day >= 0 && day <= 31
-        isSeparatorsNice = separators == "--"
-    in
-        dateLength == 10 && isYearNice && isSeparatorsNice && isMonthNice && isDayNice
-
-
+    case Date.fromIsoString model.birthday of
+        Ok _  -> True
+        Err _ -> False
+        
 isDateValid : Model -> Bool
 isDateValid model =
-    let
-        date = model.birthday
-        year = Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
-        month = Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
-        day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
-    in
-        year <= 2000
-
+    case Date.fromIsoString model.birthday of
+        Ok date  -> 
+            (Date.diff Years date <| Session.getNow model.session) >= 18
+        Err _ -> False

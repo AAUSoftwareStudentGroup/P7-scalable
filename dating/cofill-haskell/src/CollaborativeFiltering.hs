@@ -10,13 +10,14 @@ import           Numeric.LinearAlgebra.Data    (toDense, GMatrix)
 import           Numeric.LinearAlgebra.HMatrix (mul)
 import           System.Random                 (newStdGen, randomRs)
 import           Control.Arrow ((&&&))
-
+import           Data.List
 toOneOrZero :: Matrix -> Matrix
 toOneOrZero = cmap (\x -> if x == 0 then 0 else 1)
 
 getRandomNumbers :: IO [Double]
 getRandomNumbers = randomRs (0, 1) <$> newStdGen
 
+type Vector = LA.Vector LA.R
 type Matrix = LA.Matrix LA.R
 type EmbeddingMatrix = Matrix
 type LearningRate = Matrix
@@ -123,3 +124,33 @@ meanSquareError matrix noOfElements = mean (square matrix)
 
         mean :: Matrix -> Double
         mean matrix = sumElements matrix / noOfElements
+
+type Username    = String
+type UserAnswers = (Username, Vector)
+type Score       = (Username, Double)
+
+findScores :: UserAnswers -> [UserAnswers] -> Matrix -> [Score]
+findScores user users correlation = sorted
+    where 
+        scores = map toScore users
+        sorted = sortBy (\(_,a) (_,b) -> compare b a) scores
+        targetUserAnswers = snd user 
+        
+        toScore :: UserAnswers -> Score 
+        toScore = fmap (\score -> getCorrelation targetUserAnswers score correlation) 
+
+
+getCorrelation :: Vector -> Vector -> Matrix -> Double
+getCorrelation user1 user2 matrix = sumElements correlation
+    where
+        ansMat1     = toNByNMatrix user1
+        ansMat2     = tr' $ toNByNMatrix user2
+        difference  = abs $ ansMat1 - ansMat2
+        correlation = -(difference - 2) * matrix / 2
+
+--Converts [A, B, C] into [[A, A, A], [B, B, B], [C, C, C]]
+toNByNMatrix :: Vector -> Matrix
+toNByNMatrix v = LA.fromBlocks [cols]
+    where
+        amount = size v
+        cols   = replicate amount (LA.asColumn v)

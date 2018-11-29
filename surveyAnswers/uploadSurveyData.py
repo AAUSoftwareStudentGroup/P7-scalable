@@ -6,7 +6,7 @@ def readfile(file):
     with open(file) as f:
         return f.read()
 
-data = json.loads(readfile('survey_answers.json'))
+data = json.loads(readfile('questions.json'))
 
 db = pymongo.MongoClient('localhost',8020)['datingdb']
 db.authenticate('datingdbuser', 'datingdbpassword')

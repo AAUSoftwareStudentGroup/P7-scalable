@@ -155,7 +155,6 @@ view model =
                             , ( "l-12", True )
                             , ( "s-12", True )
                             ]
-                        --, Events.onSubmit (FuckNotifications "Test")
                         , Events.onSubmit Submitted
                         ]
                 [ El.validatedInput Username "text" "Username" model.username FormFieldChanged True model.errors model.attemptedSubmission

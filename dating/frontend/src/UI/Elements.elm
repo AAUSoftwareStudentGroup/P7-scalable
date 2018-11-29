@@ -13,6 +13,9 @@ import Session exposing (Details, PageType(..), Session, Notification)
 import Api.Types exposing (Gender(..), Image)
 import Api.Users exposing (User)
 
+import Time
+import Date exposing (Date)
+
 import Random
 
 
@@ -95,15 +98,15 @@ headerNav session =
 headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             [ headerNavLink (Routing.routeToString Survey) "Survey"
-            , headerNavLink (Routing.routeToString Messages) "Messages"
+            , headerNavLink (Routing.routeToString (Messages "")) "Messages"
             , headerNavLink (Routing.routeToString ListUsers) "All users"
             , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             [ headerNavLink (Routing.routeToString CreateUser) "Sign up"
             , headerNavLink (Routing.routeToString Login) "Sign in"
             ]
@@ -174,12 +177,12 @@ loader : List (Html msg)
 loader =
     [ div [ class "loading-spinner" ] [] ]
 
-userCard : User -> Html msg
-userCard user =
+userCard : User -> Date -> Html msg
+userCard user now =
     let
         username = user.username
         gender = Api.Types.genderToString user.gender
-        age = "23"
+        age = String.fromInt <| Api.Users.getAge user now
         bio = user.profileText
     in
         Html.li
@@ -212,7 +215,7 @@ userCard user =
                     , ("s-2", True)
                     ]
                 ]
-                (Routing.routeToString (Chat username))
+                (Routing.routeToString (Messages username))
                 [ iconText "Chat" "chat" ]
             ]
 
@@ -320,7 +323,6 @@ validatedInput field typ caption value toMsg required errors showErrors =
                 , ( "s-12", True )
                 , ( "empty", empty )
                 , ( "valid", valid )
-                , ( "valid", relevantErrors == [] )
                 ]
             ]
             [ Html.label []

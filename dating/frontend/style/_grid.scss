@@ -5,6 +5,10 @@ $grid-gap: 1rem;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     grid-gap: $grid-gap;
+
+    &.no-gap {
+        grid-gap: 0;
+    }
 }
 
 .l-1 {
