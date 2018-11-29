@@ -208,7 +208,7 @@ mkEmbeddingMatrix rows cols = (rows><cols) <$> getRandomNumbers
 
 defaultOptions :: Options
 defaultOptions =
-  Options { iterationRange = (9000000, 9000000)
-          , threshold = 0.0001
+  Options { iterationRange = (100, 101)
+          , threshold = 0.001
           , initialLearningRate = 0.000001
           }

@@ -410,6 +410,13 @@ createQuestionEmbedding mongoInfo questionEmbeddingDTO = runAction mongoInfo ins
     embedding' = embedding questionEmbeddingDTO
 
 
+fetchBestQuestionEmbedding :: MongoInfo -> IO (Maybe QuestionEmbedding)
+fetchBestQuestionEmbedding mongoInfo = runAction mongoInfo fetchAction
+  where
+    fetchAction :: Action IO (Maybe QuestionEmbedding)
+    fetchAction = fmap entityVal <$>
+      Persist.Mongo.selectFirst [] [Asc QuestionEmbeddingMse]
+
 
 {-----------------------------------------------------------------------------}
 {-                                 HELPERS                                   -}
