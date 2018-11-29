@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 module ReadData where
 
 import Data.Aeson
@@ -17,7 +17,7 @@ jsonFile = "data-large.json"
 getJSON :: IO B.ByteString
 getJSON = B.readFile jsonFile
 
-getQuestions :: IO ([Question])
+getQuestions :: IO [Question]
 getQuestions = do
  d <- (eitherDecode <$> getJSON) :: IO (Either String [Question])
  case d of
