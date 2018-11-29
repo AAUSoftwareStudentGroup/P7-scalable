@@ -50,7 +50,7 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
 
   Message sql=messages
     author    Text
-    timeStamp UTCTime
+    timestamp UTCTime
     body      Text
     deriving Show Eq Generic
 
@@ -62,12 +62,12 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
   Answer sql=answers
     answerer    Text
     score       Int
-    timeStamp   UTCTime
+    timestamp   UTCTime
     isPredicted Bool
     deriving Show Eq Generic
 
   QuestionEmbedding sql=question_embeddings
-    timeStamp UTCTime
+    timestamp UTCTime
     embedding [Column]
     deriving Eq Show Generic
 |]

@@ -303,7 +303,7 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
       currentTime <- Clock.getCurrentTime
       return  Message
           { messageAuthor = from'
-          , messageTimeStamp = currentTime
+          , messageTimestamp = currentTime
           , messageBody = body''
           }
 
@@ -387,7 +387,7 @@ createAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf 
       return Answer
           { answerAnswerer = name
           , answerScore = score'
-          , answerTimeStamp = currentTime
+          , answerTimestamp = currentTime
           , answerIsPredicted = False
           }
 
@@ -421,7 +421,7 @@ conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversat
       { convoWithUsername = if head members == username then last members else head members
       , isLastAuthor = username == getField @"messageAuthor" message
       , body = getField @"messageBody" message
-      , timeStamp = getField @"messageTimeStamp" message
+      , timeStamp = getField @"messageTimestamp" message
       }
 
 
@@ -454,7 +454,7 @@ messageToMessageDTO message = messageDTO
   where
     messageDTO = MessageDTO
       { authorUsername = messageAuthor message
-      , timeStamp = messageTimeStamp message
+      , timeStamp = messageTimestamp message
       , body = messageBody message
       }
 
