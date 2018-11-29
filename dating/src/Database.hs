@@ -14,6 +14,7 @@ import           Data.Bson                          (Document)
 import qualified Data.ByteString.Base64             as Base64
 import qualified Data.ByteString.Lazy.Char8         as LBS
 import           Data.Either                        (rights)
+import qualified Data.Maybe                         as Maybe
 import           Data.Foldable                      (traverse_)
 import           Data.Generics.Product              (getField)
 import           Data.Semigroup                     ((<>))
@@ -173,6 +174,7 @@ fetchUserExists mongoConf username' = runAction mongoConf fetchAction
 
 
 -- | Edit user
+<<<<<<< HEAD
 updateUser :: MongoInfo -> Username -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
 updateUser mongoConf username currentUser = runAction mongoConf editAction
   where
@@ -195,6 +197,48 @@ updateUser mongoConf username currentUser = runAction mongoConf editAction
             return $ Left $ err409 { errBody = "This user does not exist in the database" }
       else
         return $ Left $ err409 { errBody = "This user does not exist in the database" }
+=======
+editUser :: MongoInfo -> Username -> EditUserDTO -> IO (Either ServantErr LoggedInDTO)
+editUser mongoConf username newFields = runAction mongoConf editAction
+  where
+    editAction :: Action IO (Either ServantErr LoggedInDTO)
+    editAction = do
+      dbEntry <- getBy (UniqueUsername username)
+      case dbEntry of
+        Just (Entity key user) ->
+          case (getField @"imageData" newFields) of
+            Just base64 -> 
+              case urlFromBase64EncodedImage base64 (getField @"userSalt" user) of
+                Left txt -> return $ Left $ err415 { errBody = txt }
+                Right img -> do
+                  liftIO img
+                  _ <- update key $ updatedValues newFields (getField @"userSalt" user) --return $ Right $ somefunc key
+                  return $ Right $ userEntityToLoggedInDTO (Entity key user)
+            Nothing -> do
+            _ <- update key $ updatedValues newFields (getField @"userSalt" user)
+            return $ Right $ userEntityToLoggedInDTO (Entity key user)
+        Nothing -> return $ Left $ err409 { errBody = "This user does not exist in the database" }
+
+    updatedValues :: EditUserDTO -> Text -> [Update User]
+    updatedValues fields' salt = updates
+      where
+        password = case (getField @"password" fields') of 
+          Just newpass -> Just (UserPassword =. (hashPassword newpass salt))
+          Nothing -> Nothing
+        gender =  case (getField @"gender" fields') of
+          Just a -> Just (UserGender =. a)
+          Nothing -> Nothing
+        birthday = case (getField @"birthday" fields') of
+          Just a -> Just (UserBirthday =. a)
+          Nothing -> Nothing
+        town = case (getField @"town" fields') of
+          Just a -> Just (UserTown =. a)
+          Nothing -> Nothing
+        profileText = case (getField @"profileText" fields') of
+          Just a -> Just (UserProfileText =. a)
+          Nothing -> Nothing
+        updates = Maybe.catMaybes [password, gender, birthday, town, profileText]
+>>>>>>> develop
 
 {-----------------------------------------------------------------------------}
 {-                             AUTHENTICATION                                -}

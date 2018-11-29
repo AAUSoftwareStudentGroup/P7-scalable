@@ -33,6 +33,14 @@ data CreateUserDTO = CreateUserDTO
   , imageData   :: Text
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
+data EditUserDTO = EditUserDTO
+  { password    :: Maybe Text
+  , gender      :: Maybe Gender
+  , birthday    :: Maybe Day
+  , town        :: Maybe Text
+  , profileText :: Maybe Text
+  , imageData   :: Maybe Text
+  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 data UserDTO = UserDTO
   { username    :: Text

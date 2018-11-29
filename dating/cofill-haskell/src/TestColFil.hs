@@ -8,21 +8,21 @@ module TestColFil where
     import CollaborativeFiltering
     
     
-    runEverything =
-        do
-            allQuestions <- getQuestions
-            let questions    =  keepOnlyXFirstAnswers 1000 $ take 600 allQuestions
-            let rows         = length $ survey_answers $ head questions
-            let cols         = length questions
-            let mSize        = fromIntegral $ rows * cols
-            let answerLst    = convertQuestionsToList questions
-            let answerMatrix = mkMatrix rows cols answerLst
-            rndMatrix        <- mkRandomMatrix rows cols
-            let testMatrix   = answerMatrix * rndMatrix 
-            guess            <- runTest testMatrix
-            let elements     = sumElements rndMatrix
-            
-            print $ meanSquareError (guess-answerMatrix) mSize
+    runEverything = do
+        allQuestions <- getQuestions
+        let questions    =  keepOnlyXFirstAnswers 1000 $ take 600 allQuestions
+        let rows         = length $ survey_answers $ head questions
+        let cols         = length questions
+        let mSize        = fromIntegral $ rows * cols
+        let answerLst    = convertQuestionsToList questions
+        let answerMatrix = mkMatrix rows cols answerLst
+        rndMatrix        <- mkRandomMatrix rows cols
+        let testMatrix   = answerMatrix * rndMatrix 
+        guess            <- runTest testMatrix
+        let elements     = sumElements rndMatrix
+        
+        print $ meanSquareError (guess-answerMatrix) mSize
+                
     
     keepOnlyXFirstAnswers :: Int -> [Question] -> [Question]
     keepOnlyXFirstAnswers amount = fmap (\x -> Question (text x) (take amount (survey_answers x)))

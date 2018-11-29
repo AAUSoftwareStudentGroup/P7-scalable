@@ -28,27 +28,28 @@ type alias Model =
     , unsentMessage : String
     , attemptedSend : Bool
     , previews      : List ConversationPreview
-    , activeConvo   : String
+    , chattingWith  : String
     , convos        : Dict String (Bool, List Message) -- (Done, List of messages)
+    , loadingConvo  : Bool
     }
 
 initModel : Session -> Model
 initModel session =
-    Model session "Messages" False "" "" False [] "" Dict.empty
+    Model session "Messages" False "" "" False [] "" Dict.empty False
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
+init : Session -> Maybe String -> ( Model, Cmd Msg )
+init session initUsername =
     let
         model = initModel session
     in
         case session of
-            Session.Guest _ _ ->
+            Session.Guest _ _ _ ->
                 ( model
                 , Routing.goToLogin (Session.getNavKey session)
                 )
-            Session.LoggedIn _ _ userInfo ->
-                ( { model | usernameSelf = userInfo.username }
+            Session.LoggedIn _ _ _ userInfo ->
+                ( { model | usernameSelf = userInfo.username, chattingWith = Maybe.withDefault "" initUsername }
                 , sendGetConvos HandleInitConvos model
                 )
 
@@ -77,27 +78,37 @@ update msg model =
 
         GetConvos _ ->
             case (model.session) of
-                Session.Guest _ _ ->
+                Session.Guest _ _ _ ->
                     ( model, Cmd.none)
-                Session.LoggedIn _ _ userInfo ->
+                Session.LoggedIn _ _ _ userInfo ->
                     ( model, sendGetConvos HandleGetConvos model)
 
         GetNewMessages _ ->
             case (model.session) of
-                Session.Guest _ _ ->
+                Session.Guest _ _ _ ->
                     ( model, Cmd.none)
-                Session.LoggedIn _ _ userInfo ->
-                    ( model, sendGetMessages HandleGetNewMessages model.activeConvo model 0 pageSize)
+                Session.LoggedIn _ _ _ userInfo ->
+                    ( model, sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize)
 
         HandleInitConvos result ->
             case result of
                 Ok fetchedConvos ->
-                    let
-                        sortedConvos = List.sortWith sortConvos fetchedConvos
-                        username = (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
-                    in
-                        ( { model | previews = sortedConvos, activeConvo = username, loaded = True }
-                        , sendGetMessages HandleGetInitMessages username model 0 pageSize )
+                    if List.length fetchedConvos == 0 && model.chattingWith == ""then
+                        ( { model | previews = [], loaded = True }
+                        , Cmd.none )
+                    else
+                        let
+                            sortedConvos = List.sortWith sortConvos fetchedConvos
+                            username =
+                                if model.chattingWith == "" then
+                                    (Maybe.withDefault emptyConvoPreview (List.head sortedConvos)).convoWithUsername
+                                else
+                                    model.chattingWith
+
+                            finalConvos = prependPreviewIfNotExists sortedConvos username
+                        in
+                            ( { model | previews = finalConvos, chattingWith = username, loaded = True, loadingConvo = True }
+                            , sendGetMessages HandleGetInitMessages username model 0 pageSize )
 
                 Err errResponse ->
                     ( model, Cmd.none )
@@ -105,11 +116,16 @@ update msg model =
         HandleGetConvos result ->
             case result of
                 Ok fetchedConvos ->
-                    let
-                        sortedConvos = List.sortWith sortConvos fetchedConvos
-                    in
-                        ( { model | previews = sortedConvos }
+                    if List.length fetchedConvos == 0 && model.chattingWith == ""then
+                        ( { model | previews = [], loaded = True }
                         , Cmd.none )
+                    else
+                        let
+                            sortedConvos = List.sortWith sortConvos fetchedConvos
+                            finalConvos = prependPreviewIfNotExists sortedConvos model.chattingWith
+                        in
+                            ( { model | previews = finalConvos }
+                            , Cmd.none )
 
                 Err errResponse ->
                     ( model, Cmd.none )
@@ -123,7 +139,7 @@ update msg model =
                         Just _ ->
                             jumpToBottom listId
             in
-                ( { model | activeConvo = username }, command )
+                ( { model | chattingWith = username }, command )
 
 
         HandleGetInitMessages result ->
@@ -140,7 +156,7 @@ update msg model =
                             else
                                 jumpToBottom listId
                     in
-                        ( { model | convos = Dict.insert username (gottenAllMessages, messages) model.convos, loaded = True }
+                        ( { model | convos = Dict.insert username (gottenAllMessages, messages) model.convos, loaded = True, loadingConvo = False }
                         , command)
 
                 Err errResponse ->
@@ -191,7 +207,7 @@ update msg model =
                                     Dict.insert username (gottenAllMessages, newMessages ++ oldMessageList) model.convos
 
                     in
-                        ( { model | convos = newConvos, loaded = True }
+                        ( { model | convos = newConvos, loaded = True, loadingConvo = False }
                         , Cmd.none)
 
                 Err errResponse ->
@@ -202,7 +218,7 @@ update msg model =
             ( { model | unsentMessage = new }, Cmd.none )
 
         SendMessage ->
-            if model.attemptedSend then
+            if model.attemptedSend || String.isEmpty model.unsentMessage then
                 ( model, Cmd.none )
             else
                 ( { model | attemptedSend = True }, sendMessage model )
@@ -211,14 +227,15 @@ update msg model =
             case result of
                 Ok responseString ->
                     ( { model | unsentMessage = "", attemptedSend = False }
-                    , sendGetMessages HandleGetNewMessages model.activeConvo model 0 pageSize )
+                    , sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize )
 
                 Err _ ->
-                    ( model, Cmd.none )
+                    ( { model | attemptedSend = False, session = Session.addNotification model.session ("Failed to send message") }
+                    , Cmd.none )
 
         LoadMore _ ->
-            ( model
-            , sendGetMessages HandleGetOldMessages model.activeConvo model (numberCurrentMessages model) pageSize
+            ( { model | loadingConvo = True }
+            , sendGetMessages HandleGetOldMessages model.chattingWith model (numberCurrentMessages model) pageSize
             )
 
 
@@ -238,63 +255,78 @@ view model =
     { title = model.title
     , session = model.session
     , kids = Fixed
-        <| El.titledContentLoader model.loaded "Messages"
-            [ div
-                [ classList
-                    [ ( "grid", True )
-                    , ( "l-12", True )
-                    , ( "s-12", True )
-                    ]
-                ]
-                [ Keyed.ul
-                        [ classList
-                            [ ( "convos", True )
-                            , ( "l-3", True )
-                            , ( "s-12", True )
+        <| El.titledContentLoader model.loaded "Messages" <|
+            if model.previews == [] then
+                [ viewNoMessages ]
+            else
+                [ div
+                    [ class "messaging-wrapper" ]
+                    [ div
+                        [ class "convos" ]
+                        [ Keyed.ul
+                            [ class "convo-list" ]
+                            (List.map (viewConvoKeyed model) model.previews)
+                        ]
+                    , div
+                        [ class "messages" ]
+                        [ Keyed.ul
+                            [ class "message-list"
+                            , Attributes.id listId
                             ]
-                        ]
-                        (List.map (viewConvoKeyed model) model.previews)
-                , div
-                    [ classList
-                        [ ( "chat", True )
-                        , ( "l-9", True )
-                        , ( "s-12", True )
-                        ]
-                    ]
-                    [ Keyed.ul
-                        [ classList
-                            [ ( "messages", True )
-                            , ( "l-12", True )
-                            , ( "l-6", True )
+                            (viewTopElement model :: (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
+                        , Html.form
+                            [ Events.onSubmit SendMessage
+                            , class "message-input"
                             ]
-                        , Attributes.id listId
-                        ]
-                        ([viewLoadMore model] ++ (List.concat (List.map (viewMessageGroup model True) (List.Extra.groupWhile (\a b -> a.authorName == b.authorName) (listCurrentMessages model)))))
-                    , Html.form
-                        [ Events.onSubmit SendMessage
-                        , classList
-                            [ ( "l-12", True )
-                            , ( "l-6", True )
+                            [ El.simpleInput "text" "Message" model.unsentMessage UnsentMessageChanged False
+                            , El.submitButtonHtml
+                                [ El.iconText "" "send" ]
                             ]
-                        ]
-                        [ El.simpleInput "text" "Message" model.unsentMessage UnsentMessageChanged False
-                        , El.submitButtonHtml
-                            [ El.iconText "Send" "send" ]
                         ]
                     ]
                 ]
-            ]
     }
 
-viewLoadMore : Model -> (String, Html Msg)
-viewLoadMore model =
-    if Tuple.first (Maybe.withDefault (False, []) (Dict.get model.activeConvo model.convos)) then
-        ( "", Html.text "" )
-    else
-        ( "test"
-        , El.msgButtonFlat []
-            (LoadMore True)
-            [ El.iconText "Load more" "keyboard_arrow_up" ]
+viewNoMessages : Html Msg
+viewNoMessages =
+    div
+    [ classList
+        [ ( "no-conversations", True )
+        , ( "l-12", True )
+        , ( "s-12", True )
+        ]
+    ]
+    [ Html.text "You don't have any conversations. Go check your matches and find someone to chat with." ]
+
+viewTopElement : Model -> (String, Html Msg)
+viewTopElement model =
+    let
+        element =
+            if Tuple.first (Maybe.withDefault (False, []) (Dict.get model.chattingWith model.convos)) then
+                div
+                    [ classList
+                        [ ( "conversation-start", True ) ]
+                    ]
+                    [ Html.text ("This is the beginning of your conversation with " ++ model.chattingWith) ]
+            else
+                let
+                    icon =
+                        if model.loadingConvo then
+                            "more_horiz"
+                        else
+                            "keyboard_arrow_up"
+                in
+                    El.msgButtonFlat
+                        [ classList
+                            [ ( "load-more-button", True )
+                            , ( "loading", model.loadingConvo )
+                            ]
+                        ]
+                        (LoadMore True)
+                        [ El.iconText "Load more" icon ]
+    in
+        ( "first-element"
+        , element
         )
 
 
@@ -308,12 +340,12 @@ viewConvoKeyed model message =
 viewConvo : Model -> ConversationPreview -> Html Msg
 viewConvo model message =
     let
-        activeConvo = message.convoWithUsername == model.activeConvo
+        chattingWith = message.convoWithUsername == model.chattingWith
     in
         Html.li
             [ classList
                 [ ( "conversation", True )
-                , ( "active", activeConvo )
+                , ( "active", chattingWith )
                 ]
             , Attributes.attribute "attr-id" <| message.convoWithUsername
             , Events.onClick (ConvoSelected message.convoWithUsername)
@@ -367,7 +399,7 @@ viewMessageGroup model isFirstMessage (firstMessage, restOfMessages) =
 
 
 -- HELPERS
-pageSize = 20
+pageSize = 25
 
 listId = "message-list"
 
@@ -375,9 +407,10 @@ numberCurrentMessages : Model -> Int
 numberCurrentMessages model =
     List.length (listCurrentMessages model)
 
+
 listCurrentMessages : Model -> List (Message)
 listCurrentMessages model =
-    Tuple.second (Maybe.withDefault (False, []) (Dict.get model.activeConvo model.convos))
+    Tuple.second (Maybe.withDefault (False, []) (Dict.get model.chattingWith model.convos))
 
 
 jumpToBottom : String -> Cmd Msg
@@ -404,34 +437,47 @@ compareMessage : Message -> Message -> Order
 compareMessage a b =
     compare (Time.posixToMillis b.timeStamp) (Time.posixToMillis a.timeStamp)
 
+prependPreviewIfNotExists : List (ConversationPreview) -> String -> List (ConversationPreview)
+prependPreviewIfNotExists convos username =
+    if hasConvoWithUser convos username then
+        convos
+    else
+        (newConvoPreview username) :: convos
+
+hasConvoWithUser : List (ConversationPreview) -> String -> Bool
+hasConvoWithUser convos username =
+    (List.length <| List.filter (\convo -> convo.convoWithUsername == username) convos) == 1
+
+
+newConvoPreview : String -> ConversationPreview
+newConvoPreview username =
+    ConversationPreview username "No messages" False <| Time.millisToPosix 0
+
 
 sendGetConvos : (Result Http.Error (List ConversationPreview) -> msg) -> Model -> Cmd msg
 sendGetConvos responseMsg model =
     case model.session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
 
 
 sendGetMessages : (Result Http.Error Conversation -> msg) -> String -> Model -> Int -> Int -> Cmd msg
 sendGetMessages responseMsg username model offset numMessages =
     case model.session of
-        Session.LoggedIn _ _ userInfo ->
+        Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getMessagesFromUsername userInfo username (-1 * (offset + numMessages)) numMessages)
 
-        Session.Guest _ _ ->
+        Session.Guest _ _ _ ->
             Cmd.none
 
 
 sendMessage : Model -> Cmd Msg
 sendMessage model =
-    if String.isEmpty model.unsentMessage then
-        Cmd.none
-    else
-        case model.session of
-            Session.LoggedIn _ _ userInfo ->
-                Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.activeConvo)
+    case model.session of
+        Session.LoggedIn _ _ _ userInfo ->
+            Http.send HandleMessageSent (Api.Messages.postMessage userInfo model.unsentMessage model.chattingWith)
 
-            Session.Guest _ _ ->
-                Cmd.none
+        Session.Guest _ _ _ ->
+            Cmd.none

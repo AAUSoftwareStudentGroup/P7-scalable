@@ -65,7 +65,7 @@ type UserAPI =
           :> Get '[JSON] Bool
   :<|>  -- Edit User
   "edit"  :> AuthProtect "cookie-auth"
-          :> ReqBody '[JSON] CreateUserDTO
+          :> ReqBody '[JSON] EditUserDTO
           :> Post '[JSON] LoggedInDTO
 
 type AuthAPI =
@@ -141,9 +141,15 @@ fetchUserExists :: MongoInfo -> Username -> Handler Bool
 fetchUserExists mongoInfo username = liftIO $ DB.fetchUserExists mongoInfo username
 
 -- | Edit user from UserDTO
+<<<<<<< HEAD
 updateUserHandler :: MongoInfo -> Username -> CreateUserDTO -> Handler LoggedInDTO
 updateUserHandler mongoInfo username user = do
   maybeEdited <- liftIO $ DB.updateUser mongoInfo username user
+=======
+editUserHandler :: MongoInfo -> Username -> EditUserDTO -> Handler LoggedInDTO
+editUserHandler mongoInfo username user = do
+  maybeEdited <- liftIO $ DB.editUser mongoInfo username user
+>>>>>>> develop
   case maybeEdited of
     Right loggedInDTO -> return loggedInDTO
     Left err          -> Handler $ throwE err
@@ -208,12 +214,18 @@ maybeToEither e = maybe (Left e) Right
 -- | Creates a new message between two users
 createMessageHandler :: MongoInfo -> Username -> Username -> CreateMessageDTO -> Handler ()
 createMessageHandler mongoInfo ownUsername otherUsername msgDTO =
-  liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
+  if ownUsername == otherUsername then
+    Handler $ throwE $ err409 { errBody = "Cannot chat with yourself" }
+  else
+    liftIO $ DB.createMessage mongoInfo ownUsername otherUsername msgDTO
 
 -- | Fetches all messages between two users.
 fetchMessagesBetweenHandler :: MongoInfo -> Username -> Username -> Int -> Int -> Handler ConversationDTO
 fetchMessagesBetweenHandler mongoInfo ownUsername otherUsername offset limit =
-  liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername offset limit
+  if ownUsername == otherUsername then
+    Handler $ throwE $ err409 { errBody = "Cannot chat with yourself"}
+  else
+    liftIO $ DB.fetchConversation mongoInfo ownUsername otherUsername offset limit
 
 -- | Fetches an overview of conversations for one user.
 fetchConversationPreviewsHandler :: MongoInfo -> Username -> Handler [ConversationPreviewDTO]

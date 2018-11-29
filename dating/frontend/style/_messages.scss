@@ -1,31 +1,115 @@
-.conversation-with {
-    @extend %txt-heading;
-}
-
-.conversation-last-message {
-    @extend %txt-subheading;
-
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.messages, .convos {
+.no-conversations {
     height: 70vh;
+    text-align: center;
+}
+
+.messaging-wrapper {
+    border-top: 1px solid $bg-col-dark;
+    height: calc(100vh - #{$header-height + $footer-height + (2 * $main-grid-gap)} - 2rem);
+    grid-column: span 12;
+}
+
+.chat {
+    border-left: 1px solid $bg-col-dark;
+}
+
+.convos, .messages {
+    float: left;
+    height: 100%;
+}
+
+.convos {
+    width: 30%;
     overflow-y: auto;
-    padding-right: 0.5rem;
+}
+
+.messages {
+    width: 70%;
+    padding: 0rem 0.5rem 0 0.5rem;
+    border-left: 1px solid $bg-col-dark;
+
+    .message-list {
+        overflow-y: auto;
+        height: calc(100% - 3rem);
+
+        &:first-child {
+            padding-top: 1rem;
+        }
+
+        & > * {
+            padding-right: 0.5rem;
+        }
+
+    }
+    .message-input {
+        height: 2rem;
+        position: relative;
+
+        input {
+            width: 100%;
+            text-indent: 1rem;
+            height: 2rem;
+            margin-bottom: 1rem;
+            border-radius: 0.15rem;
+            border: 1px solid $bg-col-light;
+        }
+
+        button {
+            background-color: transparent;
+            position: absolute;
+            color: $pri-col;
+            box-shadow: none;
+            right: 0;
+            top: -0.1rem;
+            padding: 0;
+            padding-right: 1rem;
+
+
+            &:hover {
+                color: $pri-col-light
+            }
+        }
+    }
+
+    .conversation-start {
+        text-align: center;
+    }
+
+    .load-more-button {
+        display: block;
+        margin: 0 auto;
+    }
+
+    li {
+        margin-bottom: 1rem;
+    }
 }
 
 .conversation {
-    margin-bottom: 1rem;
+    padding: 1rem;
     cursor: pointer;
 
-    &.active span {
-        font-weight: 500;
+    &.active {
+        background-color: rgba(0, 0, 0, 0.1);
     }
 
     span {
         display: block;
+    }
+
+    .conversation-with {
+        @extend %txt-heading;
+
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .conversation-last-message {
+        @extend %txt-subheading;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
 
@@ -57,10 +141,4 @@
     &.is-last-in-group.author-me div      { border-bottom-right-radius: 0.8em; }
     &.is-first-in-group.author-friend div { border-top-left-radius: 0.8em; }
     &.is-last-in-group.author-friend div  { border-bottom-left-radius: 0.8em; }
-}
-
-.messages {
-    li {
-        margin-bottom: 1rem;
-    }
 }

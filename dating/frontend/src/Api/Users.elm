@@ -1,4 +1,4 @@
-module Api.Users exposing (NewUser, User, postUsers, postLogin, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
+module Api.Users exposing (NewUser, EditUserDTO, User, getAge, postUsers, postLogin, postEditUser, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -6,6 +6,7 @@ import Json.Decode.Pipeline as Pipeline
 import Http
 import String
 import Url
+import Date exposing(Date, diff, Unit(..))
 
 import Api.Types exposing (Gender(..))
 import Api.Authentication as Auth exposing (UserInfo, Token, Credentials)
@@ -27,20 +28,45 @@ type alias NewUser =
     , image         : String
     }
 
+type alias EditUserDTO =
+    { password      : Maybe String
+    , gender        : Maybe Gender
+    , birthday      : Maybe String
+    , town          : Maybe String
+    , profileText   : Maybe String
+    , image         : Maybe String
+    }
+
 type alias User =
     { username      : String
     , gender        : Gender
-    , birthday      : String
+    , birthday      : Date
     , town          : String
     , profileText   : String
     , image         : String
     }
 
-
 emptyUser : User
 emptyUser =
-    User "" Other "" "" "" ""
+    User "" Other (Date.fromOrdinalDate 0 1) "" "" ""
 
+
+getAge : User -> Date -> Int
+getAge user now =
+    Date.diff Years user.birthday now
+
+encodeDate : Date -> Encode.Value
+encodeDate date =
+    Encode.string (Api.Types.dateToString date)
+
+decodeDate : String -> Decoder Date
+decodeDate fieldName =
+    Decode.field fieldName Decode.string
+        |> Decode.andThen decodeDateHelper
+
+decodeDateHelper : String -> Decoder Date
+decodeDateHelper str =
+    Decode.succeed <| (Api.Types.stringToDate str)
 
 encodeGender : Gender -> Encode.Value
 encodeGender g =
@@ -83,8 +109,8 @@ decodeGenderHelper str =
             Decode.fail <| "Unknown gender: " ++ somethingElse
 
 
-encodeUser : NewUser -> Encode.Value
-encodeUser user =
+encodeNewUser : NewUser -> Encode.Value
+encodeNewUser user =
     Encode.object
         [ ( "email", Encode.string user.email )
         , ( "password", Encode.string user.password )
@@ -95,6 +121,25 @@ encodeUser user =
         , ( "profileText", Encode.string user.profileText )
         , ( "imageData", Encode.string user.image )
         ]
+
+encodeEditUser : EditUserDTO -> Encode.Value
+encodeEditUser user =
+    Encode.object
+        [ ( "password", encodeMaybe Encode.string user.password )
+        , ( "gender", encodeMaybe encodeGender user.gender )
+        , ( "birthday", encodeMaybe Encode.string user.birthday )
+        , ( "town", encodeMaybe Encode.string user.town )
+        , ( "profileText", encodeMaybe Encode.string user.profileText )
+        , ( "imageData", encodeMaybe Encode.string user.image )
+        ]
+
+encodeMaybe : (dataType -> Encode.Value) -> Maybe dataType -> Encode.Value
+encodeMaybe encoder maybeData =
+    case maybeData of
+        Just data ->
+            encoder data
+        Nothing ->
+            Encode.null
 
 encodeUserInfo : UserInfo -> Encode.Value
 encodeUserInfo userInfo =
@@ -108,7 +153,7 @@ decodeUser =
     Decode.succeed User
         |> Pipeline.required "username" Decode.string
         |> Pipeline.custom decodeGender
-        |> Pipeline.required "birthday" Decode.string
+        |> Pipeline.custom (decodeDate "birthday")
         |> Pipeline.required "town" Decode.string
         |> Pipeline.required "profileText" Decode.string
         |> Pipeline.required "imageUrl" Decode.string
@@ -139,7 +184,7 @@ postUsers body =
                 , "users"
                 ]
         , body =
-            Http.jsonBody (encodeUser body)
+            Http.jsonBody (encodeNewUser body)
         , expect =
             Http.expectJson decodeUserInfo
         , timeout =
@@ -194,8 +239,8 @@ postLogout token =
             False
         }
 
-getUserByUsername : String -> UserInfo -> Http.Request (User)
-getUserByUsername username userInfo =
+getUserByUsername : UserInfo -> String -> Http.Request (User)
+getUserByUsername userInfo username =
     Http.request
         { method =
             "GET"
@@ -241,8 +286,8 @@ getUserAlreadyExists username =
             False
         }
 
-getUsers : Int -> Int -> UserInfo -> Http.Request (List (User))
-getUsers pageNum pageSize userInfo =
+getUsers : UserInfo -> Int -> Int -> Http.Request (List (User))
+getUsers userInfo pageNum pageSize =
     Http.request
         { method =
             "GET"
@@ -265,7 +310,7 @@ getUsers pageNum pageSize userInfo =
             False
         }
 
-postEditUser : UserInfo -> NewUser -> Http.Request UserInfo
+postEditUser : UserInfo -> EditUserDTO -> Http.Request UserInfo
 postEditUser userInfo body =
     Http.request
         { method =
@@ -278,7 +323,7 @@ postEditUser userInfo body =
                 , "edit"
                 ]
         , body =
-            Http.jsonBody (encodeUser body)
+            Http.jsonBody (encodeEditUser body)
         , expect =
             Http.expectJson decodeUserInfo
         , timeout =
