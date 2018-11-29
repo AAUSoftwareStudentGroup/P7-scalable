@@ -16,5 +16,5 @@ instance FromRecord Rating where
       | length v == 4 = Rating <$> v .! 0 <*> v .! 1 <*> v .! 2
       | otherwise     = mzero
 
-loadRatings :: IO (Either String (Vector Rating))
-loadRatings = decode HasHeader <$> LBS.readFile "data/ratings.csv"
+loadRatings :: String -> IO (Either String (Vector Rating))
+loadRatings path = decode HasHeader <$> LBS.readFile path
