@@ -4,29 +4,19 @@ module TestColFil where
     import Numeric.LinearAlgebra (size, tr', (><), cmap, sumElements)
     import Question 
     import System.Random
-    import ReadData
+    import DataLoad
     import CollaborativeFiltering
     
     
     runEverything = do
-        allQuestions <- getQuestions
-        let questions    =  keepOnlyXFirstAnswers 1000 $ take 600 allQuestions
-        let rows         = length $ survey_answers $ head questions
-        let cols         = length questions
+        let answerMatrix = _ :: Matrix
+        let (rows, cols) = size answerMatrix
         let mSize        = fromIntegral $ rows * cols
-        let answerLst    = convertQuestionsToList questions
-        let answerMatrix = mkMatrix rows cols answerLst
-        rndMatrix        <- mkRandomMatrix rows cols
-        let testMatrix   = answerMatrix * rndMatrix 
+        let testMatrix   = getTestMatrix answerMatrix
         guess            <- runTest testMatrix
-        let elements     = sumElements rndMatrix
         
         print $ meanSquareError (guess-answerMatrix) mSize
                 
-    
-    keepOnlyXFirstAnswers :: Int -> [Question] -> [Question]
-    keepOnlyXFirstAnswers amount = fmap (\x -> Question (text x) (take amount (survey_answers x)))
-    
     runTest :: Matrix -> IO Matrix
     runTest testMatrix =
         do
@@ -39,10 +29,11 @@ module TestColFil where
             return $ mul u q
         
     
-    getTestMatrix :: Matrix -> Matrix -> Matrix
-    getTestMatrix answerMatrix rndMatrix = answerMatrix * oneZeroMatrix
-        where
-            oneZeroMatrix = rndOneOrZero rndMatrix
+    getTestMatrix :: Matrix -> Matrix
+    getTestMatrix answerMatrix = do
+        let (rows, cols)  = size answerMatrix
+        oneZeroMatrix     <- mkRandomMatrix rows cols
+        answerMatrix * oneZeroMatrix
             
     rndOneOrZero :: Matrix -> Matrix
     rndOneOrZero = cmap (\x -> if x > 0.7 then 0 else 1)

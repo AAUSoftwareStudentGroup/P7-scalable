@@ -56,6 +56,9 @@ library:
   - strict
   - hmatrix
   - directory
+  - cassava
+  - vector
+
 executables:
   dating:
     main: Main.hs
@@ -73,6 +76,7 @@ executables:
     dependencies:
     - base
     - dating
+
 tests:
   dating-test:
     main: Spec.hs

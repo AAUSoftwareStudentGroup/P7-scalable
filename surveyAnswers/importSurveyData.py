@@ -1,25 +1,3 @@
-#!/bin/env python3
-# {
-#     "_id" : ObjectId("5bed30cb5d8bd881161c57b4"),
-#     "text" : "test text",
-#     "user_answers" : [ 
-#     ],
-#     "survey_answers" : [ 
-#         {
-#             "u_id" : 1234,
-#             "score" : 1
-#         }, 
-#         {
-#             "u_id" : 1234,
-#             "score" : 1
-#         }, 
-#         {
-#             "u_id" : 1234,
-#             "score" : 1
-#         }
-#     ]
-# }
-
 import json
 
 def readfile(file):
@@ -102,16 +80,11 @@ def getCorrelation(questions):
 			rowQuestionId = questions[question_text[rowQuestIndex]]
 			correlationDict[rowQuestionId] = {}
 			for j in range(len(correlation)):
-				#print(question_text)
-				#print(j)
-				#print(question_text[j])
 				colQuestionId = questions[question_text[j]]
 				correlationDict[rowQuestionId][colQuestionId] = correlation[j].strip()
 
 			rowQuestIndex += 1
-			#print(str(rowQuestIndex) + " " + str(i))
-			
-			
+						
 	return correlationDict
 
 
@@ -140,7 +113,7 @@ def saveNestedDict(file, data):
 			for col in data[row]:
 				value = data[row][col]
 				
-				f.write(f"{row}; {col}; {value};\n")
+				f.write(f"{row},{col},{value}\r\n")
 
 
 def fixAnswerFile3():
