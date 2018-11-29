@@ -63,7 +63,7 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     answerer    Text
     score       Int
     timestamp   UTCTime
-    isPredicted Bool
+    ispredicted Bool
     deriving Show Eq Generic
 
   QuestionEmbedding sql=question_embeddings

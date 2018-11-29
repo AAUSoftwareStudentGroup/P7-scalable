@@ -388,7 +388,7 @@ createAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf 
           { answerAnswerer = name
           , answerScore = score'
           , answerTimestamp = currentTime
-          , answerIsPredicted = False
+          , answerIspredicted = False
           }
 
 
