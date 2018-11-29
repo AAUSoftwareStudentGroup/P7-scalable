@@ -118,10 +118,10 @@ def getCorrelation(questions):
 
 
 def saveQuestions(quest):
-	with open("questions.csv", 'w') as f:
+	'''with open("questions.csv", 'w') as f:
 		for key in quest:
 			f.write(f"{quest[key]}; {key};\n")
-
+'''
 	with open("questions.json", 'w') as f:
 		f.write("[")
 		first = True
@@ -131,7 +131,7 @@ def saveQuestions(quest):
 				f.write(",\n")
 			else:
 				first = False	
-			f.write('{"index": ' + str(quest[key]) + ', "text": "' + key + '"}')
+			f.write('{"index": ' + str(quest[key]) + ', "text": "' + key.replace('"', "\\\"").replace("&lsquo;", "'") + '"}')
 		f.write("]")
 
 def saveNestedDict(file, data):
