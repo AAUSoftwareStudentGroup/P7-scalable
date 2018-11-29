@@ -141,15 +141,10 @@ fetchUserExists :: MongoInfo -> Username -> Handler Bool
 fetchUserExists mongoInfo username = liftIO $ DB.fetchUserExists mongoInfo username
 
 -- | Edit user from UserDTO
-<<<<<<< HEAD
-updateUserHandler :: MongoInfo -> Username -> CreateUserDTO -> Handler LoggedInDTO
+
+updateUserHandler :: MongoInfo -> Username -> EditUserDTO -> Handler LoggedInDTO
 updateUserHandler mongoInfo username user = do
   maybeEdited <- liftIO $ DB.updateUser mongoInfo username user
-=======
-editUserHandler :: MongoInfo -> Username -> EditUserDTO -> Handler LoggedInDTO
-editUserHandler mongoInfo username user = do
-  maybeEdited <- liftIO $ DB.editUser mongoInfo username user
->>>>>>> develop
   case maybeEdited of
     Right loggedInDTO -> return loggedInDTO
     Left err          -> Handler $ throwE err

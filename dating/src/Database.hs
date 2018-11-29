@@ -174,32 +174,8 @@ fetchUserExists mongoConf username' = runAction mongoConf fetchAction
 
 
 -- | Edit user
-<<<<<<< HEAD
-updateUser :: MongoInfo -> Username -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
-updateUser mongoConf username currentUser = runAction mongoConf editAction
-  where
-    editAction :: Action IO (Either ServantErr LoggedInDTO)
-    editAction =
-      if username == getField @"username" currentUser then do
-        dbEntry <- getBy (UniqueUsername username)
-        case dbEntry of
-          Just (Entity key user) -> do
-            _ <- delete key
-            maybeInserted <- liftIO (createUser mongoConf currentUser)
-            case maybeInserted of
-              Left txt -> do
-                _ <- Persist.Mongo.insert user
-                return $ Left txt
-              Right dto -> do
-                _ <- liftIO . removeSingleFile . T.unpack $ "frontend" <> userImage user
-                return $ Right dto
-          Nothing ->
-            return $ Left $ err409 { errBody = "This user does not exist in the database" }
-      else
-        return $ Left $ err409 { errBody = "This user does not exist in the database" }
-=======
-editUser :: MongoInfo -> Username -> EditUserDTO -> IO (Either ServantErr LoggedInDTO)
-editUser mongoConf username newFields = runAction mongoConf editAction
+updateUser :: MongoInfo -> Username -> EditUserDTO -> IO (Either ServantErr LoggedInDTO)
+updateUser mongoConf username newFields = runAction mongoConf editAction
   where
     editAction :: Action IO (Either ServantErr LoggedInDTO)
     editAction = do
@@ -212,7 +188,7 @@ editUser mongoConf username newFields = runAction mongoConf editAction
                 Left txt -> return $ Left $ err415 { errBody = txt }
                 Right img -> do
                   liftIO img
-                  _ <- update key $ updatedValues newFields (getField @"userSalt" user) --return $ Right $ somefunc key
+                  _ <- update key $ updatedValues newFields (getField @"userSalt" user)
                   return $ Right $ userEntityToLoggedInDTO (Entity key user)
             Nothing -> do
             _ <- update key $ updatedValues newFields (getField @"userSalt" user)
@@ -238,7 +214,6 @@ editUser mongoConf username newFields = runAction mongoConf editAction
           Just a -> Just (UserProfileText =. a)
           Nothing -> Nothing
         updates = Maybe.catMaybes [password, gender, birthday, town, profileText]
->>>>>>> develop
 
 {-----------------------------------------------------------------------------}
 {-                             AUTHENTICATION                                -}
