@@ -179,5 +179,5 @@ instance Arbitrary MessageDTO where
               <*> arbitrary -- body
 
 instance Arbitrary QuestionEmbeddingDTO where
-  arbitrary = QuestionEmbeddingDTO 
+  arbitrary = QuestionEmbeddingDTO
               <$> arbitrary -- embedding

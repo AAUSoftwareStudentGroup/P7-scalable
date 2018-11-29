@@ -113,6 +113,10 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               liftIO img
               _ <- Persist.Mongo.insert newUser
               _ <- Mongo.Admin.ensureIndex userIndex
+              answerToInsert <- liftIO $ answerFromAnswerInfo (getField @"username" createUserDTO) 0 False
+              _ <- Mongo.Query.modify
+                ( Mongo.Query.select [] "questions")
+                ["$push" =: ["answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
               return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken'
 
 
@@ -356,8 +360,8 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
     fetchAction :: Action IO [QuestionDTO]
     fetchAction = do
       cursor <- Mongo.Query.find
-        ( ( Mongo.Query.select ["user_answers.username" =: ["$ne" =: username']] "questions")
-          { Mongo.Query.project = ["survey_answers" =: (0::Int), "user_answers" =: (0::Int)]
+        ( ( Mongo.Query.select ["answers" =: ["$not" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: True] ] ] ] "questions")
+          { Mongo.Query.project = ["answers" =: (0::Int)]
           , Mongo.Query.limit = 10
           }
         )
@@ -372,24 +376,24 @@ createAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf 
     postAction = if response > 5 || response < 1 then return . Left
       $ err416 { errBody = "answer must be an integer between 1 and 5" }
       else do
-        answerToInsert <- liftIO $ answerFromAnswerInfo username' response
+        answerToInsert <- liftIO $ answerFromAnswerInfo username' response True
         case Persist.Mongo.readMayObjectId id' of
           Just oId -> do
             _ <- Mongo.Query.modify
-              ( Mongo.Query.select ["_id" =: oId, "user_answers.username" =: [ "$ne" =: (username'::Text)]] "questions")
-              ["$push" =: ["user_answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
+              ( Mongo.Query.select ["_id" =: oId, "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: False ]]] "questions")
+              ["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
             return . Right $ "Successfully inserted"
           Nothing -> return . Left $ err406 { errBody = "No such ID" }
 
-    answerFromAnswerInfo :: Username -> Int -> IO Answer
-    answerFromAnswerInfo name score' = do
-      currentTime <- Clock.getCurrentTime
-      return Answer
-          { answerAnswerer = name
-          , answerScore = score'
-          , answerTimestamp = currentTime
-          , answerIspredicted = False
-          }
+answerFromAnswerInfo :: Username -> Int -> Bool -> IO Answer
+answerFromAnswerInfo name score' isActualAnswer = do
+  currentTime <- Clock.getCurrentTime
+  return Answer
+      { answerAnswerer = name
+      , answerScore = score'
+      , answerTimestamp = currentTime
+      , answerIspredicted = isActualAnswer
+      }
 
 
 createQuestionEmbedding :: MongoInfo -> QuestionEmbeddingDTO -> IO ()
@@ -461,7 +465,7 @@ messageToMessageDTO message = messageDTO
 questionToQuestionDTO :: Entity Question -> QuestionDTO
 questionToQuestionDTO (Entity key q) = QuestionDTO
   { id = Persist.Mongo.keyToText $ Persist.Mongo.toBackendKey key
-  , question = getField @"questionBody" q
+  , question = getField @"questionText" q
   }
 
 hashPassword :: Text -> Text -> Text
