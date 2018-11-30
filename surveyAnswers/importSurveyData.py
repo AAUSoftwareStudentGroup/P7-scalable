@@ -102,7 +102,7 @@ def saveQuestions(quest, filename):
 				f.write(",\n")
 			else:
 				first = False	
-			f.write('{"index": ' + str(quest[key]) + ', "text": "' + key.replace('"', "\\\"").replace("&lsquo;", "'") + '"}')
+			f.write('{"index": ' + str(quest[key]) + ', "text": "' + key.replace('"', "\\\"").replace("&lsquo;", "'").replace("&apos;", "'") + '"}')
 		f.write("]")
 
 def saveNestedDict(file, data):

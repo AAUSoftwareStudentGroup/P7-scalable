@@ -73,7 +73,7 @@ type AuthAPI =
   "login"  :> ReqBody '[JSON] CredentialDTO
            :> Post '[JSON] LoggedInDTO
   :<|>  --Logout
-  "logout" :> ReqBody '[JSON] Text
+  "logout" :> AuthProtect "cookie-auth"
            :> Post '[JSON] ()
 
 type MessageAPI =
@@ -164,9 +164,9 @@ loginHandler mongoInfo credentials = do
 
 
 -- | Logs a user out
-logoutHandler :: MongoInfo -> AuthToken -> Handler ()
-logoutHandler mongoInfo token =
-  liftIO $ DB.removeAuthToken mongoInfo token
+logoutHandler :: MongoInfo -> Username -> Handler ()
+logoutHandler mongoInfo username =
+  liftIO $ DB.removeAuthToken mongoInfo username
 
 
 
