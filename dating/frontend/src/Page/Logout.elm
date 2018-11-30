@@ -20,12 +20,13 @@ import UI.Elements as El
 type alias Model =
     { session : Session
     , title : String
+    , numTries : Int
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Model session "Logout"
+    ( Model session "Logout" 0
     , sendLogout HandleLogout session
     )
 
@@ -44,12 +45,19 @@ update msg model =
                 Ok _ ->
                     ( model, Session.logout )
                 Err _ ->
-                    ( model, sendLogout HandleLogout model.session)
+                    if model.numTries > 10 then
+                        ( model, Session.logout )
+                    else
+                        ( { model | numTries = model.numTries + 1 }, sendLogout HandleLogout model.session)
 
 
 sendLogout : (Result Http.Error String.String -> msg) -> Session -> Cmd msg
 sendLogout responseMsg session =
-    Http.send responseMsg (Api.Users.postLogout <| Session.getUserToken session)
+    case session of
+        Session.LoggedIn _ _ _ userInfo ->
+           Http.send responseMsg (Api.Users.postLogout userInfo)
+        Session.Guest _ _ _ ->
+            Cmd.none
 
 
 responseToString : Maybe String -> String

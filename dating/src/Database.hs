@@ -260,12 +260,12 @@ fetchUsernameByAuthToken mongoConf authToken' = runAction mongoConf fetchAction
         Just (Entity _ user) -> return . Just $ getField @"userUsername" user
 
 
-removeAuthToken :: MongoInfo -> AuthToken -> IO ()
-removeAuthToken mongoConf token = runAction mongoConf action
+removeAuthToken :: MongoInfo -> Username -> IO ()
+removeAuthToken mongoConf username = runAction mongoConf action
   where
     action :: Action IO ()
     action = do
-      maybeEntUser <- getBy (UniqueAuthToken token)
+      maybeEntUser <- getBy (UniqueUsername username)
       case maybeEntUser of
         Nothing             -> return ()
         Just (Entity id' _) -> void $ update id' [UserAuthToken =. ""]
