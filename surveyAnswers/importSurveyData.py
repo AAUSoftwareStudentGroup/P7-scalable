@@ -4,7 +4,6 @@ def readfile(file):
 	with open(file) as f:
 		return f.readlines()
 
-
 def getQuestions():
 	userid = 0
 	questionId = 0
@@ -88,13 +87,12 @@ def getCorrelation(questions):
 	return correlationDict
 
 
-
-
 def saveQuestions(quest, filename):
+
 	'''with open("questions.csv", 'w') as f:
 		for key in quest:
 			f.write(f"{quest[key]}; {key};\n")
-'''
+	'''
 	with open(filename, 'w') as f:
 		f.write("[")
 		first = True
@@ -114,7 +112,6 @@ def saveNestedDict(file, data):
 				value = data[row][col]
 				
 				f.write(f"{row},{col},{value}\r\n")
-
 
 def fixAnswerFile3():
 	file = readfile("answers/paired-survey-3-responses.csv.original")
@@ -147,16 +144,20 @@ def fixCorreFile3():
 	lines = []
 	with open("correlations/paired-survey-3-cross-correlations.csv", 'w') as f:
 		for x in range(len(file)):
-			if x > 129:
+			if x > 130:
 				return
 			line = file[x]
-			parts = line.split("\t")[:130]
+			parts = line.split("\t")[:131]
+			newLine = ""	
 			for x in parts:
-				f.write(x + "\t")
-			f.write("\n")
+				newLine += x + "\t"
+			newLine = newLine.strip()
+			f.write(newLine + "\n")
 
-#fixCorreFile3()
-#fixAnswerFile5()
+def fixOriginalFiles():
+	fixCorreFile3()
+	fixAnswerFile3()
+	fixAnswerFile5()
 
 def createDicsAndQuestions():
 	quest, answers = convertToList()

@@ -111,8 +111,10 @@ data AnswerDTO = AnswerDTO
   , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
-newtype QuestionEmbeddingDTO = QuestionEmbeddingDTO
-  { embedding :: [[Double]]
+data QuestionEmbeddingDTO = QuestionEmbeddingDTO
+  { mse        :: Double
+  , iterations :: Int
+  , embedding  :: [[Double]]
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 {------------------------------------------------------------------------------}
@@ -180,4 +182,6 @@ instance Arbitrary MessageDTO where
 
 instance Arbitrary QuestionEmbeddingDTO where
   arbitrary = QuestionEmbeddingDTO
-              <$> arbitrary -- embedding
+              <$> arbitrary -- mse
+              <*> arbitrary -- iterations
+              <*> arbitrary -- embedding

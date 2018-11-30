@@ -1,16 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 module CollaborativeFiltering(train, predict, mul, Matrix, getRandomNumbers, meanSquareError, toDense) where
 
+import           Control.Arrow                 ((&&&))
 import           Control.Monad                 (void)
+import           Data.List
 import           Debug.Trace                   (trace)
 import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
                                                 (><))
 import qualified Numeric.LinearAlgebra         as LA
-import           Numeric.LinearAlgebra.Data    (toDense, GMatrix)
+import           Numeric.LinearAlgebra.Data    (GMatrix, toDense)
 import           Numeric.LinearAlgebra.HMatrix (mul)
 import           System.Random                 (newStdGen, randomRs)
-import           Control.Arrow ((&&&))
-import           Data.List
 toOneOrZero :: Matrix -> Matrix
 toOneOrZero = cmap (\x -> if x == 0 then 0 else 1)
 
@@ -25,12 +25,12 @@ type MinMaxIterations = (Int, Int)
 
 
 data GradientDescentOptions = GradientDescentOptions
-    { iterationsRange   :: MinMaxIterations
-    , threshold         :: Double
-    , initialLearnRate  :: LearningRate
-    , trainItemEmb      :: Bool
-    , answerMatrix      :: Matrix
-    , hasAnswerMatrix   :: Matrix
+    { iterationsRange  :: MinMaxIterations
+    , threshold        :: Double
+    , initialLearnRate :: LearningRate
+    , trainItemEmb     :: Bool
+    , answerMatrix     :: Matrix
+    , hasAnswerMatrix  :: Matrix
     }
 
 
@@ -38,20 +38,20 @@ mkEmbeddinMatrix :: Int -> Int -> IO Matrix
 mkEmbeddinMatrix rows cols = (rows><cols) <$> getRandomNumbers
 
 predict :: Matrix -> EmbeddingMatrix -> IO Matrix
-predict answerMatrix itemEmb = do 
+predict answerMatrix itemEmb = do
     initialUserEmb   <- mkEmbeddinMatrix 1 kValue
     let (userEmb, _) = gradientDescent options 1 learnRate Nothing initialUserEmb itemEmb
     return $ mul userEmb itemEmb
     where
         learnRate    = 0.0001
         (kValue, _)  = size itemEmb
-        options      = GradientDescentOptions 
-            { iterationsRange  = (1000,1000) 
+        options      = GradientDescentOptions
+            { iterationsRange  = (1000,1000)
             , threshold        = 1
             , initialLearnRate = learnRate
             , trainItemEmb     = False
             , answerMatrix     = answerMatrix
-            , hasAnswerMatrix  = toOneOrZero answerMatrix } 
+            , hasAnswerMatrix  = toOneOrZero answerMatrix }
 
 
 train :: MinMaxIterations -> Double -> LearningRate -> Matrix -> Int -> IO (EmbeddingMatrix, EmbeddingMatrix)
@@ -61,17 +61,17 @@ train minMaxIter threshold learningRate answers kValue = do
     return $ gradientDescent options 1 learningRate Nothing userEmbedding questEmbedding
     where
         (rows, cols)   = size answers
-        options = GradientDescentOptions 
-            { iterationsRange  = minMaxIter 
+        options = GradientDescentOptions
+            { iterationsRange  = minMaxIter
             , threshold        = threshold
             , initialLearnRate = learningRate
             , trainItemEmb     = True
             , answerMatrix     = answers
-            , hasAnswerMatrix  = toOneOrZero answers } 
+            , hasAnswerMatrix  = toOneOrZero answers }
 
 
 gradientDescent ::
-    GradientDescentOptions 
+    GradientDescentOptions
     -> Int
     -> LearningRate
     -> Maybe Double
@@ -131,13 +131,13 @@ type Score       = (Username, Double)
 
 findScores :: UserAnswers -> [UserAnswers] -> Matrix -> [Score]
 findScores user users correlation = sorted
-    where 
+    where
         scores = map toScore users
         sorted = sortBy (\(_,a) (_,b) -> compare b a) scores
-        targetUserAnswers = snd user 
-        
-        toScore :: UserAnswers -> Score 
-        toScore = fmap (\score -> getCorrelation targetUserAnswers score correlation) 
+        targetUserAnswers = snd user
+
+        toScore :: UserAnswers -> Score
+        toScore = fmap (\score -> getCorrelation targetUserAnswers score correlation)
 
 
 getCorrelation :: Vector -> Vector -> Matrix -> Double
