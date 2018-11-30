@@ -111,11 +111,12 @@ data AnswerDTO = AnswerDTO
   , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
-data QuestionEmbeddingDTO = QuestionEmbeddingDTO
+data EmbeddingsDTO = EmbeddingsDTO
   { mse        :: Double
   , iterations :: Int
-  , embedding  :: [[Double]]
-  } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+  , userEmb    :: [[Double]]
+  , itemEmb    :: [[Double]]
+  } deriving (Eq, Ord, Show, Generic)
 
 {------------------------------------------------------------------------------}
 {-                           ARBITRARY INSTANCES                              -}
@@ -180,8 +181,9 @@ instance Arbitrary MessageDTO where
               <*> arbitrary -- timeStamp
               <*> arbitrary -- body
 
-instance Arbitrary QuestionEmbeddingDTO where
-  arbitrary = QuestionEmbeddingDTO
+instance Arbitrary EmbeddingsDTO where
+  arbitrary = EmbeddingsDTO
               <$> arbitrary -- mse
               <*> arbitrary -- iterations
-              <*> arbitrary -- embedding
+              <*> arbitrary -- userEmb
+              <*> arbitrary -- itemEmb

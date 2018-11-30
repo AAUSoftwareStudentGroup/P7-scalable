@@ -1,8 +1,4 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Recommendation.Recommender where
 
@@ -16,8 +12,8 @@ import qualified Numeric.LinearAlgebra         as LA
 import           Numeric.LinearAlgebra.HMatrix (mul)
 import qualified System.Random                 as Rand
 
-import qualified Database as Db
-import FrontendTypes (QuestionEmbeddingDTO(..))
+import qualified Database                      as Db
+import           FrontendTypes                 (EmbeddingsDTO (..))
 
 
 {------------------------------------------------------------------------------}
@@ -29,27 +25,19 @@ type Matrix = LA.Matrix LA.R
 type EmbeddingMatrix = Matrix
 type LearningRate = Matrix
 type IterationRange = (Int, Int)
+type EmbeddingPair = (EmbeddingMatrix, EmbeddingMatrix)
 
 
 type Username    = String
-type UserAnswers = (Username, Vector)
+type UserTrainingMatrix = (Username, Vector)
 type Score       = (Username, Double)
 
-
-data GradientDescentOptions = GradientDescentOptions
-    { iterationRange      :: IterationRange
-    , threshold           :: Double
-    , initialLearningRate :: LearningRate
-    , trainItemEmb        :: Bool
-    , answerMatrix        :: Matrix
-    , hasAnswerMatrix     :: Matrix
-    } deriving (Eq, Show, Generic)
 
 data Options = Options
     { iterationRange      :: IterationRange
     , threshold           :: Double
     , initialLearningRate :: LearningRate
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Show)
 
 
 {------------------------------------------------------------------------------}
@@ -58,135 +46,156 @@ data Options = Options
 
 
 predict :: Options -> Matrix -> EmbeddingMatrix -> IO Matrix
-predict options answerMatrix itemEmbedding = do
+predict options target itemEmb = do
     initialUserEmb   <- mkEmbeddingMatrix answerRows kValue
-    (userEmbedding, _) <- gradientDescent gdOptions initialUserEmb itemEmbedding
-    return $ mul userEmbedding itemEmbedding
+    (userEmb, _) <- go (initialUserEmb, itemEmb) 0 (initialLearningRate options) Nothing
+    return $ mul userEmb itemEmb
 
     where
 
-        (kValue, _)  = size itemEmbedding
-        (answerRows, _) = size answerMatrix
-        gdOptions = GradientDescentOptions
-            { iterationRange   = getField @"iterationRange" options
-            , threshold        = getField @"threshold" options
-            , initialLearningRate = getField @"initialLearningRate" options
-            , trainItemEmb     = False
-            , answerMatrix     = answerMatrix
-            , hasAnswerMatrix  = toOneOrZero answerMatrix }
+        iterationRange'       = iterationRange options
+        threshold'            = threshold options
+        initialLearningRate'  = initialLearningRate options
+        targetHasValueMatrix = toOneOrZero target
+
+        (kValue, _)  = size itemEmb
+        (answerRows, _) = size target
+
+
+        go :: EmbeddingPair -> Int -> LearningRate -> Maybe Double -> IO EmbeddingPair
+        go embeddingPair iterations learningRate prevMSE =
+          if shouldContinue iterationRange' iterations threshold' mse prevMSE
+          then go embeddingPair' (iterations + 1) learningRate' (Just mse)
+          else return embeddingPair'
+
+          where
+            guess = toTraining . mkGuess $ embeddingPair
+            error = toTraining $ getError guess target
+
+            embeddingPair' = updateEmbeddings target True learningRate guess embeddingPair
+
+            mse = calcMSE error (sumElements targetHasValueMatrix)
+
+            toTraining :: Matrix -> Matrix
+            toTraining = (* targetHasValueMatrix)
+
+            learningRate' :: LearningRate
+            learningRate' = if isSmaller mse prevMSE
+                            then learningRate + initialLearningRate'
+                            else initialLearningRate'
 
 
 {------------------------------------------------------------------------------}
 {-                                   TRAINING                                 -}
 {------------------------------------------------------------------------------}
 
-train :: Options -> Int -> Matrix -> IO (EmbeddingMatrix, Double)
-train options kValue answerMatrix = do
-  testMatrix <- getTestMatrix answerMatrix
-  (u, q) <- train' options kValue testMatrix
-  let guess = mul u q
-  let mse = meanSquareError (guess - answerMatrix) mSize
-  return (q, mse)
+train :: Options -> Int -> Matrix -> IO EmbeddingPair
+train options kValue target = do
+  trainingMatrix <- getTrainingMatrix target
+  userEmb <- mkEmbeddingMatrix rows kValue
+  itemEmb <- mkEmbeddingMatrix kValue cols
+  go trainingMatrix (userEmb, itemEmb) 0 initialLearningRate' Nothing
 
   where
-    mSize        = fromIntegral . (uncurry (*)) . size $ answerMatrix
-    testMatrix   = getTestMatrix answerMatrix
+    mSize :: Double
+    mSize = fromIntegral . (uncurry (*)) . size $ target
 
-    getTestMatrix :: Matrix -> IO Matrix
-    getTestMatrix answerMatrix = do
-        oneZeroMatrix     <- mkRandomMatrix (size answerMatrix)
-        return $ answerMatrix * oneZeroMatrix
+    getTrainingMatrix :: Matrix -> IO Matrix
+    getTrainingMatrix m = (m *) <$> mkRandomMatrix (size m)
 
     rndOneOrZero :: Matrix -> Matrix
     rndOneOrZero = cmap (\x -> if x > 0.7 then 0 else 1)
 
     mkMatrix :: (Int, Int) -> [Double] -> Matrix
-    mkMatrix (rows, cols) lst = (rows><cols) lst :: Matrix
+    mkMatrix (rows, cols) lst = (rows><cols) lst
 
     mkRandomMatrix :: (Int, Int) -> IO Matrix
     mkRandomMatrix dimensions = rndOneOrZero . mkMatrix dimensions <$> getRandomNumbers
 
+    (rows, cols)   = size target
 
-    train' :: Options -> Int -> Matrix -> IO (EmbeddingMatrix, EmbeddingMatrix)
-    train' options kValue answers = do
-      userEmb <- mkEmbeddingMatrix rows kValue
-      itemEmb <- mkEmbeddingMatrix kValue cols
-      gradientDescent gdOptions userEmb itemEmb
+    iterationRange'        = iterationRange options
+    threshold'             = threshold options
+    initialLearningRate'   = initialLearningRate options
+    targetHasValueMatrix   = toOneOrZero target
+
+    go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> IO EmbeddingPair
+    go trainingMatrix embeddingPair iterations learningRate prevMSE = maybeSaveToDb *>
+      if shouldContinue iterationRange' iterations threshold' trainingMSE prevMSE
+      then trace debugMsg $ go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE)
+      else return embeddingPair'
+
       where
-        (rows, cols)   = size answers
-        gdOptions = GradientDescentOptions
-            { iterationRange  = getField @"iterationRange" options
-            , threshold        = getField @"threshold" options
-            , initialLearningRate = getField @"initialLearningRate" options
-            , trainItemEmb     = True
-            , answerMatrix     = answers
-            , hasAnswerMatrix  = toOneOrZero answers }
+        testGuess = mkGuess embeddingPair
+        testError = getError testGuess trainingMatrix
+
+        trainingGuess = toTraining testGuess
+        trainingError = toTraining testError
+
+        embeddingPair' = updateEmbeddings trainingMatrix False learningRate trainingGuess embeddingPair
+
+        trainingMSE = calcMSE trainingError (sumElements target)
+        testMSE = calcMSE testError (fromIntegral . cellCount $ target)
+
+        toTraining :: Matrix -> Matrix
+        toTraining = (* targetHasValueMatrix)
+
+        debugMsg :: String
+        debugMsg = arrow ++ show iterations ++ ": MSE: " ++ show trainingMSE
+
+        arrow :: String
+        arrow = if isSmaller trainingMSE prevMSE then " ▲  " else "  ▼ "
+
+
+        learningRate' :: LearningRate
+        learningRate' = if isSmaller trainingMSE prevMSE
+                        then learningRate + initialLearningRate'
+                        else initialLearningRate'
+
+
+        maybeSaveToDb :: IO ()
+        maybeSaveToDb =
+          if iterations `mod` 100 /= 0
+          then return ()
+          else
+            do
+              mongoInfo <- Db.fetchMongoInfo
+              let (userEmb', itemEmb') = embeddingPair'
+              let dto = EmbeddingsDTO testMSE iterations (LA.toLists userEmb') (LA.toLists itemEmb')
+              Db.createEmbeddings mongoInfo dto
 
 
 
-{------------------------------------------------------------------------------}
-{-                              GRADIENT DESCENT                              -}
-{------------------------------------------------------------------------------}
-
-gradientDescent :: GradientDescentOptions -> EmbeddingMatrix -> EmbeddingMatrix -> IO (EmbeddingMatrix, EmbeddingMatrix)
-gradientDescent options userEmb itemEmb = go options 1 initialLearningRate Nothing userEmb itemEmb
-  where
-    initialLearningRate = getField @"initialLearningRate" options
-    iterationRange = getField @"iterationRange" options
-    threshold = getField @"threshold" options
-
-    go ::
-        GradientDescentOptions
-        -> Int
-        -> LearningRate
-        -> Maybe Double
-        -> EmbeddingMatrix
-        -> EmbeddingMatrix
-        -> IO (EmbeddingMatrix, EmbeddingMatrix)
-    go options iteration learningRate preMse userEmb itemEmb = saveToDb mse iteration itemEmb *>
-        if continue iterationRange iteration threshold mse preMse
-        then trace debug $ go options (iteration+1) newAlp (Just mse) userEmb' itemEmb'
-        else return (userEmb, itemEmb)
-      where
-        guess     = mul userEmb itemEmb * hasAnswerMatrix options
-        error     = guess - answerMatrix options
-        mse       = meanSquareError (answerMatrix options - guess) $ sumElements $ hasAnswerMatrix options
-        userEmb'  = userEmb - tr' (mul itemEmb (tr' error)) * learningRate
-        itemEmb'  = if trainItemEmb options then itemEmb - mul (tr' userEmb) error * learningRate else itemEmb
-        newAlp    = if isSmaller mse preMse then learningRate + initialLR else initialLR
-
-        initialLR = getField @"initialLearningRate" options
-        debug     = arrow ++ show iteration ++ ": MSE: " ++ show mse
-        arrow     = if isSmaller mse preMse then " ▲  " else "  ▼ "
-
-        isSmaller :: Double -> Maybe Double -> Bool
-        isSmaller _ Nothing  = False
-        isSmaller x (Just y) = x < y
-
-        continue :: (Int, Int) -> Int -> Double -> Double -> Maybe Double -> Bool
-        continue _ _ _ _ Nothing = True
-        continue iterRange iter threshold newMse (Just oldMse) =
-            (
-                (threshold + newMse < oldMse || newMse > oldMse) -- continue if new mse is not improved enough or if it is worse
-                && iter <= snd iterRange                         -- as long as we are not above our max iteration limit
-            )   || iter <= fst iterRange                         -- or continue if we have not yet reached our min iteration limit
-
-
-        saveToDb :: Double -> Int -> EmbeddingMatrix -> IO ()
-        saveToDb mse' iterations' emb' = if iterations' `mod` 20 /= 0
-                                         then return ()
-                                         else
-                                           do
-                                             mongoInfo <- Db.fetchMongoInfo
-                                             let dto = QuestionEmbeddingDTO mse' iterations' (LA.toLists emb')
-                                             Db.createQuestionEmbedding mongoInfo dto
 
 {------------------------------------------------------------------------------}
 {-                                   HELPERS                                  -}
 {------------------------------------------------------------------------------}
 
-meanSquareError :: Matrix -> Double -> Double
-meanSquareError matrix noOfElements = mean (square matrix)
+updateEmbeddings :: Matrix -> Bool -> LearningRate -> Matrix -> EmbeddingPair -> EmbeddingPair
+updateEmbeddings target isPredicting learningRate guess (userEmb, itemEmb) = (userEmb', itemEmb')
+  where
+    userEmb' :: EmbeddingMatrix
+    userEmb' = userEmb - tr' (mul itemEmb (tr' error)) * learningRate
+
+    itemEmb' :: EmbeddingMatrix
+    itemEmb' = if isPredicting
+               then itemEmb
+               else itemEmb - mul (tr' userEmb) error * learningRate
+
+    error :: Matrix
+    error = guess - target
+
+
+mkGuess :: EmbeddingPair -> Matrix
+mkGuess = uncurry mul
+
+getError :: Matrix -> Matrix -> Matrix
+getError = (-)
+
+
+
+calcMSE :: Matrix -> Double -> Double
+calcMSE matrix noOfElements = mean (square matrix)
     where
         square :: Matrix -> Matrix
         square matrix = matrix * matrix
@@ -206,9 +215,35 @@ mkEmbeddingMatrix :: Int -> Int -> IO Matrix
 mkEmbeddingMatrix rows cols = (rows><cols) <$> getRandomNumbers
 
 
-defaultOptions :: Options
-defaultOptions =
+defaultPredictionOptions :: Options
+defaultPredictionOptions =
   Options { iterationRange = (100, 101)
           , threshold = 0.001
           , initialLearningRate = 0.000001
           }
+
+
+defaultTrainingOptions :: Options
+defaultTrainingOptions =
+  Options { iterationRange = (1000000, 10000000)
+          , threshold = 0.001
+          , initialLearningRate = 0.00001
+          }
+
+cellCount :: Matrix -> Int
+cellCount = uncurry (*) . size
+
+
+shouldContinue :: IterationRange -> Int -> Double -> Double -> Maybe Double -> Bool
+shouldContinue _ _ _ _ Nothing = True
+shouldContinue (minIterations, maxIterations) iter threshold newMse (Just oldMse) =
+    (
+        (threshold + newMse < oldMse || newMse > oldMse) -- continue if new mse is not improved enough or if it is worse
+        && iter <= maxIterations                         -- as long as we are not above our max iteration limit
+    )   || iter <= minIterations                         -- or continue if we have not yet reached our min iteration limit
+
+
+
+isSmaller :: Double -> Maybe Double -> Bool
+isSmaller _ Nothing  = False
+isSmaller x (Just y) = x < y

@@ -396,26 +396,27 @@ answerFromAnswerInfo name score' isActualAnswer = do
       }
 
 
-createQuestionEmbedding :: MongoInfo -> QuestionEmbeddingDTO -> IO ()
-createQuestionEmbedding mongoInfo questionEmbeddingDTO = runAction mongoInfo insertAction
+createEmbeddings :: MongoInfo -> EmbeddingsDTO -> IO ()
+createEmbeddings mongoInfo embeddingsDTO = runAction mongoInfo insertAction
   where
     insertAction :: Action IO ()
     insertAction = do
       currentTime <- liftIO Clock.getCurrentTime
-      let questionEmbedding = QuestionEmbedding currentTime mse' iterations' embedding'
-      void $ Persist.Mongo.insert questionEmbedding
+      let embeddings = Embeddings currentTime mse' iterations' userEmb' itemEmb'
+      void $ Persist.Mongo.insert embeddings
 
-    mse' = mse questionEmbeddingDTO
-    iterations' = iterations questionEmbeddingDTO
-    embedding' = embedding questionEmbeddingDTO
+    mse' = mse embeddingsDTO
+    iterations' = iterations embeddingsDTO
+    userEmb' = userEmb embeddingsDTO
+    itemEmb' = itemEmb embeddingsDTO
 
 
-fetchBestQuestionEmbedding :: MongoInfo -> IO (Maybe QuestionEmbedding)
-fetchBestQuestionEmbedding mongoInfo = runAction mongoInfo fetchAction
+fetchBestEmbeddings :: MongoInfo -> IO (Maybe Embeddings)
+fetchBestEmbeddings mongoInfo = runAction mongoInfo fetchAction
   where
-    fetchAction :: Action IO (Maybe QuestionEmbedding)
+    fetchAction :: Action IO (Maybe Embeddings)
     fetchAction = fmap entityVal <$>
-      Persist.Mongo.selectFirst [] [Asc QuestionEmbeddingMse]
+      Persist.Mongo.selectFirst [] [Asc EmbeddingsMse]
 
 
 {-----------------------------------------------------------------------------}

@@ -2,27 +2,27 @@ module Main where
 
 import           API
 import           Control.Monad              (void)
+import qualified Database                   as Db
 import qualified Numeric.LinearAlgebra.Data as LAD
 import           Recommendation.DataLoad
 import           Recommendation.Recommender
-import qualified Database as Db
-import Schema
+import           Schema
 
 main :: IO ()
-main = predictTheFuture
+main = startTraining
   -- -- putStrLn "RUNNING SERVER" *> runServer
 
 predictTheFuture :: IO ()
 predictTheFuture = do
   putStrLn "PREDICTIONS FROM THE FUUUTUURE"
   answers <- loadMatrixFromFile "data/anonymous.csv"
-  questionEmbedding <- Db.fetchMongoInfo >>= Db.fetchBestQuestionEmbedding
-  case questionEmbedding of
+  embeddings <- Db.fetchMongoInfo >>= Db.fetchBestEmbeddings
+  case embeddings of
     Nothing -> putStrLn "No question embedding found.."
-    Just q -> case answers of
+    Just embs -> case answers of
       Left err -> putStrLn err
-      Right a  -> do
-        result <- predict defaultOptions a (LAD.fromLists . questionEmbeddingEmbedding $ q)
+      Right ans  -> do
+        result <- predict defaultPredictionOptions ans (LAD.fromLists . embeddingsItemEmb $ embs)
         print result
 
 startTraining :: IO ()
@@ -31,6 +31,6 @@ startTraining = do
   answers <- loadMatrixFromFile "data/answers.csv"
   case answers of
     Left err -> putStrLn err
-    Right a  -> void $ train defaultOptions kValue a
+    Right a  -> void $ train defaultTrainingOptions kValue a
   where
-    kValue = 20
+    kValue = 7

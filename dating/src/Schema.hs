@@ -67,11 +67,12 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     ispredicted Bool
     deriving Show Eq Generic
 
-  QuestionEmbedding sql=question_embeddings
+  Embeddings sql=embeddings
     timestamp  UTCTime
     mse        Double
     iterations Int
-    embedding  [Column]
+    userEmb    [Column]
+    itemEmb    [Column]
     deriving Eq Show Generic
 |]
 
