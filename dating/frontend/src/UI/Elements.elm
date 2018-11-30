@@ -270,6 +270,21 @@ textProperty labelText propertyText =
             [ Html.text propertyText ]
         ]
 
+propertyGroup : String -> String -> Html msg
+propertyGroup label value =
+    div
+        [ classList
+            [ ( "property-group", True )
+            , ( "l-6", True )
+            , ( "s-12", True )
+            ]
+        ]
+        [ Html.span [ class "label" ]
+            [ Html.text label ]
+        , Html.span [ class "value" ]
+            [ Html.text value ]
+        ]
+
 paragraphProperty : String -> String -> Html msg
 paragraphProperty labelText propertyText =
     div
@@ -486,3 +501,32 @@ submitButtonHtml classes children =
             ] ++ classes)
         ]
         children
+
+modalMono : String -> String -> msg -> Html msg
+modalMono caption btnText toMsg =
+    div [ class "modal" ]
+        [ Html.p []
+            [ Html.text caption ]
+        , Html.button
+            [ Events.onClick toMsg
+            , class "btn"
+            , class "accept" ]
+            [ Html.text btnText ]
+        ]
+
+modalBinary : String -> String -> msg -> String -> msg -> Html msg
+modalBinary caption accBtnText accMsg decBtnText decMsg =
+    div [ class "modal" ]
+        [ Html.p []
+            [ Html.text caption ]
+        , Html.button
+            [ Events.onClick accMsg
+            , class "btn"
+            , class "accept" ]
+            [ Html.text accBtnText ]
+        , Html.button
+            [ Events.onClick decMsg
+            , class "btn"
+            , class "decline" ]
+            [ Html.text decBtnText ]
+        ]
