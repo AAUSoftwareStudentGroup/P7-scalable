@@ -40,7 +40,7 @@ welcomeText =
 
 thankYouText : String
 thankYouText =
-    "Thank you very much, this should help us to find a good match for you. If you wish to answer more questions in the future, you can do so on your \"My account\" page."
+    "Thank you very much, this should help us to find a good match for you. If you wish to answer more questions, feel free to do so. Otherwise you can do so from your profile page."
 
 init : Session -> ( Model, Cmd Msg )
 init session =

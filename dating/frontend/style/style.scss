@@ -154,23 +154,23 @@ button, .btn {
 }
 
 .modal {
+    @extend %shadow-4;
+
     position: absolute;
     padding: 1rem;
     width: 360px;
     top: 30vh;
     left: calc(50% - 180px);
     z-index: 1;
-    border: 2px solid black;
+    border-radius: 0.15rem;
+    background-color: lighten($bg-col-light, 10%);
 
     p {
         margin-bottom: 0.5rem;
     }
 
-    .btn.accept {
+    .btn {
         float: right;
-    }
-
-    .btn.decline {
-        float: left;
+        margin-left: 1rem;
     }
 }

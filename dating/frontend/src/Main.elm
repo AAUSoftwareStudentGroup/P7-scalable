@@ -316,7 +316,6 @@ update message model =
             ( model, Session.logout )
 
         GetNumMessages newTime ->
-            --(model, sendGetMessages HandleGetMessages (Debug.log "session: "(getSession model)))
             (model, Cmd.none)
 
         HandleGetMessages result ->
