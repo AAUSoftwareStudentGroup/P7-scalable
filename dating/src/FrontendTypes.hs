@@ -64,7 +64,7 @@ data CredentialDTO = CredentialDTO
 data LoggedInDTO = LoggedInDTO
   { username   :: Text
   , authToken  :: Text
-  , firstLogin :: Bool
+  , firstLogIn :: Bool
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 

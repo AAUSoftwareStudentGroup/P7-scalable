@@ -238,7 +238,7 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
               return $ Just LoggedInDTO
                 { username  = getField @"userUsername"  user
                 , authToken = token
-                , firstLogin = False
+                , firstLogIn = False
                 }
             else
               return Nothing
@@ -429,7 +429,7 @@ userEntityToLoggedInDTO :: Entity User -> LoggedInDTO
 userEntityToLoggedInDTO (Entity _ user) = LoggedInDTO
   { username  = getField @"userUsername"  user
   , authToken = getField @"userAuthToken" user
-  , firstLogin = False
+  , firstLogIn = False
   }
 
 convoEntityToConversationDTO :: Entity Conversation -> Text -> ConversationDTO
