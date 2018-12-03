@@ -80,10 +80,7 @@ init maybeValue url key =
             , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
             , numMessages = 0
             },
-            Cmd.batch 
-                [ Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
-                , Task.perform RecieveDate (Date.today)
-                ]
+            Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
         )
     --else
     --    let
@@ -93,7 +90,7 @@ init maybeValue url key =
     --            , numMessages = 0
     --            }
     --        newCmd = Cmd.batch 
-    --            [Task.perform RecieveDate (Date.today)
+    --            [Task.perform ReceiveDate (Date.today)
     --            , cmd
     --            ]
     --    in
@@ -212,7 +209,7 @@ type Msg
   | LogOutClicked
   | GetNumMessages Time.Posix
   | HandleGetMessages (Result Http.Error (List ConversationPreview))
-  | RecieveDate Date
+  | ReceiveDate Date
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -319,7 +316,6 @@ update message model =
             ( model, Session.logout )
 
         GetNumMessages newTime ->
-            --(model, sendGetMessages HandleGetMessages (Debug.log "session: "(getSession model)))
             (model, Cmd.none)
 
         HandleGetMessages result ->
@@ -330,7 +326,7 @@ update message model =
                 Err errResponse ->
                     ( model, Cmd.none )
 
-        RecieveDate now ->
+        ReceiveDate now ->
             let
                 newSession = Session.setNow (getSession model) now
             in
@@ -517,12 +513,12 @@ stepUrl url model =
 
     in
         case Parser.parse parser {url | path = Maybe.withDefault url.path (Url.percentDecode url.path)} of
-            Just answer ->
-                answer
+            Just ( m, c ) ->
+                (m, Cmd.batch [Task.perform ReceiveDate Date.today, c])
 
             Nothing ->
                 ( { model | page = NotFound (NotFound.createModel session) }
-                , Date.today |> Task.perform RecieveDate
+                , Cmd.none
                 )
 
 route : Parser a b -> a -> Parser (b -> c) c

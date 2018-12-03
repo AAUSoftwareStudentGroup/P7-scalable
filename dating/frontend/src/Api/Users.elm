@@ -146,6 +146,7 @@ encodeUserInfo userInfo =
     Encode.object
         [ ( "authToken", Encode.string userInfo.authToken )
         , ( "username",  Encode.string userInfo.username )
+        , ( "firstLogIn", Encode.bool userInfo.firstLogIn )
         ]
 
 decodeUser : Decoder User
@@ -164,6 +165,7 @@ decodeUserInfo =
     Decode.succeed UserInfo
         |> Pipeline.required "authToken" Decode.string
         |> Pipeline.required "username" Decode.string
+        |> Pipeline.required "firstLogIn" Decode.bool
 
 
 encodeToken : Token -> Encode.Value

@@ -13,6 +13,7 @@ type alias Token = String
 type alias UserInfo =
     { authToken   : Token
     , username    : String
+    , firstLogIn  : Bool
     }
 
 type alias Credentials =
