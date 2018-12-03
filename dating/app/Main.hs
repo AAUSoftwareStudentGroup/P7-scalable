@@ -9,7 +9,7 @@ import           Recommendation.Recommender
 import           Schema
 
 main :: IO ()
-main = startTraining
+main = startStochasticTraining
   -- -- putStrLn "RUNNING SERVER" *> runServer
 
 predictTheFuture :: IO ()
@@ -32,5 +32,15 @@ startTraining = do
   case answers of
     Left err -> putStrLn err
     Right a  -> void $ train defaultTrainingOptions kValue a
+  where
+    kValue = 7
+
+startStochasticTraining :: IO ()
+startStochasticTraining = do
+  putStrLn "BEGINNING STOCHASTIC TRAINING"
+  answers <- loadMatrixFromFile "data/answers.csv"
+  case answers of
+    Left err -> putStrLn err
+    Right a  -> void $ stochasticTrain defaultTrainingOptions kValue a
   where
     kValue = 7

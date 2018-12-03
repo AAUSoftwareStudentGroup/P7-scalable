@@ -2,21 +2,19 @@
 
 module Recommendation.Recommender where
 
-import           Control.Monad                 (void)
+import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
 import           Debug.Trace                   (trace)
 import           GHC.Generics                  (Generic (..))
 import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
                                                 (><))
 import qualified Numeric.LinearAlgebra         as LA
-import           Numeric.LinearAlgebra.Data    ((!))
-import           Numeric.LinearAlgebra.HMatrix (mul)
-import           Numeric.LinearAlgebra.Data    ((!))
+import           Numeric.LinearAlgebra.HMatrix (mul, (<.>))
+import           Numeric.LinearAlgebra.Data    ((!), AssocMatrix, toColumns, toList)
 import qualified System.Random                 as Rand
 
 import qualified Database                      as Db
 import           FrontendTypes                 (EmbeddingsDTO (..))
-import qualified Data.Random.Extras            as RandE
 
 
 {------------------------------------------------------------------------------}
@@ -103,18 +101,6 @@ train options kValue target = do
     mSize :: Double
     mSize = fromIntegral . uncurry (*) . size $ target
 
-    getTrainingMatrix :: Matrix -> IO Matrix
-    getTrainingMatrix m = (m *) <$> mkRandomMatrix (size m)
-
-    rndOneOrZero :: Matrix -> Matrix
-    rndOneOrZero = cmap (\x -> if x > 0.7 then 0 else 1)
-
-    mkMatrix :: (Int, Int) -> [Double] -> Matrix
-    mkMatrix (rows, cols) = rows><cols
-
-    mkRandomMatrix :: (Int, Int) -> IO Matrix
-    mkRandomMatrix dimensions = rndOneOrZero . mkMatrix dimensions <$> getRandomNumbers
-
     (rows, cols)   = size target
 
     iterationRange'        = iterationRange options
@@ -122,41 +108,11 @@ train options kValue target = do
     initialLearningRate'   = initialLearningRate options
     targetHasValueMatrix   = toOneOrZero target
 
-    goStochastic :: Int -> EmbeddingPair -> LearningRate -> IO EmbeddingPair
-    goStochastic iterations embeddingPair learningRate = maybeSaveToDb kValue *>
-      if iterations <= snd iterationRange'
-      then goStochastic (iterations + 1) embeddingPair' learningRate'
-      else return embeddingPair'
-      where
-        error = getErrorStochastic embeddingPair target
-        embeddingPair' = updateEmbeddingsStochastic error learningRate embeddingPair
-
-    updateEmbeddingsStochastic :: Double -> LearningRate -> EmbeddingPair -> EmbeddingPair
-    updateEmbeddingsStochastic error learningRate (userEmb, itemEmb) = (userEmb', itemEmb')
-      where
-        userEmb' :: EmbeddingMatrix
-        userEmb' = userEmb - learningRate * error * itemEmb
-
-        itemEmb' :: EmbeddingMatrix
-        itemEmb' = itemEmb - learningRate * error * userEmb
-
-
-
-getErrorStochastic :: EmbeddingPair -> AssocMatrix -> IO Double
-getErrorStochastic (userEmb, itemEmb) target = do
-  ((row, column), value) <- getRandomFrom target
-  getError (guess row column) value
-  where
-    getUser = LA.takeRow userEmb
-    getItem = LA.takeColumn itemEmb
-    guess row column = mul (getUser row) (getItem column)
-
-
-
     go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> IO EmbeddingPair
-    go trainingMatrix embeddingPair iterations learningRate prevMSE = maybeSaveToDb *>
-      trace debugMsg $ go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE)
-
+    go trainingMatrix embeddingPair iterations learningRate prevMSE = 
+      maybeSaveToDb kValue iterations testMSE embeddingPair *> 
+        trace debugMsg (go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE))
+      
       where
         testGuess = mkGuess embeddingPair
         testError = getError testGuess trainingMatrix
@@ -186,9 +142,58 @@ getErrorStochastic (userEmb, itemEmb) target = do
         maxLearningRate :: LearningRate -> LearningRate -> LearningRate
         maxLearningRate a b = if sumElements a >= sumElements b then a else b
 
+stochasticTrain :: Options -> Int -> Matrix -> IO EmbeddingPair
+stochasticTrain options kValue target = do
+  trainingMatrix <- getTrainingMatrix target
+  let targetAssoc = fromDense trainingMatrix
+  print . length $ targetAssoc
+  userEmb <- mkEmbeddingMatrix rows kValue
+  itemEmb <- mkEmbeddingMatrix kValue cols
+  print . size $ userEmb
+  print . size $ itemEmb
+  go targetAssoc 0 (userEmb, itemEmb)
+  where
+    learningRate  = initialLearningRate options
+    (rows, cols) = size target
+    elementsCount = fromIntegral . cellCount $ target    
 
+    go :: AssocMatrix -> Int -> EmbeddingPair -> IO EmbeddingPair
+    go targetAssoc iterations embeddingPair = do
+      error <- getErrorStochastic embeddingPair targetAssoc
+      putStrLn $ "Error:" <> show error
+      let embeddingPair' = updateEmbeddingsStochastic error learningRate embeddingPair
+      if iterations <= snd (iterationRange options)
+      then 
+        -- when (iterations `mod` 200 == 0 && iterations /= 0) 
+        --   (trace debugMsg (maybeSaveToDb kValue iterations mse embeddingPair))
+          trace debugMsg go targetAssoc (iterations + 1) embeddingPair'
+      else return embeddingPair'
+      
+      where
+        mse = calcMSE target elementsCount
+        debugMsg = show iterations ++ " MSE: " ++ show mse
 
+    updateEmbeddingsStochastic :: (Matrix, Matrix) -> LearningRate -> EmbeddingPair -> EmbeddingPair
+    updateEmbeddingsStochastic (userError, itemError) learningRate (userEmb, itemEmb) = (userEmb', itemEmb')
+      where
+        userEmb' :: EmbeddingMatrix
+        userEmb' = userEmb - (learningRate * userError)
 
+        itemEmb' :: EmbeddingMatrix
+        itemEmb' = tr' (tr' itemEmb - (learningRate * itemError))
+
+    getErrorStochastic :: EmbeddingPair -> AssocMatrix -> IO (Matrix, Matrix)
+    getErrorStochastic (userEmb, itemEmb) target = do
+      ((row, column), value) <- getRandomFrom target
+      let valueAsMatrix = (1><1) [value]
+      let error = getError (guess row column) valueAsMatrix
+      let itemCol = LA.row . toList $ (toColumns itemEmb !! column)
+      let userRow = LA.row . toList $ (userEmb ! row)
+      return (error * itemCol, error * userRow) -- We multiply with the other part to remove their influence
+      where
+        guess :: Int -> Int -> Matrix
+        guess row col = (1><1) [(userEmb ! row) <.> (toColumns itemEmb !! col)]
+        
 
 {------------------------------------------------------------------------------}
 {-                                   HELPERS                                  -}
@@ -286,7 +291,30 @@ shouldContinue (minIterations, maxIterations) iter threshold newMse (Just oldMse
     )   || iter <= minIterations                         -- or continue if we have not yet reached our min iteration limit
 
 
-
 isSmaller :: Double -> Maybe Double -> Bool
 isSmaller _ Nothing  = False
 isSmaller x (Just y) = x < y
+
+getTrainingMatrix :: Matrix -> IO Matrix
+getTrainingMatrix m = (m *) <$> mkRandomMatrix (size m)
+
+rndOneOrZero :: Matrix -> Matrix
+rndOneOrZero = cmap (\x -> if x > 0.7 then 0 else 1)
+
+mkMatrix :: (Int, Int) -> [Double] -> Matrix
+mkMatrix (rows, cols) = rows><cols
+
+mkRandomMatrix :: (Int, Int) -> IO Matrix
+mkRandomMatrix dimensions = rndOneOrZero . mkMatrix dimensions <$> getRandomNumbers
+
+
+fromDense :: Matrix -> AssocMatrix
+fromDense m = filter (\(_, x) -> x /= 0) $ go 0 0
+  where
+    (rows, cols) = size m
+
+    go :: Int -> Int -> [((Int, Int), Double)]
+    go r c | c == cols - 1 = ((r, c), value) : go (r + 1) 0
+           | r < rows      = ((r, c), value) : go r (c + 1)
+           | otherwise     = []
+      where value = m ! r ! c
