@@ -62,8 +62,9 @@ data CredentialDTO = CredentialDTO
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 data LoggedInDTO = LoggedInDTO
-  { username  :: Text
-  , authToken :: Text
+  { username   :: Text
+  , authToken  :: Text
+  , firstLogin :: Bool
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
@@ -153,6 +154,7 @@ instance Arbitrary LoggedInDTO where
   arbitrary = LoggedInDTO
               <$> arbitrary -- username
               <*> arbitrary -- authToken
+              <*> arbitrary -- firstLogin
 
 instance Arbitrary ConversationPreviewDTO where
   arbitrary = ConversationPreviewDTO

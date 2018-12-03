@@ -113,7 +113,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               liftIO img
               _ <- Persist.Mongo.insert newUser
               _ <- Mongo.Admin.ensureIndex userIndex
-              return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken'
+              return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken' True
 
 
 
@@ -238,6 +238,7 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
               return $ Just LoggedInDTO
                 { username  = getField @"userUsername"  user
                 , authToken = token
+                , firstLogin = False
                 }
             else
               return Nothing
@@ -427,7 +428,9 @@ userEntityToUserDTO (Entity _ user) = UserDTO
 userEntityToLoggedInDTO :: Entity User -> LoggedInDTO
 userEntityToLoggedInDTO (Entity _ user) = LoggedInDTO
   { username  = getField @"userUsername"  user
-  , authToken = getField @"userAuthToken" user}
+  , authToken = getField @"userAuthToken" user
+  , firstLogin = False
+  }
 
 convoEntityToConversationDTO :: Entity Conversation -> Text -> ConversationDTO
 convoEntityToConversationDTO (Entity _ convo) username = conversationDTO
