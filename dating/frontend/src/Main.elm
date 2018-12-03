@@ -307,10 +307,15 @@ update message model =
                     ( { model | page = (replacePage model.page session) }
                     , Routing.replaceUrl key (Routing.routeToString Routing.Home)
                     )
-                Session.LoggedIn key _ _ _ ->
-                    ( { model | page = (replacePage model.page session) }
-                    , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
-                    )
+                Session.LoggedIn key _ _ userInfo ->
+                    if userInfo.firstLogIn then
+                        ( { model | page = (replacePage model.page session) }
+                        , Routing.replaceUrl key (Routing.routeToString Routing.Survey)
+                        )
+                    else
+                        ( { model | page = (replacePage model.page session) }
+                        , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
+                        )
 
         LogOutClicked ->
             ( model, Session.logout )
