@@ -88,9 +88,14 @@ update msg model =
                 Ok { username, gender, birthday, town, profileText, image } ->
                     ( updateErrors { model | gender = (False, gender), birthday = (False, dateToString birthday), city = (False, town), bio = (False, profileText), loaded = True }, Cmd.none )
                 Err errResponse ->
-                    ( model
-                    , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home )
-                    )
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
 
         FormFieldChanged field value ->
@@ -141,23 +146,14 @@ update msg model =
                     , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString (Profile userInfo.username)))
 
                 Err errResponse ->
-                    case errResponse of
-                        Http.BadUrl url ->
-                            ( { model | session = Session.addNotification model.session ("Bad url: " ++ url) }, Cmd.none )
-
-                        Http.BadPayload _ _ ->
-                            ( { model | session = Session.addNotification model.session "Invalid data sent to server" }, Cmd.none )
-
-                        Http.Timeout ->
-                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
-
-                        Http.NetworkError ->
-                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
-
-                        Http.BadStatus statusResponse ->
-                            ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
-
-
+                       case errResponse of
+                           Http.BadStatus response ->
+                               if (response.status.code == 403) then
+                                   ( model, Session.logout )
+                               else
+                                   ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                           _ ->
+                               ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
 setField : Model -> FormField -> String -> Model
 setField model field value =

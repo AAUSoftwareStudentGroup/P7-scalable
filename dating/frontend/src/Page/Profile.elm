@@ -50,9 +50,16 @@ update msg model =
             case result of
                 Ok fetchedUser ->
                     ( { model | user = fetchedUser, loaded = True }, Cmd.none )
+
                 Err errResponse ->
-                    ( { model | user = Api.Users.emptyUser }
-                    , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString Home ) )
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
 
 -- SUBSCRIPTIONS

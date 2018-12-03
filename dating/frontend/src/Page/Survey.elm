@@ -90,8 +90,16 @@ update msg model =
             case result of
                 Ok newQuestions ->
                     ( { model | questions = List.drop 1 newQuestions, currentQuestion = getFirstQuestion newQuestions, loaded = True }, Cmd.none )
-                Err _ ->
-                    ( { model | questions = [] }, Cmd.none )
+
+                Err errResponse ->
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
         AnswerClicked newAnswer ->
             ( { model | answerValue = newAnswer }
@@ -121,8 +129,15 @@ update msg model =
                         , Cmd.none
                         )
 
-                Err _ ->
-                    ( model, Cmd.none)
+                Err errResponse ->
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
 
 -- SUBSCRIPTIONS
