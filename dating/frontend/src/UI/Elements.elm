@@ -48,7 +48,7 @@ toasts session =
 toast : Notification -> Html msg
 toast notification =
     Html.p [ class "toast" ]
-        [ Html.text notification ]
+        [ Html.text notification.body ]
 
 header : Session -> Html msg
 header session =
@@ -176,12 +176,11 @@ loader : List (Html msg)
 loader =
     [ div [ class "loading-spinner" ] [] ]
 
-userCard : User -> Date -> Html msg
-userCard user now =
+userCard : User -> Int -> Html msg
+userCard user age =
     let
         username = user.username
         gender = Api.Types.genderToString user.gender
-        age = String.fromInt <| Api.Users.getAge user now
         bio = user.profileText
     in
         Html.li
@@ -196,7 +195,7 @@ userCard user now =
                 [ Html.h2 []
                     [ Html.text (toSentenceCase username) ]
                 , Html.h3 []
-                    [ Html.text (gender ++ " - " ++ age) ]
+                    [ Html.text (gender ++ " - " ++ String.fromInt age) ]
                 ]
             , Html.p []
                 [ Html.text bio ]

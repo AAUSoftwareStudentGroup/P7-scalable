@@ -11,8 +11,7 @@ import String
 
 import Api.Authentication exposing (UserInfo, Credentials)
 import Api.Users exposing (User)
-import Session exposing (Session, PageType(..), Details)
-import Common as Common
+import Session exposing (Session, Notification, PageType(..), Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
 

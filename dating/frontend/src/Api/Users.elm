@@ -6,6 +6,7 @@ import Json.Decode.Pipeline as Pipeline
 import Http
 import String
 import Url
+import Time
 import Date exposing(Date, diff, Unit(..))
 
 import Api.Types exposing (Gender(..))
@@ -51,9 +52,9 @@ emptyUser =
     User "" Other (Date.fromOrdinalDate 0 1) "" "" ""
 
 
-getAge : User -> Date -> Int
+getAge : User -> Time.Posix -> Int
 getAge user now =
-    Date.diff Years user.birthday now
+    Date.diff Years user.birthday <| Date.fromPosix Time.utc now
 
 encodeDate : Date -> Encode.Value
 encodeDate date =

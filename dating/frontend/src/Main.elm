@@ -55,7 +55,6 @@ main =
 type alias Model =
     { key : Nav.Key
     , page : Page
-    , numMessages : Int
     }
 
 
@@ -78,7 +77,6 @@ init maybeValue url key =
         (
             { key = key
             , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-            , numMessages = 0
             },
             Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
         )
@@ -89,13 +87,13 @@ init maybeValue url key =
     --            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
     --            , numMessages = 0
     --            }
-    --        newCmd = Cmd.batch 
+    --        newCmd = Cmd.batch
     --            [Task.perform ReceiveDate (Date.today)
     --            , cmd
     --            ]
     --    in
     --        (model, Debug.log "" newCmd)
-                
+
 
 
 -- VIEW
@@ -181,7 +179,8 @@ subscriptions model =
 
         , Session.onChange SessionChanged (Session.getNavKey (getSession model))
 
-      --, Time.every 1000 GetNumMessages
+        , Time.every 1000 GetTimeNow
+        , Time.every 1000 RemoveOldNotifications
     ]
 
 
@@ -207,9 +206,8 @@ type Msg
   | SurveyMsg Survey.Msg
   | SessionChanged Session
   | LogOutClicked
-  | GetNumMessages Time.Posix
-  | HandleGetMessages (Result Http.Error (List ConversationPreview))
-  | ReceiveDate Date
+  | RemoveOldNotifications Time.Posix
+  | GetTimeNow Time.Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -320,23 +318,26 @@ update message model =
         LogOutClicked ->
             ( model, Session.logout )
 
-        GetNumMessages newTime ->
-            (model, Cmd.none)
+        RemoveOldNotifications newTime ->
+            let
+                newSession = removeOldNotifications newTime (getSession model)
+            in
+                ( { model | page = replacePage model.page newSession } , Cmd.none )
 
-        HandleGetMessages result ->
-            case result of
-                Ok fetchedMessages ->
-                    ( {model | numMessages = List.length fetchedMessages }, Cmd.none)
-
-                Err errResponse ->
-                    ( model, Cmd.none )
-
-        ReceiveDate now ->
+        GetTimeNow now ->
             let
                 newSession = Session.setNow (getSession model) now
             in
-                ({model | page = replacePage model.page newSession}, Cmd.none)
+                ( { model | page = replacePage model.page newSession }, Cmd.none)
 
+
+removeOldNotifications : Time.Posix -> Session -> Session
+removeOldNotifications now session =
+    let
+        nowMillis = Time.posixToMillis now
+        remainingNotifications = List.filter (\notification -> (nowMillis - Time.posixToMillis notification.timeSet) < notification.duration) <| Session.getNotifications session
+    in
+        Session.setNotifications session remainingNotifications
 
 
 replacePage : Page -> Session -> Page
@@ -519,7 +520,12 @@ stepUrl url model =
     in
         case Parser.parse parser {url | path = Maybe.withDefault url.path (Url.percentDecode url.path)} of
             Just ( m, c ) ->
-                (m, Cmd.batch [Task.perform ReceiveDate Date.today, c])
+                ( m
+                , Cmd.batch
+                    [ Task.perform GetTimeNow Time.now
+                    , c
+                    ]
+                )
 
             Nothing ->
                 ( { model | page = NotFound (NotFound.createModel session) }

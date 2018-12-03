@@ -149,7 +149,10 @@ view model =
 
 showUser : Session -> User -> Html Msg
 showUser session user =
-    El.userCard user <| Session.getNow session
+    let
+        age = Api.Users.getAge user <| Session.getNow session
+    in
+        El.userCard user age
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Int -> Session -> Cmd msg
