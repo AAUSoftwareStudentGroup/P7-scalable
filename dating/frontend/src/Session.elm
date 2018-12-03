@@ -134,8 +134,8 @@ createSessionFromLocalStorageValue maybeValue key =
           case (decodeLocalStorageSession encodedSession) of
               Err _ ->
                   empty key
-              Ok token ->
-                  LoggedIn key [] (Date.fromOrdinalDate 0 1) token
+              Ok userInfo ->
+                  LoggedIn key [] (Date.fromOrdinalDate 0 1) userInfo
 
 
 decodeLocalStorageSession : Encode.Value -> Result Decode.Error UserInfo

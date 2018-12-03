@@ -49,11 +49,19 @@ init session =
             ( emptyModel session
             , Routing.goToLogin (Session.getNavKey session)
             )
-        Session.LoggedIn _ _ _ userInfo ->
-            ( emptyModel session
-            , sendGetQuestions HandleQuestionsReceived session
-            )
 
+        Session.LoggedIn _ _ _ userInfo ->
+            let
+                model = emptyModel session
+            in
+                if userInfo.firstLogIn then
+                    ( model
+                    , sendGetQuestions HandleQuestionsReceived session
+                    )
+                else
+                    ( { model | step = AnsweringMore }
+                    , sendGetQuestions HandleQuestionsReceived session
+                    )
 
 -- UPDATE
 
