@@ -90,6 +90,7 @@ view model =
                 , El.paragraphProperty "Description" model.user.profileText
                 , chatButton model.user.username model.session
                 , editButton model.user.username model.session
+                , surveyButton model.user.username model.session
                 ]
             ]
     }
@@ -125,6 +126,15 @@ editButton username session =
     else
         Html.text ""
 
+surveyButton : String -> Session -> Html msg
+surveyButton username session =
+    if Just username == Session.getUsername session then
+        El.linkButton
+            []
+            (Routing.routeToString Survey)
+            [ Html.text "Questions" ]
+    else
+        Html.text ""
 
 sendGetUser : (Result Http.Error User -> msg) -> String -> Session -> Cmd msg
 sendGetUser responseMsg username session =

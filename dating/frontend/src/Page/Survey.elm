@@ -63,8 +63,8 @@ init session =
                     , sendGetQuestions HandleQuestionsReceived session
                     )
 
--- UPDATE
 
+-- UPDATE
 
 type Msg
     = WelcomeClicked
@@ -176,7 +176,7 @@ view model =
                     [ El.modalBinary thankYouText "Okay" FinishedClicked "More" MoreClicked ]
                 _ ->
                     [ El.propertyGroup "Statement" model.currentQuestion.question
-                    , El.labelledRadio "Answer" AnswerClicked model.answerValue
+                    , El.labelledRadio "Answer - Strongly disagree to strongly agree" AnswerClicked model.answerValue
                         [ ( "1", 1 )
                         , ( "2", 2 )
                         , ( "3", 3 )

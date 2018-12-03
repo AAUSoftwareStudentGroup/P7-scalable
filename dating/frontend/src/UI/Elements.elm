@@ -99,10 +99,9 @@ headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
         Session.LoggedIn _ _ _ userInfo ->
-            [ headerNavLink (Routing.routeToString Survey) "Survey"
+            [ headerNavLink (Routing.routeToString ListUsers) "Matches"
             , headerNavLink (Routing.routeToString (Messages "")) "Messages"
-            , headerNavLink (Routing.routeToString ListUsers) "All users"
-            , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
+            , headerNavLink (Routing.routeToString (Profile userInfo.username)) "Profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
