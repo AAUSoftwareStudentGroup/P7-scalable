@@ -216,8 +216,9 @@
 
     & > div {
         text-align: center;
-        position: relative;
+        position: absolute;
         top: calc(50% - 1.4rem);
+		left: calc(50% - 5rem);
     }
 
     input {
