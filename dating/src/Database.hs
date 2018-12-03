@@ -402,9 +402,10 @@ createEmbeddings mongoInfo embeddingsDTO = runAction mongoInfo insertAction
     insertAction :: Action IO ()
     insertAction = do
       currentTime <- liftIO Clock.getCurrentTime
-      let embeddings = Embeddings currentTime mse' iterations' userEmb' itemEmb'
+      let embeddings = Embeddings currentTime kValue' mse' iterations' userEmb' itemEmb'
       void $ Persist.Mongo.insert embeddings
 
+    kValue' = kValue embeddingsDTO
     mse' = mse embeddingsDTO
     iterations' = iterations embeddingsDTO
     userEmb' = userEmb embeddingsDTO

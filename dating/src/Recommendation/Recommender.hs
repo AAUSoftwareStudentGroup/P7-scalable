@@ -9,6 +9,7 @@ import           GHC.Generics                  (Generic (..))
 import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
                                                 (><))
 import qualified Numeric.LinearAlgebra         as LA
+import           Numeric.LinearAlgebra.Data    ((!))
 import           Numeric.LinearAlgebra.HMatrix (mul)
 import qualified System.Random                 as Rand
 
@@ -98,7 +99,7 @@ train options kValue target = do
 
   where
     mSize :: Double
-    mSize = fromIntegral . (uncurry (*)) . size $ target
+    mSize = fromIntegral . uncurry (*) . size $ target
 
     getTrainingMatrix :: Matrix -> IO Matrix
     getTrainingMatrix m = (m *) <$> mkRandomMatrix (size m)
@@ -107,7 +108,7 @@ train options kValue target = do
     rndOneOrZero = cmap (\x -> if x > 0.7 then 0 else 1)
 
     mkMatrix :: (Int, Int) -> [Double] -> Matrix
-    mkMatrix (rows, cols) lst = (rows><cols) lst
+    mkMatrix (rows, cols) = rows><cols
 
     mkRandomMatrix :: (Int, Int) -> IO Matrix
     mkRandomMatrix dimensions = rndOneOrZero . mkMatrix dimensions <$> getRandomNumbers
@@ -141,7 +142,7 @@ train options kValue target = do
         toTraining = (* targetHasValueMatrix)
 
         debugMsg :: String
-        debugMsg = arrow ++ show iterations ++ ": MSE: " ++ show trainingMSE
+        debugMsg = arrow ++ show iterations ++ ": MSE: " ++ show trainingMSE ++ " LR: " ++ show (learningRate' ! 0 ! 0)
 
         arrow :: String
         arrow = if isSmaller trainingMSE prevMSE then " ▲  " else "  ▼ "
@@ -150,20 +151,21 @@ train options kValue target = do
         learningRate' :: LearningRate
         learningRate' = if isSmaller trainingMSE prevMSE
                         then learningRate + initialLearningRate'
-                        else initialLearningRate'
+                        else maxLearningRate initialLearningRate' (learningRate - initialLearningRate' * 4)
 
+        maxLearningRate :: LearningRate -> LearningRate -> LearningRate
+        maxLearningRate a b = if sumElements a >= sumElements b then a else b
 
         maybeSaveToDb :: IO ()
         maybeSaveToDb =
-          if iterations `mod` 100 /= 0
+          if iterations `mod` 100 /= 0 || iterations == 0
           then return ()
           else
             do
               mongoInfo <- Db.fetchMongoInfo
               let (userEmb', itemEmb') = embeddingPair'
-              let dto = EmbeddingsDTO testMSE iterations (LA.toLists userEmb') (LA.toLists itemEmb')
+              let dto = EmbeddingsDTO kValue testMSE iterations (LA.toLists userEmb') (LA.toLists itemEmb')
               Db.createEmbeddings mongoInfo dto
-
 
 
 
@@ -227,7 +229,7 @@ defaultTrainingOptions :: Options
 defaultTrainingOptions =
   Options { iterationRange = (1000000, 10000000)
           , threshold = 0.001
-          , initialLearningRate = 0.00001
+          , initialLearningRate = 0.000001
           }
 
 cellCount :: Matrix -> Int

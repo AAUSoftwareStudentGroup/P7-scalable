@@ -112,7 +112,8 @@ data AnswerDTO = AnswerDTO
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 data EmbeddingsDTO = EmbeddingsDTO
-  { mse        :: Double
+  { kValue     :: Int
+  , mse        :: Double
   , iterations :: Int
   , userEmb    :: [[Double]]
   , itemEmb    :: [[Double]]
@@ -183,7 +184,8 @@ instance Arbitrary MessageDTO where
 
 instance Arbitrary EmbeddingsDTO where
   arbitrary = EmbeddingsDTO
-              <$> arbitrary -- mse
+              <$> arbitrary -- kValue
+              <*> arbitrary -- mse
               <*> arbitrary -- iterations
               <*> arbitrary -- userEmb
               <*> arbitrary -- itemEmb

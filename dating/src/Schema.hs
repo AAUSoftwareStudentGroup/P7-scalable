@@ -69,6 +69,7 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
 
   Embeddings sql=embeddings
     timestamp  UTCTime
+    kValue     Int
     mse        Double
     iterations Int
     userEmb    [Column]
