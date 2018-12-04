@@ -96,6 +96,9 @@ view model =
                         , ( "centered", True )
                         ]
                     ]
-                    [ Html.text text ]
+                    [ Html.text text
+                    , Html.br [] []
+                    , Html.a [Attributes.href "/guide.pdf", Attributes.target "_blank"] [Html.text "Here is a guide on how to sign up and answer questions"]
+                     ]
                 ]
         }
