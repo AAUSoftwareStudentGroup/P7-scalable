@@ -48,7 +48,7 @@ toasts session =
 toast : Notification -> Html msg
 toast notification =
     Html.p [ class "toast" ]
-        [ Html.text notification ]
+        [ Html.text notification.body ]
 
 header : Session -> Html msg
 header session =
@@ -99,10 +99,9 @@ headerNavLinks : Session -> List (Html msg)
 headerNavLinks session =
     case session of
         Session.LoggedIn _ _ _ userInfo ->
-            [ headerNavLink (Routing.routeToString Survey) "Survey"
+            [ headerNavLink (Routing.routeToString ListUsers) "Matches"
             , headerNavLink (Routing.routeToString (Messages "")) "Messages"
-            , headerNavLink (Routing.routeToString ListUsers) "All users"
-            , headerNavLink (Routing.routeToString (Profile userInfo.username)) "My profile"
+            , headerNavLink (Routing.routeToString (Profile userInfo.username)) "Profile"
             , headerNavLink (Routing.routeToString Logout) "Log out"
             ]
 
@@ -177,12 +176,11 @@ loader : List (Html msg)
 loader =
     [ div [ class "loading-spinner" ] [] ]
 
-userCard : User -> Date -> Html msg
-userCard user now =
+userCard : User -> Int -> Html msg
+userCard user age =
     let
         username = user.username
         gender = Api.Types.genderToString user.gender
-        age = String.fromInt <| Api.Users.getAge user now
         bio = user.profileText
     in
         Html.li
@@ -197,7 +195,7 @@ userCard user now =
                 [ Html.h2 []
                     [ Html.text (toSentenceCase username) ]
                 , Html.h3 []
-                    [ Html.text (gender ++ " - " ++ age) ]
+                    [ Html.text (gender ++ " - " ++ String.fromInt age) ]
                 ]
             , Html.p []
                 [ Html.text bio ]
@@ -268,6 +266,21 @@ textProperty labelText propertyText =
             [ Html.text labelText ]
         , Html.span []
             [ Html.text propertyText ]
+        ]
+
+propertyGroup : String -> String -> Html msg
+propertyGroup label value =
+    div
+        [ classList
+            [ ( "property-group", True )
+            , ( "l-6", True )
+            , ( "s-12", True )
+            ]
+        ]
+        [ Html.span [ class "label" ]
+            [ Html.text label ]
+        , Html.span [ class "value" ]
+            [ Html.text value ]
         ]
 
 paragraphProperty : String -> String -> Html msg
@@ -421,28 +434,41 @@ simpleInput typ placeholder value toMsg required =
 imageInput : String -> msg -> Maybe Image -> Html msg
 imageInput caption imageSelectedMsg maybeImage =
     let
-        imagePreview =
+        noImage =
             case maybeImage of
                 Just image ->
-                    imageElement image [("preview-image", True)]
+                    False
                 Nothing ->
-                    Html.text ""
+                    True
+        imageURI =
+            case maybeImage of
+                Just image ->
+                    "url(" ++ image.contents ++ ")"
+                Nothing ->
+                    ""
     in
         div
         [ classList
             [ ( "image-input-group", True )
-            , ( "l-6", True )
-            , ( "l-12", True )
+            , ( "no-image", noImage )
+            , ( "l-4", True )
+            , ( "s-8", True )
+            ]
+        , Attributes.style "background-image" imageURI
+        ]
+        [ div []
+            [ Html.label [ class "btn" ]
+                [ iconText "Choose a file" "image"
+                , Html.input
+                    [ Attributes.type_ "file"
+                    , Attributes.accept "image/*"
+                    , Events.on "change" (Decode.succeed imageSelectedMsg)
+                    ]
+                    []
+                ]
             ]
         ]
-        [ Html.input
-            [ Attributes.type_ "file"
-            , Attributes.accept "image/*"
-            , Events.on "change" (Decode.succeed imageSelectedMsg)
-            ]
-            []
-        , imagePreview
-        ]
+
 
 imageElement : Image -> List (String, Bool) -> Html msg
 imageElement image classes =
@@ -454,26 +480,51 @@ imageElement image classes =
     []
 
 
-submitButton : String -> Html msg
-submitButton caption =
+submitButton : List (String, Bool) -> String -> Html msg
+submitButton classes caption =
     Html.button
         [ Attributes.type_ "submit"
         , classList
-            [ ( "btn", True )
-            , ( "l-12", True )
-            , ( "right", True )
-            ]
+            ([ ( "btn", True )
+            ] ++ classes)
         ]
         [ Html.text caption ]
 
-submitButtonHtml : List (Html msg) -> Html msg
-submitButtonHtml children =
+submitButtonHtml : List (String, Bool) -> List (Html msg) -> Html msg
+submitButtonHtml classes children =
     Html.button
         [ Attributes.type_ "submit"
         , classList
-            [ ( "btn", True )
-            , ( "l-12", True )
-            , ( "right", True )
-            ]
+            ([ ( "btn", True )
+            ] ++ classes)
         ]
         children
+
+modalMono : String -> String -> msg -> Html msg
+modalMono caption btnText toMsg =
+    div [ class "modal" ]
+        [ Html.p []
+            [ Html.text caption ]
+        , Html.button
+            [ Events.onClick toMsg
+            , class "btn"
+            , class "accept" ]
+            [ Html.text btnText ]
+        ]
+
+modalBinary : String -> String -> msg -> String -> msg -> Html msg
+modalBinary caption accBtnText accMsg decBtnText decMsg =
+    div [ class "modal" ]
+        [ Html.p []
+            [ Html.text caption ]
+        , Html.button
+            [ Events.onClick accMsg
+            , class "btn"
+            , class "accept" ]
+            [ Html.text accBtnText ]
+        , Html.button
+            [ Events.onClick decMsg
+            , class "btn"
+            , class "decline" ]
+            [ Html.text decBtnText ]
+        ]

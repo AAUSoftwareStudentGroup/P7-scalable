@@ -32,9 +32,7 @@
 
             // Whenever localStorage changes in another tab, report it
             window.addEventListener("storage", function(event) {
-                console.log(event);
                 if (event.storageArea === localStorage) {
-                    console.log('Calling onStoreChange!');
                     app.ports.onStoreChange.send(event.newValue);
                 }
             });

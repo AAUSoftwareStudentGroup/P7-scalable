@@ -1,3 +1,5 @@
+$message-bottom-margin: 4px;
+
 .no-conversations {
     height: 70vh;
     text-align: center;
@@ -5,7 +7,7 @@
 
 .messaging-wrapper {
     border-top: 1px solid $bg-col-dark;
-    height: calc(100vh - #{$header-height + $footer-height + (2 * $main-grid-gap)} - 2rem);
+    height: calc(100vh - #{$header-height + $footer-height + (2 * $main-grid-gap)} - 4rem);
     grid-column: span 12;
 }
 
@@ -20,17 +22,23 @@
 
 .convos {
     width: 30%;
-    overflow-y: auto;
+
+    .convo-list {
+        height: 100%;
+        overflow-y: auto;
+        margin-right: -1px;
+    }
 }
 
 .messages {
     width: 70%;
-    padding: 0rem 0.5rem 0 0.5rem;
+    padding-left: 0.5rem;
     border-left: 1px solid $bg-col-dark;
 
     .message-list {
+        margin-bottom: $message-bottom-margin;
         overflow-y: auto;
-        height: calc(100% - 3rem);
+        height: calc(100% - 2rem - #{$message-bottom-margin});
 
         &:first-child {
             padding-top: 1rem;
@@ -47,7 +55,7 @@
 
         input {
             width: 100%;
-            text-indent: 1rem;
+            text-indent: 0.5rem;
             height: 2rem;
             margin-bottom: 1rem;
             border-radius: 0.15rem;
@@ -78,10 +86,6 @@
     .load-more-button {
         display: block;
         margin: 0 auto;
-    }
-
-    li {
-        margin-bottom: 1rem;
     }
 }
 
@@ -141,4 +145,8 @@
     &.is-last-in-group.author-me div      { border-bottom-right-radius: 0.8em; }
     &.is-first-in-group.author-friend div { border-top-left-radius: 0.8em; }
     &.is-last-in-group.author-friend div  { border-bottom-left-radius: 0.8em; }
+
+    &:last-of-type div {
+        margin-bottom: 0;
+    }
 }

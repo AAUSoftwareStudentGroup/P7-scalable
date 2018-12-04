@@ -117,7 +117,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               _ <- Mongo.Query.modify
                 ( Mongo.Query.select [] "questions")
                 ["$push" =: ["answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
-              return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken'
+              return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken' True
 
 
 
@@ -242,6 +242,7 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
               return $ Just LoggedInDTO
                 { username  = getField @"userUsername"  user
                 , authToken = token
+                , firstLogIn = False
                 }
             else
               return Nothing
@@ -456,7 +457,9 @@ userEntityToUserDTO (Entity _ user) = UserDTO
 userEntityToLoggedInDTO :: Entity User -> LoggedInDTO
 userEntityToLoggedInDTO (Entity _ user) = LoggedInDTO
   { username  = getField @"userUsername"  user
-  , authToken = getField @"userAuthToken" user}
+  , authToken = getField @"userAuthToken" user
+  , firstLogIn = False
+  }
 
 convoEntityToConversationDTO :: Entity Conversation -> Text -> ConversationDTO
 convoEntityToConversationDTO (Entity _ convo) username = conversationDTO
