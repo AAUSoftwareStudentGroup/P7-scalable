@@ -517,6 +517,46 @@ createEmbeddings mongoInfo embeddingsDTO = runAction mongoInfo insertAction
     userEmb' = userEmb embeddingsDTO
     itemEmb' = itemEmb embeddingsDTO
 
+  
+fetchNonPredictedAnswers :: MongoInfo -> Username -> IO [AnswerDTO]
+fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
+  where
+    questionEntityToAnswerDTO :: Entity Question -> AnswerDTO
+    questionEntityToAnswerDTO (Entity _ question) = answerDTO
+      where
+        answer = head $ getField @"questionAnswers" question
+        answerDTO = AnswerDTO 
+          { id = T.pack . show $ getField @"questionIndex" question
+          , score = getField @"answerScore" answer
+          }
+
+    fetchAction :: Action IO [AnswerDTO]
+    fetchAction = do
+      cursor <- Mongo.Query.find
+        ( (Mongo.Query.select 
+            [ "answers" =: 
+              [ "$elemMatch" =: 
+                [ "answerer" =: username, "ispredicted" =: True] 
+              ] 
+            ]
+            "questions"
+          )
+          { Mongo.Query.project = 
+            [ "answers" =: 
+              [ "$elemMatch" =: 
+                [ "answerer" =: username, "ispredicted" =: True] 
+              ] 
+            , "index" =: (1::Int)
+            , "text" =: (1::Int)
+            ] 
+          }
+        )
+      docList <- Mongo.Query.rest cursor
+      return $
+        fmap questionEntityToAnswerDTO .
+        rights . fmap Persist.Mongo.docToEntityEither $
+        docList
+
 fetchBestEmbeddings :: MongoInfo -> IO (Maybe Embeddings)
 fetchBestEmbeddings mongoInfo = runAction mongoInfo fetchAction
   where
