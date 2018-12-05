@@ -134,7 +134,7 @@ fetchUsersHandler mongoInfo username offset limit = liftIO $ DB.fetchUsers mongo
 
 -- | Fetches users that matches current user
 fetchMatchingUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
-fetchMatchingUsersHandler mongoInfo username = liftIO $ DB.fetchMatchingUsers mongoInfo username
+fetchMatchingUsersHandler mongoInfo username = liftIO $ DB.fetchBestNMatchesForUser mongoInfo 12 username
 
 -- | Ask if username exists.
 fetchUserExists :: MongoInfo -> Username -> Handler Bool

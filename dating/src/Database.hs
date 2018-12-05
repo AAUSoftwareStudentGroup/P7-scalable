@@ -15,6 +15,7 @@ import qualified Data.ByteString.Base64             as Base64
 import qualified Data.ByteString.Lazy.Char8         as LBS
 import           Data.Either                        (rights)
 import qualified Data.Maybe                         as Maybe
+import qualified Data.List                          as List
 import           Data.Foldable                      (traverse_)
 import           Data.Generics.Product              (getField)
 import           Data.Semigroup                     ((<>))
@@ -153,17 +154,36 @@ fetchUsers mongoConf username' offset askedLimit = runAction mongoConf fetchActi
 
 
 -- | Find matches for user
-fetchMatchingUsers :: MongoInfo -> Username -> IO [UserDTO]
-fetchMatchingUsers mongoConf username' = runAction mongoConf fetchAction
+fetchBestNMatchesForUser :: MongoInfo -> Int -> Username -> IO [UserDTO]
+fetchBestNMatchesForUser mongoConf amountToReturn username' = runAction mongoConf fetchAction
   where
-    -- to Mongo.Query.find matches, we previously read from it, so has to be of type IO
-    getMatches :: Username -> IO [Username]
-    getMatches _ = return ["alex duran", "andre heinrich"]
-
+    userMatchEntityToUsername :: Username -> Entity UserMatches -> Username
+    userMatchEntityToUsername username'' (Entity _ match') =
+      let
+        (u1:u2:[]) = getField @"userMatchesMatch" match'
+      in
+        if u1 == username'' then u2 else u1
+        
     fetchAction :: Action IO [UserDTO]
     fetchAction = do
-      matches <- liftIO $ getMatches username'
-      fmap userEntityToUserDTO <$> selectList [UserUsername !=. username', UserUsername <-. matches] []
+      matches <- selectList [UserMatchesMatch `Persist.Mongo.anyEq` username'] [Desc UserMatchesCorrelation, LimitTo amountToReturn]
+      let usernames = fmap (userMatchEntityToUsername username') matches
+      userDtos <- fmap userEntityToUserDTO <$> selectList [UserUsername <-. usernames] []
+      let sortedMatches = List.sortOn (onOtherUsername username') matches
+      let sortedUserDtos = List.sortOn ownUsername userDtos
+      let matchUserDtosPairs = List.zip sortedMatches sortedUserDtos
+      return $ map snd $ reverse (List.sortOn matchScore matchUserDtosPairs)
+    
+    onOtherUsername :: Username -> Entity UserMatches -> Text
+    onOtherUsername username'' (Entity _ match'') =
+      let (u1:u2:[]) = getField @"userMatchesMatch" match''
+      in if username'' == u1 then u2 else u1
+    
+    ownUsername :: UserDTO -> Text
+    ownUsername uDto = getField @"username" uDto
+
+    matchScore :: (Entity UserMatches, UserDTO) -> Double
+    matchScore (Entity _ uMatch,_) = getField @"userMatchesCorrelation" uMatch
 
 -- | Return "True" or "False" if user exists
 fetchUserExists :: MongoInfo -> Username -> IO Bool
@@ -420,6 +440,22 @@ fetchBestEmbeddings mongoInfo = runAction mongoInfo fetchAction
     fetchAction = fmap entityVal <$>
       Persist.Mongo.selectFirst [] [Asc EmbeddingsMse]
 
+updatePredictedAnswers :: MongoInfo -> [(Username, [AnswerDTO])] -> IO ()
+updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf updateAction
+  where
+    updateAction :: Action IO ()
+    updateAction = do
+      _ <- Mongo.Query.updateAll "questions" $ List.concat (fmap updateSingleUsername usernamesWithAnswers)
+      return ()
+    updateSingleUsername :: (Username, [AnswerDTO]) -> [(Mongo.Query.Selector, Document, [a])]
+    updateSingleUsername (username, answers) = fmap (updateSingleAnswer username) answers
+    updateSingleAnswer :: Username -> AnswerDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
+    updateSingleAnswer username' AnswerDTO {id=indexToUpdate, score=scoreToUpdate} =
+      ( ["index" =: ((read . T.unpack $ indexToUpdate)::Int), "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: False ]]]
+      , (["$set" =: ["answers.$.score" =: (scoreToUpdate :: Int)]]::Mongo.Query.Modifier)
+      , []
+      ) 
+
 
 {-----------------------------------------------------------------------------}
 {-                                 HELPERS                                   -}
@@ -499,8 +535,17 @@ getQuestions = runAction localMongoInfo action
     action :: Action IO [Question]
     action = fmap entityQuestionToQuestion <$> selectList [] []
 
-
-
+saveMatchesToDb :: MongoInfo -> Username -> Username -> Double -> IO ()
+saveMatchesToDb mongoConf username matchingUser correlation = runAction mongoConf saveAction
+  where
+    newMatch = UserMatches [username, matchingUser] correlation
+    saveAction :: Action IO ()
+    saveAction = do
+      maybeAlreadySaved <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username, UserMatchesMatch `Persist.Mongo.anyEq` matchingUser] []
+      case maybeAlreadySaved of
+        Nothing -> void $ insert newMatch
+        Just (Entity key _) -> update key [UserMatchesCorrelation =. correlation] 
+        
 deleteEverything :: IO ()
 deleteEverything = do
   _ <- deleteEverythingInDB

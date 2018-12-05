@@ -75,6 +75,11 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     userEmb    [Column]
     itemEmb    [Column]
     deriving Eq Show Generic
+
+  UserMatches sql=user_matches
+    match       [Text]
+    correlation Double  
+    deriving Eq Show Generic
 |]
 
 type Column = [Double]

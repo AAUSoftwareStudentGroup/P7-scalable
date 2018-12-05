@@ -4,12 +4,16 @@ import           API
 import           Control.Monad              (void)
 import qualified Database                   as Db
 import qualified Numeric.LinearAlgebra.Data as LAD
+import Data.Text (Text, pack)
 import           Recommendation.DataLoad
 import           Recommendation.Recommender
 import           Schema
 
 main :: IO ()
-main = putStrLn "RUNNING SERVER" *> runServer --startStochasticTraining
+main = putStrLn "RUNNING SERVER" *> runServer
+ --mong <- Db.fetchMongoInfo 
+ --Db.saveMatchesToDb mong (pack "user9") (pack "user") (2::Double)
+--main = putStrLn "RUNNING SERVER" *> runServer --startStochasticTraining
   -- -- putStrLn "RUNNING SERVER" *> runServer
 
 predictTheFuture :: IO ()
