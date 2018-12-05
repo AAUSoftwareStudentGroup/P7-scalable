@@ -1,4 +1,4 @@
-module Api.Questions exposing (Question, Answer, getQuestions, postAnswer)
+module Api.Questions exposing (Question, Answer, emptyQuestion, emptyAnswer, getQuestions, postAnswer)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -23,6 +23,11 @@ type alias Answer =
     , score     : Int
     }
 
+emptyQuestion : Question
+emptyQuestion = Question "" ""
+
+emptyAnswer : Answer
+emptyAnswer = Answer "" -1
 
 decodeQuestions : Decoder Question
 decodeQuestions =

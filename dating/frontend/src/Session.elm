@@ -1,25 +1,31 @@
-port module Session exposing (Session(..), PageType(..), Notification, Details, getNavKey, getUsername, getUserToken, addNotification, getNotifications, getNow, setNow, onChange, login, logout, createSessionFromLocalStorageValue)
+module Session exposing (Session(..), PageType(..), Notification, Details, getNavKey, getUsername, getUserToken, addNotification, setNotifications, getNotifications, getNow, setNow, onChange, login, logout, createSessionFromLocalStorageValue)
 
 import Browser.Navigation as Nav
 import Html exposing (Html)
 import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (..)
+import Time
 import Date exposing (Date)
 
 import Api.Users
 import Api.Authentication exposing (Token, UserInfo)
+import Ports.LocalStoragePort as LocalStoragePort
 
 -- TYPES
 type Session
-    = LoggedIn Nav.Key (List Notification) Date UserInfo
-    | Guest Nav.Key (List Notification) Date
+    = LoggedIn Nav.Key (List Notification) Time.Posix UserInfo
+    | Guest Nav.Key (List Notification) Time.Posix
 
 type PageType msg
     = Scrollable (List (Html msg))
     | Fixed (List (Html msg))
 
-type alias Notification = String
+type alias Notification =
+    { body     : String
+    , duration : Int
+    , timeSet  : Time.Posix
+    }
 
 type alias Details msg =
     { title : String
@@ -29,7 +35,7 @@ type alias Details msg =
 
 
 empty : Nav.Key -> Session
-empty key = Guest key [] (Date.fromOrdinalDate 0 1)
+empty key = Guest key [] <| Time.millisToPosix 0
 
 getNavKey : Session -> Nav.Key
 getNavKey session =
@@ -67,14 +73,26 @@ getUserToken session =
         Guest _ _ _ ->
             ""
 
-addNotification : Session -> Notification -> Session
-addNotification session notification =
-    case session of
-        LoggedIn nav notifications now userInfo ->
-            LoggedIn nav (notification :: notifications) now userInfo
+addNotification : Session -> String -> Session
+addNotification session notificationBody =
+    let
+        notification = Notification notificationBody 3000 (getNow session)
+    in
+        case session of
+            LoggedIn nav notifications now userInfo ->
+                LoggedIn nav (notification :: notifications) now userInfo
 
-        Guest nav notifications now ->
-            Guest nav (notification :: notifications) now 
+            Guest nav notifications now ->
+                Guest nav (notification :: notifications) now
+
+setNotifications : Session -> List Notification -> Session
+setNotifications session notifications =
+    case session of
+        LoggedIn nav _ now userInfo ->
+            LoggedIn nav notifications now userInfo
+
+        Guest nav _ now ->
+            Guest nav notifications now
 
 getNotifications : Session -> List Notification
 getNotifications session =
@@ -85,7 +103,7 @@ getNotifications session =
         Guest _ notifications _ ->
             notifications
 
-getNow : Session -> Date
+getNow : Session -> Time.Posix
 getNow session = 
     case session of
         LoggedIn _ _ now _ ->
@@ -93,7 +111,7 @@ getNow session =
         Guest _ _ now ->
             now
 
-setNow : Session -> Date -> Session
+setNow : Session -> Time.Posix -> Session
 setNow session now = 
     case session of
         LoggedIn a b _ c ->
@@ -101,25 +119,18 @@ setNow session now =
         Guest a b _ ->
             Guest a b now
 
--- PERSISTENCE
-
-port storeLocally : Maybe Encode.Value -> Cmd msg
 
 login : UserInfo -> Cmd msg
 login userInfo =
-    storeLocally (Just (Api.Users.encodeUserInfo userInfo))
-
+    LocalStoragePort.storeLocally (Just (Api.Users.encodeUserInfo userInfo))
 
 logout : Cmd msg
 logout =
-    storeLocally Nothing
-
-
-port onStoreChange : (Maybe Encode.Value -> msg) -> Sub msg
+    LocalStoragePort.storeLocally Nothing
 
 onChange : (Session -> msg) -> Nav.Key -> Sub msg
 onChange toMsg key =
-    onStoreChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
+    LocalStoragePort.onStoreChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
 
 
 -- HELPERS
@@ -134,8 +145,8 @@ createSessionFromLocalStorageValue maybeValue key =
           case (decodeLocalStorageSession encodedSession) of
               Err _ ->
                   empty key
-              Ok token ->
-                  LoggedIn key [] (Date.fromOrdinalDate 0 1) token
+              Ok userInfo ->
+                  LoggedIn key [] (Time.millisToPosix 0) userInfo
 
 
 decodeLocalStorageSession : Encode.Value -> Result Decode.Error UserInfo

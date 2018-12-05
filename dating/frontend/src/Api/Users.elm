@@ -6,6 +6,7 @@ import Json.Decode.Pipeline as Pipeline
 import Http
 import String
 import Url
+import Time
 import Date exposing(Date, diff, Unit(..))
 
 import Api.Types exposing (Gender(..))
@@ -51,9 +52,9 @@ emptyUser =
     User "" Other (Date.fromOrdinalDate 0 1) "" "" ""
 
 
-getAge : User -> Date -> Int
+getAge : User -> Time.Posix -> Int
 getAge user now =
-    Date.diff Years user.birthday now
+    Date.diff Years user.birthday <| Date.fromPosix Time.utc now
 
 encodeDate : Date -> Encode.Value
 encodeDate date =
@@ -146,6 +147,7 @@ encodeUserInfo userInfo =
     Encode.object
         [ ( "authToken", Encode.string userInfo.authToken )
         , ( "username",  Encode.string userInfo.username )
+        , ( "firstLogIn", Encode.bool userInfo.firstLogIn )
         ]
 
 decodeUser : Decoder User
@@ -164,6 +166,7 @@ decodeUserInfo =
     Decode.succeed UserInfo
         |> Pipeline.required "authToken" Decode.string
         |> Pipeline.required "username" Decode.string
+        |> Pipeline.required "firstLogIn" Decode.bool
 
 
 encodeToken : Token -> Encode.Value

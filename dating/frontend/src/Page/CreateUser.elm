@@ -6,6 +6,7 @@ import Html.Events as Events exposing (onClick)
 import Validate exposing (Validator, Valid)
 import String
 import Http
+import Time
 import Date exposing (Unit(..))
 
 import Session exposing (Session, Details)
@@ -262,7 +263,11 @@ view model =
                     , ( "Other", Other )
                     ]
                 , El.imageInput "Profile picture" FileSelected model.mImage
-                , El.submitButton "Sign up"
+                , El.submitButton
+                    [ ( "l-8", True)
+                    , ( "s-4", True)
+                    , ( "right", True ) ]
+                    "Sign up"
                 ]
             ]
     }
@@ -305,7 +310,10 @@ isDateValidFormat model =
         
 isDateValid : Model -> Bool
 isDateValid model =
-    case Date.fromIsoString model.birthday of
-        Ok date  -> 
-            (Date.diff Years date <| Session.getNow model.session) >= 18
-        Err _ -> False
+    let
+        today = Date.fromPosix Time.utc <| Session.getNow model.session
+    in
+        case Date.fromIsoString model.birthday of
+            Ok date  ->
+                (Date.diff Years date today) >= 18
+            Err _ -> False

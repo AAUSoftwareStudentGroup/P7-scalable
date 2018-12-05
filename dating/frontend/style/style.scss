@@ -85,6 +85,32 @@ button, .btn {
     }
 }
 
+.property-group {
+    position: relative;
+    width: 100%;
+    min-height: 3.5rem;
+
+    .label {
+        @extend %txt-label;
+        top: 0.2rem;
+        left: 0;
+        cursor: text;
+
+        position: absolute;
+        transform-origin: 0 0;
+        color: $txt-col-light;
+        transform: translateY(-1.2rem) scale(.80);
+    }
+
+    .value {
+        position: absolute;
+        width: 100%;
+        height: 2rem;
+        font-size: 1.4rem;
+        line-height: 2rem;
+    }
+}
+
 .property {
     span {
         display: block;
@@ -127,8 +153,24 @@ button, .btn {
     }
 }
 
+.modal {
+    @extend %shadow-4;
 
-.preview-image {
-    max-width: 10rem;
-    max-height: 10rem;
+    position: absolute;
+    padding: 1rem;
+    width: 360px;
+    top: 30vh;
+    left: calc(50% - 180px);
+    z-index: 1;
+    border-radius: 0.15rem;
+    background-color: lighten($bg-col-light, 10%);
+
+    p {
+        margin-bottom: 0.5rem;
+    }
+
+    .btn {
+        float: right;
+        margin-left: 1rem;
+    }
 }

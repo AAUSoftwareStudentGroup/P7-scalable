@@ -73,7 +73,14 @@ update msg model =
                     ( { model | users = model.users ++ newUsers, loaded = True, moreUsers = (List.length newUsers == usersPerPage) }, Cmd.none )
 
                 Err error ->
-                    ( { model | users = [] }, Cmd.none )
+                    case error of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
         LoadMore _ ->
             let
@@ -142,7 +149,10 @@ view model =
 
 showUser : Session -> User -> Html Msg
 showUser session user =
-    El.userCard user <| Session.getNow session
+    let
+        age = Api.Users.getAge user <| Session.getNow session
+    in
+        El.userCard user age
 
 
 sendGetUsers : (Result Http.Error (List User) -> msg) -> Int -> Session -> Cmd msg

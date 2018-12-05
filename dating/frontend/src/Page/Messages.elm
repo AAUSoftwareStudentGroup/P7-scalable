@@ -111,7 +111,14 @@ update msg model =
                             , sendGetMessages HandleGetInitMessages username model 0 pageSize )
 
                 Err errResponse ->
-                    ( model, Cmd.none )
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
         HandleGetConvos result ->
             case result of
@@ -128,7 +135,14 @@ update msg model =
                             , Cmd.none )
 
                 Err errResponse ->
-                    ( model, Cmd.none )
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
         ConvoSelected username ->
             let
@@ -160,7 +174,14 @@ update msg model =
                         , command)
 
                 Err errResponse ->
-                    ( model, Cmd.none )
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
 
         HandleGetNewMessages result ->
@@ -187,7 +208,16 @@ update msg model =
                         ( { model | convos = newConvos, loaded = True }, command)
 
                 Err errResponse ->
-                    ( model, Cmd.none )
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
+
+
 
         HandleGetOldMessages result ->
             case result of
@@ -211,8 +241,14 @@ update msg model =
                         , Cmd.none)
 
                 Err errResponse ->
-                    ( model, Cmd.none )
-
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
 
         UnsentMessageChanged new ->
             ( { model | unsentMessage = new }, Cmd.none )
@@ -229,9 +265,16 @@ update msg model =
                     ( { model | unsentMessage = "", attemptedSend = False }
                     , sendGetMessages HandleGetNewMessages model.chattingWith model 0 pageSize )
 
-                Err _ ->
-                    ( { model | attemptedSend = False, session = Session.addNotification model.session ("Failed to send message") }
-                    , Cmd.none )
+                Err errResponse ->
+                    case errResponse of
+                        Http.BadStatus response ->
+                            if (response.status.code == 403) then
+                                ( model, Session.logout )
+                            else
+                                ( { model | attemptedSend = False, session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+                        _ ->
+                            ( { model | attemptedSend = False, session = Session.addNotification model.session "Failed to send message" }, Cmd.none )
+
 
         LoadMore _ ->
             ( { model | loadingConvo = True }
@@ -280,6 +323,7 @@ view model =
                             ]
                             [ El.simpleInput "text" "Message" model.unsentMessage UnsentMessageChanged False
                             , El.submitButtonHtml
+                                [ ]
                                 [ El.iconText "" "send" ]
                             ]
                         ]

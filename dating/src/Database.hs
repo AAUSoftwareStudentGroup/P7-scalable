@@ -131,25 +131,15 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               liftIO img
               _ <- Persist.Mongo.insert newUser
               _ <- Mongo.Admin.ensureIndex userIndex
-              answerToInsert <-
-                liftIO $
-                answerFromAnswerInfo
-                  (getField @"username" createUserDTO)
-                  0
-                  False
-              _ <-
-                Mongo.Query.modify
-                  (Mongo.Query.select [] "questions")
-                  [ "$push" =:
-                    [ "answers" =:
-                      (Persist.Mongo.recordToDocument answerToInsert :: Document)
-                    ]
-                  ]
-              return $
-                Right $
-                LoggedInDTO (getField @"username" createUserDTO) authToken'
+              answerToInsert <- liftIO $ answerFromAnswerInfo (getField @"username" createUserDTO) 0 False
+              _ <- Mongo.Query.modify
+                ( Mongo.Query.select [] "questions")
+                ["$push" =: ["answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
+              return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken' True
 
-urlFromBase64EncodedImage :: Text -> Text -> Either LBS.ByteString (IO ())
+
+
+urlFromBase64EncodedImage :: Text -> Text -> Either LBS.ByteString (IO())
 urlFromBase64EncodedImage img salt =
   case (Base64.decode . encodeUtf8 $ img) >>= decodeJpeg of
     Left _ -> Left "Invalid image, must be a Jpg"
@@ -265,13 +255,15 @@ fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
             then do
               token <- liftIO mkAuthToken
               _ <- update id' [UserAuthToken =. token]
-              return $
-                Just
-                  LoggedInDTO
-                    { username = getField @"userUsername" user
-                    , authToken = token
-                    }
-            else return Nothing
+              return $ Just LoggedInDTO
+                { username  = getField @"userUsername"  user
+                , authToken = token
+                , firstLogIn = False
+                }
+            else
+              return Nothing
+
+
 
 fetchUsernameByAuthToken :: MongoInfo -> AuthToken -> IO (Maybe Username)
 fetchUsernameByAuthToken mongoConf authToken' = runAction mongoConf fetchAction
@@ -518,11 +510,11 @@ userEntityToUserDTO (Entity _ user) =
     }
 
 userEntityToLoggedInDTO :: Entity User -> LoggedInDTO
-userEntityToLoggedInDTO (Entity _ user) =
-  LoggedInDTO
-    { username = getField @"userUsername" user
-    , authToken = getField @"userAuthToken" user
-    }
+userEntityToLoggedInDTO (Entity _ user) = LoggedInDTO
+  { username  = getField @"userUsername"  user
+  , authToken = getField @"userAuthToken" user
+  , firstLogIn = False
+  }
 
 convoEntityToConversationDTO :: Entity Conversation -> Text -> ConversationDTO
 convoEntityToConversationDTO (Entity _ convo) username = conversationDTO

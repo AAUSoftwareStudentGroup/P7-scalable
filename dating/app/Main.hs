@@ -9,7 +9,7 @@ import           Recommendation.Recommender
 import           Schema
 
 main :: IO ()
-main = startStochasticTraining
+main = putStrLn "RUNNING SERVER" *> runServer --startStochasticTraining
   -- -- putStrLn "RUNNING SERVER" *> runServer
 
 predictTheFuture :: IO ()
