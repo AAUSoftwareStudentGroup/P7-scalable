@@ -9,8 +9,9 @@ import           GHC.Generics                  (Generic (..))
 import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
                                                 (><))
 import qualified Numeric.LinearAlgebra         as LA
+import           Numeric.LinearAlgebra.Data    (AssocMatrix, toColumns, toList,
+                                                (!))
 import           Numeric.LinearAlgebra.HMatrix (mul, (<.>))
-import           Numeric.LinearAlgebra.Data    ((!), AssocMatrix, toColumns, toList)
 import qualified System.Random                 as Rand
 
 import qualified Database                      as Db
@@ -109,10 +110,10 @@ train options kValue target = do
     targetHasValueMatrix   = toOneOrZero target
 
     go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> IO EmbeddingPair
-    go trainingMatrix embeddingPair iterations learningRate prevMSE = 
-      maybeSaveToDb kValue iterations testMSE embeddingPair *> 
+    go trainingMatrix embeddingPair iterations learningRate prevMSE =
+      maybeSaveToDb kValue iterations testMSE embeddingPair *>
         trace debugMsg (go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE))
-      
+
       where
         testGuess = mkGuess embeddingPair
         testError = getError testGuess trainingMatrix
@@ -142,6 +143,7 @@ train options kValue target = do
         maxLearningRate :: LearningRate -> LearningRate -> LearningRate
         maxLearningRate a b = if sumElements a >= sumElements b then a else b
 
+
 stochasticTrain :: Options -> Int -> Matrix -> IO EmbeddingPair
 stochasticTrain options kValue target = do
   trainingMatrix <- getTrainingMatrix target
@@ -155,7 +157,7 @@ stochasticTrain options kValue target = do
   where
     learningRate  = initialLearningRate options
     (rows, cols) = size target
-    elementsCount = fromIntegral . cellCount $ target    
+    elementsCount = fromIntegral . cellCount $ target
 
     go :: AssocMatrix -> Int -> EmbeddingPair -> IO EmbeddingPair
     go targetAssoc iterations embeddingPair = do
@@ -163,12 +165,12 @@ stochasticTrain options kValue target = do
       putStrLn $ "Error:" <> show error
       let embeddingPair' = updateEmbeddingsStochastic error learningRate embeddingPair
       if iterations <= snd (iterationRange options)
-      then 
-        -- when (iterations `mod` 200 == 0 && iterations /= 0) 
+      then
+        -- when (iterations `mod` 200 == 0 && iterations /= 0)
         --   (trace debugMsg (maybeSaveToDb kValue iterations mse embeddingPair))
           trace debugMsg go targetAssoc (iterations + 1) embeddingPair'
       else return embeddingPair'
-      
+
       where
         mse = calcMSE target elementsCount
         debugMsg = show iterations ++ " MSE: " ++ show mse
@@ -193,7 +195,7 @@ stochasticTrain options kValue target = do
       where
         guess :: Int -> Int -> Matrix
         guess row col = (1><1) [(userEmb ! row) <.> (toColumns itemEmb !! col)]
-        
+
 
 {------------------------------------------------------------------------------}
 {-                                   HELPERS                                  -}
@@ -260,7 +262,7 @@ getRandomFrom lst = do
   let (index, _) = Rand.randomR (0, len) g
   return $ lst !! index
   where
-    len = length lst - 1 
+    len = length lst - 1
 
 
 defaultPredictionOptions :: Options
