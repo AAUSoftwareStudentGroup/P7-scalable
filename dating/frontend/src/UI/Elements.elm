@@ -399,7 +399,7 @@ severestFieldError errors =
 
 
 labelledRadio : String -> (a -> msg) -> a -> List (String, a) -> Html msg
-labelledRadio caption toMsg model options =
+labelledRadio caption toMsg modelVal options =
     div [ classList
             [ ( "radio-group", True )
             , ( "l-6", True )
@@ -408,14 +408,14 @@ labelledRadio caption toMsg model options =
         ]
         ([ Html.label []
             [ Html.text caption ]
-        ] ++ List.map (\(name, value) -> radio name toMsg model value) options)
+        ] ++ List.map (\(name, value) -> radio name toMsg modelVal value) options)
 
 
 
 radio : String -> (a -> msg) -> a -> a -> Html msg
-radio caption toMsg model value =
+radio caption toMsg modelVal value =
     Html.label [ class "radio-label-group" ]
-        [ Html.input [ Attributes.type_ "radio", Attributes.checked (model == value), Events.onClick (toMsg value) ]
+        [ Html.input [ Attributes.type_ "radio", Attributes.checked (modelVal == value), Events.onClick (toMsg value) ]
             []
         , Html.span [ class "checkmark" ]
             []

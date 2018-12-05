@@ -32,7 +32,7 @@ type alias Model =
 
 emptyModel : Session -> Model
 emptyModel session =
-    Model session Welcome False [] emptyQuestion 0 Nothing
+    Model session Welcome False [] emptyQuestion -1 Nothing
 
 welcomeText : String
 welcomeText =
@@ -97,7 +97,9 @@ update msg model =
         HandleQuestionsReceived result ->
             case result of
                 Ok newQuestions ->
-                    ( { model | questions = List.drop 1 newQuestions, currentQuestion = getFirstQuestion newQuestions, loaded = True }, Cmd.none )
+                    ( nextQuestion model newQuestions
+                    , Cmd.none
+                    )
 
                 Err errResponse ->
                     case errResponse of
@@ -136,7 +138,7 @@ update msg model =
                             )
 
                     else
-                        ( nextQuestion model
+                        ( nextQuestion model model.questions
                         , Cmd.none
                         )
 
@@ -195,12 +197,11 @@ view model =
                         ]
                         [ Html.text "Submit" ]
                     ]
-
     }
 
-nextQuestion : Model -> Model
-nextQuestion model =
-    { model | questions = List.drop 1 model.questions, currentQuestion = getFirstQuestion model.questions, answerValue = 0 }
+nextQuestion : Model -> List Question -> Model
+nextQuestion model questionList =
+    { model | questions = List.drop 1 questionList, currentQuestion = getFirstQuestion questionList, answerValue = -1, loaded = True }
 
 getFirstQuestion : List Question -> Question
 getFirstQuestion questions =
