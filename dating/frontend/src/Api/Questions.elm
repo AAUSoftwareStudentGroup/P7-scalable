@@ -6,11 +6,7 @@ import Json.Decode.Pipeline as Pipeline
 import Http
 
 import Api.Authentication as Auth exposing (UserInfo)
-
-
-apiLocation : String
-apiLocation =
-    "http://api.dating.local"
+import Api.ApiLocation exposing (apiLocation)
 
 
 type alias Question =

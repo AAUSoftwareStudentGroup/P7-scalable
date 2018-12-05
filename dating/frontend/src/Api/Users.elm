@@ -12,11 +12,7 @@ import Date exposing(Date, diff, Unit(..))
 import Api.Types exposing (Gender(..))
 import Api.Authentication as Auth exposing (UserInfo, Token, Credentials)
 
-
-apiLocation : String
-apiLocation =
-    "http://api.dating.local"
-
+import Api.ApiLocation exposing (apiLocation)
 
 type alias NewUser =
     { email         : String

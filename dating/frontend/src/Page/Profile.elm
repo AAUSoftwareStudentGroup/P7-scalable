@@ -132,7 +132,7 @@ surveyButton username session =
         El.linkButton
             []
             (Routing.routeToString Survey)
-            [ Html.text "Questions" ]
+            [ Html.text "Survey" ]
     else
         Html.text ""
 

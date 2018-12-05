@@ -37,6 +37,7 @@ import qualified System.Random as Random
 import FrontendTypes
 import Schema
 
+
 {-----------------------------------------------------------------------------}
 {-                                   TYPES                                   -}
 {-----------------------------------------------------------------------------}
@@ -407,20 +408,50 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [QuestionDTO]
     fetchAction = do
-      cursor <-
-        Mongo.Query.find
-          ((Mongo.Query.select
-              [ "answers" =:
-                [ "$not" =:
-                  [ "$elemMatch" =:
-                    ["answerer" =: username', "ispredicted" =: True]
+      docList <- 
+        Mongo.Query.aggregate "questions" 
+          [
+            [ "$match" =: 
+              [ "answers" =: 
+                [ "$not" =: 
+                  [ "$elemMatch" =: 
+                    [ "answerer" =: username', "ispredicted" =: True]
                   ]
                 ]
               ]
-              "questions")
-             { Mongo.Query.project = ["answers" =: (0 :: Int)]
-             , Mongo.Query.limit = 10
-             })
+            ]
+          , [ "$project" =: 
+              [ "answers" =: (0::Int)]
+            ]
+          , [ "$sample" =: 
+              [ "size" =: (10::Int)]
+            ]
+          ]
+      let questions = fmap questionToQuestionDTO . rights . fmap Persist.Mongo.docToEntityEither $ List.nub docList
+      if List.length questions > 5 then
+        return questions
+      else
+        fetchFewRemainingQuestions
+    -- There is no guarantee that the $sample aggregate operation returns unique documents, so we remove duplicates
+    -- with List.nub, then in case there are too few questions to return, we just fetch the first 10 questions like
+    -- previously. $sample works fine on a single machine apparently, so could be a problem with sharding  
+    fetchFewRemainingQuestions :: Action IO [QuestionDTO]
+    fetchFewRemainingQuestions = do
+      cursor <- Mongo.Query.find
+        ( (Mongo.Query.select 
+            [ "answers" =: 
+              [ "$not" =: 
+                [ "$elemMatch" =: 
+                  [ "answerer" =: username', "ispredicted" =: True] 
+                ] 
+              ] 
+            ]
+            "questions"
+          )
+          { Mongo.Query.project = ["answers" =: (0::Int)]
+          , Mongo.Query.limit = 10
+          }
+        )
       docList <- Mongo.Query.rest cursor
       return $
         fmap questionToQuestionDTO .

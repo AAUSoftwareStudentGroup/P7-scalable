@@ -10,12 +10,7 @@ import Time as Time
 import Iso8601
 
 import Api.Authentication as Auth exposing (UserInfo)
-
-
-apiLocation : String
-apiLocation =
-    "http://api.dating.local"
-
+import Api.ApiLocation exposing (apiLocation)
 
 type alias Message =
     { body          : String
