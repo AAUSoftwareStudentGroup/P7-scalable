@@ -312,7 +312,7 @@ update message model =
                         )
                     else
                         ( { model | page = (replacePage model.page session) }
-                        , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
+                        , Routing.replaceUrl key (Routing.routeToString Routing.Survey)
                         )
 
         LogOutClicked ->

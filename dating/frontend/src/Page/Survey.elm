@@ -32,7 +32,7 @@ type alias Model =
 
 emptyModel : Session -> Model
 emptyModel session =
-    Model session Welcome False [] emptyQuestion 3 Nothing
+    Model session Welcome False [] emptyQuestion 0 Nothing
 
 welcomeText : String
 welcomeText =
@@ -115,9 +115,12 @@ update msg model =
             )
 
         SubmitAnswer ->
-            ( model
-            , sendAnswer HandleAnswerSubmitted model.session <| Answer model.currentQuestion.id model.answerValue
-            )
+            if model.answerValue < 1 || model.answerValue > 5 then
+                (model, Cmd.none)
+            else
+                ( model
+                , sendAnswer HandleAnswerSubmitted model.session <| Answer model.currentQuestion.id model.answerValue
+                )
 
         HandleAnswerSubmitted result ->
             case result of
@@ -197,7 +200,7 @@ view model =
 
 nextQuestion : Model -> Model
 nextQuestion model =
-    { model | questions = List.drop 1 model.questions, currentQuestion = getFirstQuestion model.questions, answerValue = 3 }
+    { model | questions = List.drop 1 model.questions, currentQuestion = getFirstQuestion model.questions, answerValue = 0 }
 
 getFirstQuestion : List Question -> Question
 getFirstQuestion questions =

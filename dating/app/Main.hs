@@ -1,25 +1,46 @@
-{-# LANGUAGE OverloadedStrings     #-}
 module Main where
 
-import Database
-import API
-
--- import API (runServer)
+import           API
+import           Control.Monad              (void)
+import qualified Database                   as Db
+import qualified Numeric.LinearAlgebra.Data as LAD
+import           Recommendation.DataLoad
+import           Recommendation.Recommender
+import           Schema
 
 main :: IO ()
-main = do 
-  --deleteEverything
-  --putStr "DELETING EVERYTHING IN DB..."
-  --deleteEverythingInDB localConnString
-  --putStrLn "DONE"
-  -- putStr "Create user"
-  -- let userDTO = CreateUserDTO "kasper@bargsteen" "repsak" "bargsteen" Male (fromGregorian 1994 05 06) "Aalborg" "Hej I big butts"
-  -- loggedInDTO <- createUser localMongoInfo userDTO
-  -- putStrLn "DONE"
-  -- logIn <- maybeLogin localMongoInfo $ CredentialDTO "bargsteen" "repsak"
-  -- print logIn
-  --putStrLn "GENERATING ELM CODE"
-  --ElmCodeGen.genUsersApiCode
-  --putStrLn "DONE"
-  putStrLn "RUNNING SERVER"
-  runServer
+main = putStrLn "RUNNING SERVER" *> runServer --startStochasticTraining
+  -- -- putStrLn "RUNNING SERVER" *> runServer
+
+predictTheFuture :: IO ()
+predictTheFuture = do
+  putStrLn "PREDICTIONS FROM THE FUUUTUURE"
+  answers <- loadMatrixFromFile "data/anonymous.csv"
+  embeddings <- Db.fetchMongoInfo >>= Db.fetchBestEmbeddings
+  case embeddings of
+    Nothing -> putStrLn "No question embedding found.."
+    Just embs -> case answers of
+      Left err -> putStrLn err
+      Right ans  -> do
+        result <- predict defaultPredictionOptions ans (LAD.fromLists . embeddingsItemEmb $ embs)
+        print result
+
+startTraining :: IO ()
+startTraining = do
+  putStrLn "BEGINNING TO TRAIN"
+  answers <- loadMatrixFromFile "data/answers.csv"
+  case answers of
+    Left err -> putStrLn err
+    Right a  -> void $ train defaultTrainingOptions kValue a
+  where
+    kValue = 7
+
+startStochasticTraining :: IO ()
+startStochasticTraining = do
+  putStrLn "BEGINNING STOCHASTIC TRAINING"
+  answers <- loadMatrixFromFile "data/answers.csv"
+  case answers of
+    Left err -> putStrLn err
+    Right a  -> void $ stochasticTrain defaultTrainingOptions kValue a
+  where
+    kValue = 7

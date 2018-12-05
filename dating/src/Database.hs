@@ -16,6 +16,7 @@ import qualified Data.ByteString.Lazy.Char8         as LBS
 import           Data.Either                        (rights)
 import qualified Data.Maybe                         as Maybe
 import           Data.Foldable                      (traverse_)
+import qualified Data.List                          as List
 import           Data.Generics.Product              (getField)
 import           Data.Semigroup                     ((<>))
 import           Data.Text                          (Text)
@@ -38,9 +39,9 @@ import           Schema
 
 
 
--------------------------------------------------------------------------------
---                                   TYPES                                   --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                   TYPES                                   -}
+{-----------------------------------------------------------------------------}
 
 type Username = Text
 type AuthToken = Text
@@ -52,9 +53,9 @@ type RedisInfo = Redis.ConnectInfo
 userIndex :: Mongo.Admin.Index
 userIndex = (Mongo.Admin.index "users" ["username" =: (1::Int)]) { Mongo.Admin.iUnique = True, Mongo.Admin.iDropDups = True }
 
--------------------------------------------------------------------------------
---                            CONNECTION INFO                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                            CONNECTION INFO                                -}
+{-----------------------------------------------------------------------------}
 
 
 -- | Should probably be placed in a file instead
@@ -75,9 +76,9 @@ fetchRedisInfo :: IO RedisInfo
 fetchRedisInfo = return $ Redis.defaultConnectInfo {Redis.connectHost = "redis"}
 
 
--------------------------------------------------------------------------------
---                                   USERS                                   --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                   USERS                                   -}
+{-----------------------------------------------------------------------------}
 
 -- | Create a user if the username is not taken
 createUser :: MongoInfo -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
@@ -113,6 +114,10 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               liftIO img
               _ <- Persist.Mongo.insert newUser
               _ <- Mongo.Admin.ensureIndex userIndex
+              answerToInsert <- liftIO $ answerFromAnswerInfo (getField @"username" createUserDTO) 0 False
+              _ <- Mongo.Query.modify
+                ( Mongo.Query.select [] "questions")
+                ["$push" =: ["answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
               return $ Right $ LoggedInDTO (getField @"username" createUserDTO) authToken' True
 
 
@@ -174,8 +179,8 @@ fetchUserExists mongoConf username' = runAction mongoConf fetchAction
 
 
 -- | Edit user
-editUser :: MongoInfo -> Username -> EditUserDTO -> IO (Either ServantErr LoggedInDTO)
-editUser mongoConf username newFields = runAction mongoConf editAction
+updateUser :: MongoInfo -> Username -> EditUserDTO -> IO (Either ServantErr LoggedInDTO)
+updateUser mongoConf username newFields = runAction mongoConf editAction
   where
     editAction :: Action IO (Either ServantErr LoggedInDTO)
     editAction = do
@@ -188,7 +193,7 @@ editUser mongoConf username newFields = runAction mongoConf editAction
                 Left txt -> return $ Left $ err415 { errBody = txt }
                 Right img -> do
                   liftIO img
-                  _ <- update key $ updatedValues newFields (getField @"userSalt" user) --return $ Right $ somefunc key
+                  _ <- update key $ updatedValues newFields (getField @"userSalt" user)
                   return $ Right $ userEntityToLoggedInDTO (Entity key user)
             Nothing -> do
             _ <- update key $ updatedValues newFields (getField @"userSalt" user)
@@ -215,9 +220,9 @@ editUser mongoConf username newFields = runAction mongoConf editAction
           Nothing -> Nothing
         updates = Maybe.catMaybes [password, gender, birthday, town, profileText]
 
--------------------------------------------------------------------------------
---                             AUTHENTICATION                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                             AUTHENTICATION                                -}
+{-----------------------------------------------------------------------------}
 
 fetchUserByCredentials :: MongoInfo -> CredentialDTO -> IO (Maybe LoggedInDTO)
 fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
@@ -257,20 +262,20 @@ fetchUsernameByAuthToken mongoConf authToken' = runAction mongoConf fetchAction
         Just (Entity _ user) -> return . Just $ getField @"userUsername" user
 
 
-removeAuthToken :: MongoInfo -> AuthToken -> IO ()
-removeAuthToken mongoConf token = runAction mongoConf action
+removeAuthToken :: MongoInfo -> Username -> IO ()
+removeAuthToken mongoConf username = runAction mongoConf action
   where
     action :: Action IO ()
     action = do
-      maybeEntUser <- getBy (UniqueAuthToken token)
+      maybeEntUser <- getBy (UniqueUsername username)
       case maybeEntUser of
         Nothing             -> return ()
         Just (Entity id' _) -> void $ update id' [UserAuthToken =. ""]
 
 
--------------------------------------------------------------------------------
---                              CONVERSATIONS                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                              CONVERSATIONS                                -}
+{-----------------------------------------------------------------------------}
 
 createMessage :: MongoInfo -> Username -> Username -> CreateMessageDTO -> IO ()
 createMessage mongoConf from to messageDTO = runAction mongoConf action
@@ -281,9 +286,9 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
       maybeConvo <- selectFirst [ConversationMembers `Persist.Mongo.anyEq` from, ConversationMembers `Persist.Mongo.anyEq` to] []
       case maybeConvo of
         Nothing -> do
-          user' <- getBy (UniqueUsername to) 
+          user' <- getBy (UniqueUsername to)
           case user' of
-            Just _ -> void $ insert (mkConversation from to msgToInsert)
+            Just _  -> void $ insert (mkConversation from to msgToInsert)
             Nothing -> return ()
         Just (Entity conversationId _) ->
           update conversationId [ConversationMessages `Persist.Mongo.push` msgToInsert]
@@ -304,8 +309,8 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
       currentTime <- Clock.getCurrentTime
       return  Message
           { messageAuthor = from'
-          , messageTime = currentTime
-          , messageText = body''
+          , messageTimestamp = currentTime
+          , messageBody = body''
           }
 
 fetchConversation :: MongoInfo -> Username -> Username -> Int -> Int -> IO ConversationDTO
@@ -346,9 +351,9 @@ fetchConversationPreviews mongoConf ownUsername = runAction mongoConf fetchActio
 
 
 
--------------------------------------------------------------------------------
---                                 Questions                                 --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                 Questions                                 -}
+{-----------------------------------------------------------------------------}
 
 
 fetchQuestions :: MongoInfo -> Username -> IO [QuestionDTO]
@@ -356,9 +361,24 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [QuestionDTO]
     fetchAction = do
+      docList <- Mongo.Query.aggregate "questions" 
+        [["$match" =: ["answers" =: ["$not" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: True]]]]]
+        ,["$project" =: ["answers" =: (0::Int)]]
+        ,["$sample" =: ["size" =: (10::Int)]]
+        ]
+      let questions = fmap questionToQuestionDTO . rights . fmap Persist.Mongo.docToEntityEither $ List.nub docList
+      if List.length questions > 5 then
+        return questions
+      else
+        fetchFewRemainingQuestions
+    -- There is no guarantee that the $sample aggregate operation returns unique documents, so we remove duplicates
+    -- with List.nub, then in case there are too few questions to return, we just fetch the first 10 questions like
+    -- previously. $sample works fine on a single machine apparently, so could be a problem with sharding  
+    fetchFewRemainingQuestions :: Action IO [QuestionDTO]
+    fetchFewRemainingQuestions = do
       cursor <- Mongo.Query.find
-        ( ( Mongo.Query.select ["user_answers.username" =: ["$ne" =: username']] "questions")
-          { Mongo.Query.project = ["survey_answers" =: (0::Int), "user_answers" =: (0::Int)]
+        ( ( Mongo.Query.select ["answers" =: ["$not" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: True] ] ] ] "questions")
+          { Mongo.Query.project = ["answers" =: (0::Int)]
           , Mongo.Query.limit = 10
           }
         )
@@ -366,35 +386,60 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
       return $ fmap questionToQuestionDTO . rights . fmap Persist.Mongo.docToEntityEither $ docList
 
 
-postAnswer :: MongoInfo -> Username -> AnswerDTO -> IO (Either ServantErr Text)
-postAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf postAction
+createAnswer :: MongoInfo -> Username -> AnswerDTO -> IO (Either ServantErr Text)
+createAnswer mongoConf username' (AnswerDTO id' response) = runAction mongoConf postAction
   where
     postAction :: Action IO (Either ServantErr Text)
     postAction = if response > 5 || response < 1 then return . Left
       $ err416 { errBody = "answer must be an integer between 1 and 5" }
       else do
-        answerToInsert <- liftIO $ answerFromAnswerInfo username' response
+        answerToInsert <- liftIO $ answerFromAnswerInfo username' response True
         case Persist.Mongo.readMayObjectId id' of
           Just oId -> do
             _ <- Mongo.Query.modify
-              ( Mongo.Query.select ["_id" =: oId, "user_answers.username" =: [ "$ne" =: (username'::Text)]] "questions")
-              ["$push" =: ["user_answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
+              ( Mongo.Query.select ["_id" =: oId, "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: False ]]] "questions")
+              ["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
             return . Right $ "Successfully inserted"
           Nothing -> return . Left $ err406 { errBody = "No such ID" }
 
-    answerFromAnswerInfo :: Username -> Int -> IO UserAnswer
-    answerFromAnswerInfo name score' = do
-      currentTime <- Clock.getCurrentTime
-      return UserAnswer
-          { userAnswerUsername = name
-          , userAnswerScore = score'
-          , userAnswerTime = currentTime
-          }
+answerFromAnswerInfo :: Username -> Int -> Bool -> IO Answer
+answerFromAnswerInfo name score' isActualAnswer = do
+  currentTime <- Clock.getCurrentTime
+  return Answer
+      { answerAnswerer = name
+      , answerScore = score'
+      , answerTimestamp = currentTime
+      , answerIspredicted = isActualAnswer
+      }
 
 
--------------------------------------------------------------------------------
---                                 HELPERS                                   --
--------------------------------------------------------------------------------
+createEmbeddings :: MongoInfo -> EmbeddingsDTO -> IO ()
+createEmbeddings mongoInfo embeddingsDTO = runAction mongoInfo insertAction
+  where
+    insertAction :: Action IO ()
+    insertAction = do
+      currentTime <- liftIO Clock.getCurrentTime
+      let embeddings = Embeddings currentTime kValue' mse' iterations' userEmb' itemEmb'
+      void $ Persist.Mongo.insert embeddings
+
+    kValue' = kValue embeddingsDTO
+    mse' = mse embeddingsDTO
+    iterations' = iterations embeddingsDTO
+    userEmb' = userEmb embeddingsDTO
+    itemEmb' = itemEmb embeddingsDTO
+
+
+fetchBestEmbeddings :: MongoInfo -> IO (Maybe Embeddings)
+fetchBestEmbeddings mongoInfo = runAction mongoInfo fetchAction
+  where
+    fetchAction :: Action IO (Maybe Embeddings)
+    fetchAction = fmap entityVal <$>
+      Persist.Mongo.selectFirst [] [Asc EmbeddingsMse]
+
+
+{-----------------------------------------------------------------------------}
+{-                                 HELPERS                                   -}
+{-----------------------------------------------------------------------------}
 
 --runAction :: MonadIO m => MongoInfo -> Action m b -> m b
 runAction mongoConf action = Persist.Mongo.withConnection mongoConf $
@@ -409,8 +454,8 @@ conversationEntityToConversationPreviewDTO username (Entity _ convo) = conversat
     conversationPreview = ConversationPreviewDTO
       { convoWithUsername = if head members == username then last members else head members
       , isLastAuthor = username == getField @"messageAuthor" message
-      , body = getField @"messageText" message
-      , timeStamp = getField @"messageTime" message
+      , body = getField @"messageBody" message
+      , timeStamp = getField @"messageTimestamp" message
       }
 
 
@@ -445,8 +490,8 @@ messageToMessageDTO message = messageDTO
   where
     messageDTO = MessageDTO
       { authorUsername = messageAuthor message
-      , timeStamp = messageTime message
-      , body = messageText message
+      , timeStamp = messageTimestamp message
+      , body = messageBody message
       }
 
 questionToQuestionDTO :: Entity Question -> QuestionDTO

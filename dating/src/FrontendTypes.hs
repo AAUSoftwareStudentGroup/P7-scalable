@@ -18,9 +18,9 @@ import           Test.QuickCheck.Instances.Time ()
 
 import           SchemaEnums                    (Gender (..))
 
--------------------------------------------------------------------------------
---                                  USERS                                    --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                  USERS                                    -}
+{-----------------------------------------------------------------------------}
 
 data CreateUserDTO = CreateUserDTO
   { email       :: Text
@@ -52,9 +52,9 @@ data UserDTO = UserDTO
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
--------------------------------------------------------------------------------
---                             AUTHENTICATION                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                             AUTHENTICATION                                -}
+{-----------------------------------------------------------------------------}
 
 data CredentialDTO = CredentialDTO
   { username :: Text
@@ -68,9 +68,9 @@ data LoggedInDTO = LoggedInDTO
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
--------------------------------------------------------------------------------
---                              CONVERSATIONS                                --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                              CONVERSATIONS                                -}
+{-----------------------------------------------------------------------------}
 
 data ConversationPreviewDTO = ConversationPreviewDTO
   { convoWithUsername :: Text
@@ -98,9 +98,9 @@ data MessageDTO = MessageDTO
 
 
 
--------------------------------------------------------------------------------
---                                 Questions                                 --
--------------------------------------------------------------------------------
+{-----------------------------------------------------------------------------}
+{-                                 Questions                                 -}
+{-----------------------------------------------------------------------------}
 
 data QuestionDTO = QuestionDTO
   { id       :: Text
@@ -112,11 +112,17 @@ data AnswerDTO = AnswerDTO
   , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
+data EmbeddingsDTO = EmbeddingsDTO
+  { kValue     :: Int
+  , mse        :: Double
+  , iterations :: Int
+  , userEmb    :: [[Double]]
+  , itemEmb    :: [[Double]]
+  } deriving (Eq, Ord, Show, Generic)
 
-
---------------------------------------------------------------------------------
---                           ARBITRARY INSTANCES                              --
---------------------------------------------------------------------------------
+{------------------------------------------------------------------------------}
+{-                           ARBITRARY INSTANCES                              -}
+{------------------------------------------------------------------------------}
 
 instance Arbitrary Gender where
   arbitrary = frequency [ (2, pure Male)
@@ -177,3 +183,11 @@ instance Arbitrary MessageDTO where
               <$> arbitrary -- autherUsername
               <*> arbitrary -- timeStamp
               <*> arbitrary -- body
+
+instance Arbitrary EmbeddingsDTO where
+  arbitrary = EmbeddingsDTO
+              <$> arbitrary -- kValue
+              <*> arbitrary -- mse
+              <*> arbitrary -- iterations
+              <*> arbitrary -- userEmb
+              <*> arbitrary -- itemEmb

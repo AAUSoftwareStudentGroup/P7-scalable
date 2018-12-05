@@ -14,12 +14,12 @@
 
 module Schema where
 
-import           Data.Text                     (Text)
-import           Data.Time.Calendar            (Day)
-import           Data.Time.Clock               (UTCTime)
+import           Data.Text                  (Text)
+import           Data.Time.Calendar         (Day)
+import           Data.Time.Clock            (UTCTime)
 import           Database.Persist.MongoDB
-import qualified Database.Persist.TH           as PTH
-import           GHC.Generics                  (Generic)
+import qualified Database.Persist.TH        as PTH
+import           GHC.Generics               (Generic)
 import           Language.Haskell.TH.Syntax
 
 import           SchemaEnums
@@ -27,7 +27,7 @@ import           SchemaEnums
 
 let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneric = False}
  in PTH.share [PTH.mkPersist mongoSettings] [PTH.persistLowerCase|
-  User json sql=users
+  User sql=users
     email           Text
     password        Text
     username        Text
@@ -41,34 +41,40 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     UniqueEmail     email
     UniqueUsername  username
     UniqueAuthToken authToken
-    deriving Show Read Eq Generic
+    deriving Show Eq Generic
 
-  Conversation json sql=conversations
+  Conversation sql=conversations
     members  [Text]
     messages [Message]
-    deriving Show Read Eq Generic
+    deriving Show Eq Generic
 
-  Message json sql=messages
-    author   Text
-    time     UTCTime
-    text     Text
-    deriving Show Read Eq Generic
+  Message sql=messages
+    author    Text
+    timestamp UTCTime
+    body      Text
+    deriving Show Eq Generic
 
-  Question json sql=questions
-    text            Text
-    survey_answers  [SurveyAnswer]
-    user_answers    [UserAnswer]
-    deriving Show Read Eq Generic
+  Question sql=questions
+    index   Int
+    text    Text
+    answers [Answer]
+    deriving Show Eq Generic
 
-  SurveyAnswer json sql=survey_answers
-    respondent_id   Int
-    score           Int
-    deriving Show Read Eq Generic
+  Answer sql=answers
+    answerer    Text
+    score       Int
+    timestamp   UTCTime
+    ispredicted Bool
+    deriving Show Eq Generic
 
-  UserAnswer json sql=user_answers
-    username        Text
-    score           Int
-    time            UTCTime
-    deriving Show Read Eq Generic
-
+  Embeddings sql=embeddings
+    timestamp  UTCTime
+    kValue     Int
+    mse        Double
+    iterations Int
+    userEmb    [Column]
+    itemEmb    [Column]
+    deriving Eq Show Generic
 |]
+
+type Column = [Double]

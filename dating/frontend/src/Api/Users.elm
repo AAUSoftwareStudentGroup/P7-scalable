@@ -12,11 +12,7 @@ import Date exposing(Date, diff, Unit(..))
 import Api.Types exposing (Gender(..))
 import Api.Authentication as Auth exposing (UserInfo, Token, Credentials)
 
-
-apiLocation : String
-apiLocation =
-    "http://api.dating.local"
-
+import Api.ApiLocation exposing (apiLocation)
 
 type alias NewUser =
     { email         : String
@@ -220,20 +216,20 @@ postLogin body =
         }
 
 
-postLogout : Token -> Http.Request (String.String)
-postLogout token =
+postLogout : UserInfo -> Http.Request (String.String)
+postLogout userInfo =
     Http.request
         { method =
             "POST"
         , headers =
-            []
+            [Auth.createAuthHeader userInfo]
         , url =
             String.join "/"
                 [ apiLocation
                 , "logout"
                 ]
         , body =
-            Http.jsonBody (encodeToken token)
+            Http.emptyBody
         , expect =
             Http.expectString
         , timeout =

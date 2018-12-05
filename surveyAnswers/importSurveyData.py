@@ -1,31 +1,8 @@
-#!/bin/env python3
-# {
-#     "_id" : ObjectId("5bed30cb5d8bd881161c57b4"),
-#     "text" : "test text",
-#     "user_answers" : [ 
-#     ],
-#     "survey_answers" : [ 
-#         {
-#             "u_id" : 1234,
-#             "score" : 1
-#         }, 
-#         {
-#             "u_id" : 1234,
-#             "score" : 1
-#         }, 
-#         {
-#             "u_id" : 1234,
-#             "score" : 1
-#         }
-#     ]
-# }
-
 import json
 
 def readfile(file):
 	with open(file) as f:
 		return f.readlines()
-
 
 def getQuestions():
 	userid = 0
@@ -102,27 +79,21 @@ def getCorrelation(questions):
 			rowQuestionId = questions[question_text[rowQuestIndex]]
 			correlationDict[rowQuestionId] = {}
 			for j in range(len(correlation)):
-				#print(question_text)
-				#print(j)
-				#print(question_text[j])
 				colQuestionId = questions[question_text[j]]
 				correlationDict[rowQuestionId][colQuestionId] = correlation[j].strip()
 
 			rowQuestIndex += 1
-			#print(str(rowQuestIndex) + " " + str(i))
-			
-			
+						
 	return correlationDict
 
 
+def saveQuestions(quest, filename):
 
-
-def saveQuestions(quest):
-	with open("questions.csv", 'w') as f:
+	'''with open("questions.csv", 'w') as f:
 		for key in quest:
 			f.write(f"{quest[key]}; {key};\n")
-
-	with open("questions.json", 'w') as f:
+	'''
+	with open(filename, 'w') as f:
 		f.write("[")
 		first = True
 		
@@ -131,7 +102,7 @@ def saveQuestions(quest):
 				f.write(",\n")
 			else:
 				first = False	
-			f.write('{"index": ' + str(quest[key]) + ', "text": "' + key + '"}')
+			f.write('{"index": ' + str(quest[key]) + ', "text": "' + key.replace('"', "\\\"").replace("&lsquo;", "'").replace("&apos;", "'") + '"}')
 		f.write("]")
 
 def saveNestedDict(file, data):
@@ -140,8 +111,7 @@ def saveNestedDict(file, data):
 			for col in data[row]:
 				value = data[row][col]
 				
-				f.write(f"{row}; {col}; {value};\n")
-
+				f.write(f"{row},{col},{value}\r\n")
 
 def fixAnswerFile3():
 	file = readfile("answers/paired-survey-3-responses.csv.original")
@@ -174,20 +144,27 @@ def fixCorreFile3():
 	lines = []
 	with open("correlations/paired-survey-3-cross-correlations.csv", 'w') as f:
 		for x in range(len(file)):
-			if x > 129:
+			if x > 130:
 				return
 			line = file[x]
-			parts = line.split("\t")[:130]
+			parts = line.split("\t")[:131]
+			newLine = ""	
 			for x in parts:
-				f.write(x + "\t")
-			f.write("\n")
+				newLine += x + "\t"
+			newLine = newLine.strip()
+			f.write(newLine + "\n")
 
-#fixCorreFile3()
-#fixAnswerFile5()
+def fixOriginalFiles():
+	fixCorreFile3()
+	fixAnswerFile3()
+	fixAnswerFile5()
 
-quest, answers = convertToList()
-correlation = getCorrelation(quest)
+def createDicsAndQuestions():
+	quest, answers = convertToList()
+	correlation = getCorrelation(quest)
 
-saveNestedDict("correlations.csv", correlation)
-saveQuestions(quest)
-saveNestedDict("answers.csv", answers)
+	saveNestedDict("correlations.csv", correlation)
+	saveQuestions(quest, "questions.json")
+	saveNestedDict("answers.csv", answers)
+
+	return "questions.json"

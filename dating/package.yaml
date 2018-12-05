@@ -56,6 +56,9 @@ library:
   - strict
   - hmatrix
   - directory
+  - cassava
+  - vector
+
 executables:
   dating:
     main: Main.hs
@@ -64,15 +67,10 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    #- -Wall
-    #- -fno-warn-orphans
-    #- -Wcompat
-    #- -Wincomplete-record-updates
-    #- -Wincomplete-uni-patterns
-    #- -Wredundant-constraints
     dependencies:
     - base
     - dating
+
 tests:
   dating-test:
     main: Spec.hs
@@ -81,11 +79,6 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -Wall
-    - -Wcompat
-    - -Wincomplete-record-updates
-    - -Wincomplete-uni-patterns
-    - -Wredundant-constraints
     dependencies:
     - base
     - hspec
