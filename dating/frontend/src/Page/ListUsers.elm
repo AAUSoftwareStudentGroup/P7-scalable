@@ -159,6 +159,6 @@ sendGetUsers : (Result Http.Error (List User) -> msg) -> Int -> Session -> Cmd m
 sendGetUsers responseMsg pageNum session =
     case session of
         Session.LoggedIn _ _ _ userInfo ->
-            Http.send responseMsg (Api.Users.getUsers userInfo pageNum usersPerPage)
+            Http.send responseMsg (Api.Users.getMatches userInfo pageNum usersPerPage)
         Session.Guest _ _ _ ->
             Cmd.none

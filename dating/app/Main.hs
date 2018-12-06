@@ -7,12 +7,21 @@ import qualified Numeric.LinearAlgebra.Data as LAD
 import Data.Text (Text, pack)
 import           Recommendation.DataLoad
 import           Recommendation.Recommender
+import qualified Data.List as List
 import           Schema
+import           FrontendTypes
 
 main :: IO ()
 main = putStrLn "RUNNING SERVER" *> runServer
- --mong <- Db.fetchMongoInfo 
- --Db.saveMatchesToDb mong (pack "user9") (pack "user") (2::Double)
+{-  mong <- Db.fetchMongoInfo
+  questions <- Db.fetchNonPredictedAnswers mong (pack "user9")
+  putStrLn $ show $ List.length questions
+ mong <- Db.fetchMongoInfo
+ let answer0 = AnswerDTO (pack "0") 2
+ let answer1 = AnswerDTO (pack "1") 0
+ let answer2 = AnswerDTO (pack "2") 2
+ let pairs = [((pack "aaaaa"), [answer0, answer1, answer2])]
+ Db.updatePredictedAnswers mong pairs-}
 --main = putStrLn "RUNNING SERVER" *> runServer --startStochasticTraining
   -- -- putStrLn "RUNNING SERVER" *> runServer
 

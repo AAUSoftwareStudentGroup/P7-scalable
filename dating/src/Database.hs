@@ -22,7 +22,7 @@ import Data.Semigroup ((<>))
 import Data.Text (Text)
 import qualified Data.Text as T (pack, unpack)
 import Data.Text.Encoding (encodeUtf8)
-import qualified Data.Time.Clock as Clock (getCurrentTime)
+import qualified Data.Time.Clock as Clock (getCurrentTime, nominalDay, diffUTCTime, UTCTime)
 import qualified Database.MongoDB.Admin as Mongo.Admin
 import qualified Database.MongoDB.Query as Mongo.Query
 import Database.Persist
@@ -180,8 +180,8 @@ fetchUsers mongoConf username' offset askedLimit =
       selectList [UserUsername !=. username'] [OffsetBy offset, LimitTo limit]
 
 -- | Find matches for user
-fetchBestNMatchesForUser :: MongoInfo -> Int -> Username -> IO [UserDTO]
-fetchBestNMatchesForUser mongoConf amountToReturn username' = runAction mongoConf fetchAction
+fetchMatchesForUser :: MongoInfo -> Int -> Int -> Username -> IO (Either ServantErr [UserDTO])
+fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetchAction
   where
     userMatchEntityToUsername :: Username -> Entity UserMatches -> Username
     userMatchEntityToUsername username'' (Entity _ match') =
@@ -190,9 +190,33 @@ fetchBestNMatchesForUser mongoConf amountToReturn username' = runAction mongoCon
       in
         if u1 == username'' then u2 else u1
         
-    fetchAction :: Action IO [UserDTO]
+    fetchAction :: Action IO (Either ServantErr [UserDTO])
     fetchAction = do
-      matches <- selectList [UserMatchesMatch `Persist.Mongo.anyEq` username'] [Desc UserMatchesCorrelation, LimitTo amountToReturn]
+      alreadyPredicted <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username'] []
+      case alreadyPredicted of
+        Just _ -> do
+          actualAnswerTime <- fetchTimeOfNewestActualAnswer
+          predictedAnswerTime <- fetchTimeOfOnePredictedAnswer
+          if ((Clock.diffUTCTime actualAnswerTime predictedAnswerTime) > (2*Clock.nominalDay)) then do
+            _ <- predict username'
+            res <- fetchMatches
+            return $ Right res
+          else do
+            res' <- fetchMatches
+            return $ Right res'
+        Nothing -> do
+          nonPredicted <- liftIO $ fetchNonPredictedAnswers mongoConf username'
+          if List.length nonPredicted > 10 then do
+            _ <- predict username'
+            res'' <- fetchMatches
+            return $ Right res''
+          else
+            return $ Left $ err412 { errBody = "Need to answer more questions" }
+
+    
+    fetchMatches :: Action IO [UserDTO]
+    fetchMatches = do
+      matches <- selectList [UserMatchesMatch `Persist.Mongo.anyEq` username'] [Desc UserMatchesCorrelation, OffsetBy offset, LimitTo limit]
       let usernames = fmap (userMatchEntityToUsername username') matches
       userDtos <- fmap userEntityToUserDTO <$> selectList [UserUsername <-. usernames] []
       let sortedMatches = List.sortOn (onOtherUsername username') matches
@@ -200,6 +224,67 @@ fetchBestNMatchesForUser mongoConf amountToReturn username' = runAction mongoCon
       let matchUserDtosPairs = List.zip sortedMatches sortedUserDtos
       return $ map snd $ reverse (List.sortOn matchScore matchUserDtosPairs)
     
+    fetchTimeOfOnePredictedAnswer :: Action IO Clock.UTCTime
+    fetchTimeOfOnePredictedAnswer = do
+      mDocument <- Mongo.Query.findOne
+        ( (Mongo.Query.select 
+          [ "answers" =: 
+            [ "$elemMatch" =: 
+              [ "answerer" =: username', "ispredicted" =: False] 
+            ] 
+          ]
+          "questions"
+          )
+          { Mongo.Query.project = 
+            [ "answers" =: 
+              [ "$elemMatch" =: 
+                [ "answerer" =: username', "ispredicted" =: False] 
+              ] 
+            , "index" =: (1::Int)
+            , "text" =: (1::Int)
+            ] 
+          }
+        )
+      case mDocument of
+        Just doc ->
+          case (Persist.Mongo.docToEntityEither doc)::(Either Text (Entity Question)) of
+            Right (Entity _ question) -> return $ getField @"answerTimestamp" $ head $ getField @"questionAnswers" question
+            Left _ -> do
+              t <- liftIO $ Clock.getCurrentTime
+              return t
+
+    fetchTimeOfNewestActualAnswer :: Action IO Clock.UTCTime
+    fetchTimeOfNewestActualAnswer = do
+      docList <- Mongo.Query.find
+        ( (Mongo.Query.select 
+          [ "answers" =: 
+            [ "$elemMatch" =: 
+              [ "answerer" =: username', "ispredicted" =: True] 
+            ] 
+          ]
+          "questions"
+          )
+          { Mongo.Query.project = 
+            [ "answers" =: 
+              [ "$elemMatch" =: 
+                [ "answerer" =: username', "ispredicted" =: True] 
+              ] 
+            , "index" =: (1::Int)
+            , "text" =: (1::Int)
+            ] 
+          }
+        )
+      docs <- Mongo.Query.rest docList
+      return $ getField @"answerTimestamp" $ 
+        head $ List.reverse $ List.sortOn answerTime $ 
+        fmap extractAnswers $ rights . fmap Persist.Mongo.docToEntityEither $ docs
+   
+    extractAnswers :: Entity Question -> Answer
+    extractAnswers (Entity _ q) = head $ getField @"questionAnswers" q
+
+    answerTime :: Answer -> Clock.UTCTime
+    answerTime a = getField @"answerTimestamp" a
+
     onOtherUsername :: Username -> Entity UserMatches -> Text
     onOtherUsername username'' (Entity _ match'') =
       let (u1:u2:[]) = getField @"userMatchesMatch" match''
@@ -568,17 +653,24 @@ updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf upda
   where
     updateAction :: Action IO ()
     updateAction = do
-      _ <- Mongo.Query.updateAll "questions" $ List.concat (fmap updateSingleUsername usernamesWithAnswers)
+      curTime <- liftIO $ Clock.getCurrentTime
+      _ <- Mongo.Query.updateAll "questions" $ List.concat (fmap (updateSingleUsername curTime) usernamesWithAnswers)
       return ()
-    updateSingleUsername :: (Username, [AnswerDTO]) -> [(Mongo.Query.Selector, Document, [a])]
-    updateSingleUsername (username, answers) = fmap (updateSingleAnswer username) answers
-    updateSingleAnswer :: Username -> AnswerDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
-    updateSingleAnswer username' AnswerDTO {id=indexToUpdate, score=scoreToUpdate} =
+    updateSingleUsername :: Clock.UTCTime -> (Username, [AnswerDTO]) -> [(Mongo.Query.Selector, Document, [a])]
+    updateSingleUsername curTime' (username, answers) = fmap (updateSingleAnswer username curTime') answers
+    updateSingleAnswer :: Username -> Clock.UTCTime -> AnswerDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
+    updateSingleAnswer username' curTime'' AnswerDTO {id=indexToUpdate, score=scoreToUpdate} =
       ( ["index" =: ((read . T.unpack $ indexToUpdate)::Int), "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: False ]]]
-      , (["$set" =: ["answers.$.score" =: (scoreToUpdate :: Int)]]::Mongo.Query.Modifier)
+      , (["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument (newAnswer username' curTime'' scoreToUpdate) :: Document)]]::Mongo.Query.Modifier)
       , []
       ) 
-
+    newAnswer :: Username -> Clock.UTCTime -> Int -> Answer
+    newAnswer username'' currenttime score'' = Answer
+      { answerAnswerer = username''
+      , answerScore = score''
+      , answerTimestamp = currenttime
+      , answerIspredicted = False
+      }
 
 {-----------------------------------------------------------------------------}
 {-                                 HELPERS                                   -}
@@ -699,3 +791,12 @@ deleteEverythingInDB = runAction localMongoInfo action
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "conversations"
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
       return ()
+
+{-
+DB knows nothing about matrices, but we need a function that can fetch matches
+This function when called have to call predict at some point, if no predictions exists
+However, DB knows nothing about options either.
+Need a helper function that takes a username and then calls the actual prediction function
+-}
+predict :: Username -> Action IO ()
+predict username = undefined
