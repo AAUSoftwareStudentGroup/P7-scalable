@@ -218,21 +218,20 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Either ServantErr Bool)
     fetchAction = do
-      alreadyPredicted <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username] []
-      case alreadyPredicted of
-        Just _ -> do
-          actualAnswerTime <- fetchTimeOfNewestActualAnswer
-          predictedAnswerTime <- fetchTimeOfOnePredictedAnswer
-          if ((Clock.diffUTCTime actualAnswerTime predictedAnswerTime) > (2*Clock.nominalDay)) then
-            return $ Right True
-          else
-            return $ Right False
-        Nothing -> do
-          nonPredicted <- liftIO $ fetchNonPredictedAnswers mongoConf username
-          if List.length nonPredicted > 10 then
-            return $ Right True
-          else
-            return $ Left $ err412 { errBody = "Need to answer more questions" }
+      nonPredicted <- liftIO $ fetchNonPredictedAnswers mongoConf username
+      if List.length nonPredicted > 10 then do
+        alreadyPredicted <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username] []
+        case alreadyPredicted of
+          Just _ -> do
+            actualAnswerTime <- fetchTimeOfNewestActualAnswer
+            predictedAnswerTime <- fetchTimeOfOnePredictedAnswer
+            if ((Clock.diffUTCTime actualAnswerTime predictedAnswerTime) > (2*Clock.nominalDay)) then
+              return $ Right True
+            else
+              return $ Right False
+          Nothing -> return $ Right True
+        else
+          return $ Left $ err412 { errBody = "Need to answer more questions" }
     
     fetchTimeOfOnePredictedAnswer :: Action IO Clock.UTCTime
     fetchTimeOfOnePredictedAnswer = do
