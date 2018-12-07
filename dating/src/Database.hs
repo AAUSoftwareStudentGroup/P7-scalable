@@ -186,7 +186,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
     userMatchEntityToUsername :: Username -> Entity UserMatches -> Username
     userMatchEntityToUsername username'' (Entity _ match') =
       let
-        (u1:u2:[]) = getField @"userMatchesMatch" match'
+        (u1:u2:_) = getField @"userMatchesMatch" match'
       in
         if u1 == username'' then u2 else u1
 
@@ -202,7 +202,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
 
     onOtherUsername :: Username -> Entity UserMatches -> Text
     onOtherUsername username'' (Entity _ match'') =
-      let (u1:u2:[]) = getField @"userMatchesMatch" match''
+      let (u1:u2:_) = getField @"userMatchesMatch" match''
       in if username'' == u1 then u2 else u1
     
     ownUsername :: UserDTO -> Text
@@ -448,8 +448,10 @@ fetchConversation mongoConf ownUsername otherUsername offset askedLimit =
       maybeDoc <-
         Mongo.Query.findOne
           ((Mongo.Query.select
-              [ "members" =: (ownUsername :: Text)
-              , "members" =: (otherUsername :: Text)
+              [ "$and" =: 
+                [ ["members" =: (ownUsername :: Text)]
+                , ["members" =: (otherUsername :: Text)]
+                ]
               ]
               "conversations")
              { Mongo.Query.project =
@@ -756,17 +758,24 @@ getQuestions = runAction localMongoInfo action
     action = fmap entityQuestionToQuestion <$> selectList [] []
 
 
-saveMatchesToDb :: MongoInfo -> Username -> Username -> Double -> IO ()
-saveMatchesToDb mongoConf username matchingUser correlation = runAction mongoConf saveAction
+saveMatchesToDb :: MongoInfo -> [(Username, Username, Double)] -> IO ()
+saveMatchesToDb mongoConf matches = runAction mongoConf saveAction
   where
-    newMatch = UserMatches [username, matchingUser] correlation
+    updateOption = [Mongo.Query.Upsert]
     saveAction :: Action IO ()
     saveAction = do
-      maybeAlreadySaved <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username, UserMatchesMatch `Persist.Mongo.anyEq` matchingUser] []
-      case maybeAlreadySaved of
-        Nothing -> void $ insert newMatch
-        Just (Entity key _) -> update key [UserMatchesCorrelation =. correlation] 
-        
+      _ <- Mongo.Query.updateAll "user_matches" $ fmap query matches
+      return ()
+    query :: (Username, Username, Double) -> (Mongo.Query.Selector, Document, [Mongo.Query.UpdateOption]) --maybeAlreadySaved <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username, UserMatchesMatch `Persist.Mongo.anyEq` matchingUser] []
+    query (ownUsername, otherUsername, predictionValue) =
+      ( [ "$and" =: 
+          [ ["match" =: (ownUsername :: Text)]
+          , ["match" =: (otherUsername :: Text)]
+          ]
+        ]::Mongo.Query.Selector
+      , Persist.Mongo.recordToDocument $ (UserMatches [ownUsername, otherUsername] predictionValue)
+      , updateOption
+      )
 
 deleteEverything :: IO ()
 deleteEverything = do
