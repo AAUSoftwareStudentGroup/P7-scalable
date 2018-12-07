@@ -133,7 +133,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               liftIO img
               _ <- Persist.Mongo.insert newUser
               _ <- Mongo.Admin.ensureIndex userIndex
-              answerToInsert <- liftIO $ answerFromAnswerInfo (getField @"username" createUserDTO) 0 False
+              answerToInsert <- liftIO $ answerFromAnswerInfo (getField @"username" createUserDTO) 0 True
               _ <- Mongo.Query.modify
                 ( Mongo.Query.select [] "questions")
                 ["$push" =: ["answers" =: (Persist.Mongo.recordToDocument answerToInsert :: Document)]]
@@ -230,7 +230,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
         ( (Mongo.Query.select 
           [ "answers" =: 
             [ "$elemMatch" =: 
-              [ "answerer" =: username', "ispredicted" =: False] 
+              [ "answerer" =: username', "ispredicted" =: True] 
             ] 
           ]
           "questions"
@@ -238,7 +238,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
           { Mongo.Query.project = 
             [ "answers" =: 
               [ "$elemMatch" =: 
-                [ "answerer" =: username', "ispredicted" =: False] 
+                [ "answerer" =: username', "ispredicted" =: True] 
               ] 
             , "index" =: (1::Int)
             , "text" =: (1::Int)
@@ -259,7 +259,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
         ( (Mongo.Query.select 
           [ "answers" =: 
             [ "$elemMatch" =: 
-              [ "answerer" =: username', "ispredicted" =: True] 
+              [ "answerer" =: username', "ispredicted" =: False] 
             ] 
           ]
           "questions"
@@ -267,7 +267,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
           { Mongo.Query.project = 
             [ "answers" =: 
               [ "$elemMatch" =: 
-                [ "answerer" =: username', "ispredicted" =: True] 
+                [ "answerer" =: username', "ispredicted" =: False] 
               ] 
             , "index" =: (1::Int)
             , "text" =: (1::Int)
@@ -500,7 +500,7 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
               [ "answers" =: 
                 [ "$not" =: 
                   [ "$elemMatch" =: 
-                    [ "answerer" =: username', "ispredicted" =: True]
+                    [ "answerer" =: username', "ispredicted" =: False]
                   ]
                 ]
               ]
@@ -527,7 +527,7 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
             [ "answers" =: 
               [ "$not" =: 
                 [ "$elemMatch" =: 
-                  [ "answerer" =: username', "ispredicted" =: True] 
+                  [ "answerer" =: username', "ispredicted" =: False] 
                 ] 
               ] 
             ]
@@ -555,7 +555,7 @@ createAnswer mongoConf username' (AnswerDTO id' response) =
              err416 {errBody = "answer must be an integer between 1 and 5"}
         else do
           answerToInsert <-
-            liftIO $ answerFromAnswerInfo username' response True
+            liftIO $ answerFromAnswerInfo username' response False
           case Persist.Mongo.readMayObjectId id' of
             Just oId -> do
               _ <-
@@ -564,7 +564,7 @@ createAnswer mongoConf username' (AnswerDTO id' response) =
                      [ "_id" =: oId
                      , "answers" =:
                        [ "$elemMatch" =:
-                         ["answerer" =: username', "ispredicted" =: False]
+                         ["answerer" =: username', "ispredicted" =: True]
                        ]
                      ]
                      "questions")
@@ -621,7 +621,7 @@ fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
         ( (Mongo.Query.select 
             [ "answers" =: 
               [ "$elemMatch" =: 
-                [ "answerer" =: username, "ispredicted" =: True] 
+                [ "answerer" =: username, "ispredicted" =: False] 
               ] 
             ]
             "questions"
@@ -629,7 +629,7 @@ fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
           { Mongo.Query.project = 
             [ "answers" =: 
               [ "$elemMatch" =: 
-                [ "answerer" =: username, "ispredicted" =: True] 
+                [ "answerer" =: username, "ispredicted" =: False] 
               ] 
             , "index" =: (1::Int)
             , "text" =: (1::Int)
@@ -660,7 +660,7 @@ updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf upda
     updateSingleUsername curTime' (username, answers) = fmap (updateSingleAnswer username curTime') answers
     updateSingleAnswer :: Username -> Clock.UTCTime -> AnswerDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
     updateSingleAnswer username' curTime'' AnswerDTO {id=indexToUpdate, score=scoreToUpdate} =
-      ( ["index" =: ((read . T.unpack $ indexToUpdate)::Int), "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: False ]]]
+      ( ["index" =: ((read . T.unpack $ indexToUpdate)::Int), "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: True ]]]
       , (["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument (newAnswer username' curTime'' scoreToUpdate) :: Document)]]::Mongo.Query.Modifier)
       , []
       ) 
@@ -669,7 +669,7 @@ updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf upda
       { answerAnswerer = username''
       , answerScore = score''
       , answerTimestamp = currenttime
-      , answerIspredicted = False
+      , answerIspredicted = True
       }
 
 {-----------------------------------------------------------------------------}
