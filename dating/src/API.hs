@@ -137,9 +137,14 @@ fetchUsersHandler mongoInfo username offset limit = liftIO $ DB.fetchUsers mongo
 -- | Fetches users that matches current user
 fetchMatchingUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
 fetchMatchingUsersHandler mongoInfo username offset limit = do
-  maybeAnsweredEnoughQuestions <- liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
-  case maybeAnsweredEnoughQuestions of
-    Right answers -> return answers
+  maybeTimeToPredict <- liftIO $ DB.timeToPredict mongoInfo username
+  case maybeTimeToPredict of
+    Right shouldPredict ->
+      if shouldPredict then
+        --we predict
+        liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
+      else
+        liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
     Left err      -> Handler $ throwE err
 
 -- | Ask if username exists.

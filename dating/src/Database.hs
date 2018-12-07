@@ -179,8 +179,8 @@ fetchUsers mongoConf username' offset askedLimit =
       fmap userEntityToUserDTO <$>
       selectList [UserUsername !=. username'] [OffsetBy offset, LimitTo limit]
 
--- | Find matches for user
-fetchMatchesForUser :: MongoInfo -> Int -> Int -> Username -> IO (Either ServantErr [UserDTO])
+-- | Fetch user matches
+fetchMatchesForUser :: MongoInfo -> Int -> Int -> Username -> IO [UserDTO]
 fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetchAction
   where
     userMatchEntityToUsername :: Username -> Entity UserMatches -> Username
@@ -189,33 +189,9 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
         (u1:u2:[]) = getField @"userMatchesMatch" match'
       in
         if u1 == username'' then u2 else u1
-        
-    fetchAction :: Action IO (Either ServantErr [UserDTO])
-    fetchAction = do
-      alreadyPredicted <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username'] []
-      case alreadyPredicted of
-        Just _ -> do
-          actualAnswerTime <- fetchTimeOfNewestActualAnswer
-          predictedAnswerTime <- fetchTimeOfOnePredictedAnswer
-          if ((Clock.diffUTCTime actualAnswerTime predictedAnswerTime) > (2*Clock.nominalDay)) then do
-            _ <- predict username'
-            res <- fetchMatches
-            return $ Right res
-          else do
-            res' <- fetchMatches
-            return $ Right res'
-        Nothing -> do
-          nonPredicted <- liftIO $ fetchNonPredictedAnswers mongoConf username'
-          if List.length nonPredicted > 10 then do
-            _ <- predict username'
-            res'' <- fetchMatches
-            return $ Right res''
-          else
-            return $ Left $ err412 { errBody = "Need to answer more questions" }
 
-    
-    fetchMatches :: Action IO [UserDTO]
-    fetchMatches = do
+    fetchAction :: Action IO [UserDTO]
+    fetchAction = do
       matches <- selectList [UserMatchesMatch `Persist.Mongo.anyEq` username'] [Desc UserMatchesCorrelation, OffsetBy offset, LimitTo limit]
       let usernames = fmap (userMatchEntityToUsername username') matches
       userDtos <- fmap userEntityToUserDTO <$> selectList [UserUsername <-. usernames] []
@@ -223,6 +199,40 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
       let sortedUserDtos = List.sortOn ownUsername userDtos
       let matchUserDtosPairs = List.zip sortedMatches sortedUserDtos
       return $ map snd $ reverse (List.sortOn matchScore matchUserDtosPairs)
+
+    onOtherUsername :: Username -> Entity UserMatches -> Text
+    onOtherUsername username'' (Entity _ match'') =
+      let (u1:u2:[]) = getField @"userMatchesMatch" match''
+      in if username'' == u1 then u2 else u1
+    
+    ownUsername :: UserDTO -> Text
+    ownUsername uDto = getField @"username" uDto
+
+    matchScore :: (Entity UserMatches, UserDTO) -> Double
+    matchScore (Entity _ uMatch,_) = getField @"userMatchesCorrelation" uMatch
+
+
+-- | Is it time to predict?
+timeToPredict :: MongoInfo -> Username -> IO (Either ServantErr Bool)
+timeToPredict mongoConf username = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO (Either ServantErr Bool)
+    fetchAction = do
+      alreadyPredicted <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username] []
+      case alreadyPredicted of
+        Just _ -> do
+          actualAnswerTime <- fetchTimeOfNewestActualAnswer
+          predictedAnswerTime <- fetchTimeOfOnePredictedAnswer
+          if ((Clock.diffUTCTime actualAnswerTime predictedAnswerTime) > (2*Clock.nominalDay)) then
+            return $ Right True
+          else
+            return $ Right False
+        Nothing -> do
+          nonPredicted <- liftIO $ fetchNonPredictedAnswers mongoConf username
+          if List.length nonPredicted > 10 then
+            return $ Right True
+          else
+            return $ Left $ err412 { errBody = "Need to answer more questions" }
     
     fetchTimeOfOnePredictedAnswer :: Action IO Clock.UTCTime
     fetchTimeOfOnePredictedAnswer = do
@@ -230,7 +240,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
         ( (Mongo.Query.select 
           [ "answers" =: 
             [ "$elemMatch" =: 
-              [ "answerer" =: username', "ispredicted" =: True] 
+              [ "answerer" =: username, "ispredicted" =: True] 
             ] 
           ]
           "questions"
@@ -238,7 +248,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
           { Mongo.Query.project = 
             [ "answers" =: 
               [ "$elemMatch" =: 
-                [ "answerer" =: username', "ispredicted" =: True] 
+                [ "answerer" =: username, "ispredicted" =: True] 
               ] 
             , "index" =: (1::Int)
             , "text" =: (1::Int)
@@ -259,7 +269,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
         ( (Mongo.Query.select 
           [ "answers" =: 
             [ "$elemMatch" =: 
-              [ "answerer" =: username', "ispredicted" =: False] 
+              [ "answerer" =: username, "ispredicted" =: False] 
             ] 
           ]
           "questions"
@@ -267,7 +277,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
           { Mongo.Query.project = 
             [ "answers" =: 
               [ "$elemMatch" =: 
-                [ "answerer" =: username', "ispredicted" =: False] 
+                [ "answerer" =: username, "ispredicted" =: False] 
               ] 
             , "index" =: (1::Int)
             , "text" =: (1::Int)
@@ -284,17 +294,6 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
 
     answerTime :: Answer -> Clock.UTCTime
     answerTime a = getField @"answerTimestamp" a
-
-    onOtherUsername :: Username -> Entity UserMatches -> Text
-    onOtherUsername username'' (Entity _ match'') =
-      let (u1:u2:[]) = getField @"userMatchesMatch" match''
-      in if username'' == u1 then u2 else u1
-    
-    ownUsername :: UserDTO -> Text
-    ownUsername uDto = getField @"username" uDto
-
-    matchScore :: (Entity UserMatches, UserDTO) -> Double
-    matchScore (Entity _ uMatch,_) = getField @"userMatchesCorrelation" uMatch
 
 
 -- | Return "True" or "False" if user exists
@@ -791,12 +790,3 @@ deleteEverythingInDB = runAction localMongoInfo action
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "conversations"
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
       return ()
-
-{-
-DB knows nothing about matrices, but we need a function that can fetch matches
-This function when called have to call predict at some point, if no predictions exists
-However, DB knows nothing about options either.
-Need a helper function that takes a username and then calls the actual prediction function
--}
-predict :: Username -> Action IO ()
-predict username = undefined
