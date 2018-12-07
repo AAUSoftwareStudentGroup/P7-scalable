@@ -58,6 +58,8 @@ type UserAPI =
           :> Get '[JSON] [UserDTO]
   :<|>  -- Fetch matching users
   "match" :> AuthProtect "cookie-auth"
+          :> Capture "offset" Int
+          :> Capture "limit" Int
           :> Get '[JSON] [UserDTO]
   :<|>  -- Does Username Exist?
   "users" :> "exists"
@@ -133,8 +135,17 @@ fetchUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
 fetchUsersHandler mongoInfo username offset limit = liftIO $ DB.fetchUsers mongoInfo username offset limit
 
 -- | Fetches users that matches current user
-fetchMatchingUsersHandler :: MongoInfo -> Username -> Handler [UserDTO]
-fetchMatchingUsersHandler mongoInfo username = liftIO $ DB.fetchBestNMatchesForUser mongoInfo 12 username
+fetchMatchingUsersHandler :: MongoInfo -> Username -> Int -> Int -> Handler [UserDTO]
+fetchMatchingUsersHandler mongoInfo username offset limit = do
+  maybeTimeToPredict <- liftIO $ DB.timeToPredict mongoInfo username
+  case maybeTimeToPredict of
+    Right shouldPredict ->
+      if shouldPredict then -- do
+        --_ <- liftIO $ Recommender.predictForUser username
+        liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
+      else
+        liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
+    Left err      -> Handler $ throwE err
 
 -- | Ask if username exists.
 fetchUserExists :: MongoInfo -> Username -> Handler Bool

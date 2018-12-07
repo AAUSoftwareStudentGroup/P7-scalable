@@ -331,8 +331,8 @@ postEditUser userInfo body =
             False
         }
 
-getMatches : UserInfo -> Http.Request (List (User))
-getMatches userInfo =
+getMatches : UserInfo -> Int -> Int -> Http.Request (List (User))
+getMatches userInfo pageNum pageSize =
     Http.request
         { method =
             "GET"
@@ -342,6 +342,8 @@ getMatches userInfo =
             String.join "/"
                 [ apiLocation
                 , "match"
+                , String.fromInt (pageNum * pageSize)
+                , String.fromInt pageSize
                 ]
         , body =
             Http.emptyBody
