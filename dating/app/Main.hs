@@ -10,13 +10,13 @@ import           Recommendation.Recommender
 import           Schema
 
 main :: IO ()
-main = putStrLn "RUNNING SERVER" *> runServer
+main = putStrLn "IT COMPILES!" -- SERVER" *> runServer
  --mong <- Db.fetchMongoInfo 
  --Db.saveMatchesToDb mong (pack "user9") (pack "user") (2::Double)
 --main = putStrLn "RUNNING SERVER" *> runServer --startStochasticTraining
   -- -- putStrLn "RUNNING SERVER" *> runServer
 
-predictTheFuture :: IO ()
+{-predictTheFuture :: IO ()
 predictTheFuture = do
   putStrLn "PREDICTIONS FROM THE FUUUTUURE"
   answers <- loadMatrixFromFile "data/anonymous.csv"
@@ -47,4 +47,4 @@ startStochasticTraining = do
     Left err -> putStrLn err
     Right a  -> void $ stochasticTrain defaultTrainingOptions kValue a
   where
-    kValue = 7
+    kValue = 7 -}

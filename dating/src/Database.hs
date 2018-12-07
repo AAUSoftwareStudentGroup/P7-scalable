@@ -403,6 +403,7 @@ fetchConversationPreviews mongoConf ownUsername =
 {-----------------------------------------------------------------------------}
 {-                                 Questions                                 -}
 {-----------------------------------------------------------------------------}
+
 fetchQuestions :: MongoInfo -> Username -> IO [QuestionDTO]
 fetchQuestions mongoConf username' = runAction mongoConf fetchAction
   where
@@ -470,7 +471,7 @@ createAnswer mongoConf username' (AnswerDTO id' response) =
              err416 {errBody = "answer must be an integer between 1 and 5"}
         else do
           answerToInsert <-
-            liftIO $ answerFromAnswerInfo username' response True
+            liftIO $ answerFromAnswerInfo username' (fromIntegral response) True
           case Persist.Mongo.readMayObjectId id' of
             Just oId -> do
               _ <-
@@ -491,7 +492,7 @@ createAnswer mongoConf username' (AnswerDTO id' response) =
               return . Right $ "Successfully inserted"
             Nothing -> return . Left $ err406 {errBody = "No such ID"}
 
-answerFromAnswerInfo :: Username -> Int -> Bool -> IO Answer
+answerFromAnswerInfo :: Username -> Double -> Bool -> IO Answer
 answerFromAnswerInfo name score' isActualAnswer = do
   currentTime <- Clock.getCurrentTime
   return
@@ -518,19 +519,19 @@ createEmbeddings mongoInfo embeddingsDTO = runAction mongoInfo insertAction
     itemEmb' = itemEmb embeddingsDTO
 
   
-fetchNonPredictedAnswers :: MongoInfo -> Username -> IO [AnswerDTO]
+fetchNonPredictedAnswers :: MongoInfo -> Username -> IO [AnswerWithIndexDTO]
 fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
   where
-    questionEntityToAnswerDTO :: Entity Question -> AnswerDTO
-    questionEntityToAnswerDTO (Entity _ question) = answerDTO
+    questionEntityToAnswerWithIndexDTO :: Entity Question -> AnswerWithIndexDTO
+    questionEntityToAnswerWithIndexDTO (Entity _ question) = answerWithIndexDTO
       where
         answer = head $ getField @"questionAnswers" question
-        answerDTO = AnswerDTO 
-          { id = T.pack . show $ getField @"questionIndex" question
+        answerWithIndexDTO = AnswerWithIndexDTO 
+          { questionIndex = getField @"questionIndex" question
           , score = getField @"answerScore" answer
           }
 
-    fetchAction :: Action IO [AnswerDTO]
+    fetchAction :: Action IO [AnswerWithIndexDTO]
     fetchAction = do
       cursor <- Mongo.Query.find
         ( (Mongo.Query.select 
@@ -553,7 +554,7 @@ fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
         )
       docList <- Mongo.Query.rest cursor
       return $
-        fmap questionEntityToAnswerDTO .
+        fmap questionEntityToAnswerWithIndexDTO .
         rights . fmap Persist.Mongo.docToEntityEither $
         docList
 
@@ -563,19 +564,27 @@ fetchBestEmbeddings mongoInfo = runAction mongoInfo fetchAction
     fetchAction :: Action IO (Maybe Embeddings)
     fetchAction = fmap entityVal <$> Persist.Mongo.selectFirst [] [Asc EmbeddingsMse]
 
-updatePredictedAnswers :: MongoInfo -> [(Username, [AnswerDTO])] -> IO ()
+
+fetchBestItemEmbedding :: MongoInfo -> IO (Maybe [[Double]])
+fetchBestItemEmbedding mongoInfo = fmap embeddingsItemEmb <$> fetchBestEmbeddings mongoInfo
+
+
+-- TODO: Make it take a single pair
+updatePredictedAnswers :: MongoInfo -> [(Username, [AnswerWithIndexDTO])] -> IO ()
 updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf updateAction
   where
     updateAction :: Action IO ()
     updateAction = do
-      _ <- Mongo.Query.updateAll "questions" $ List.concat (fmap updateSingleUsername usernamesWithAnswers)
+      _ <- Mongo.Query.updateAll "questions" $ List.concatMap updateSingleUsername usernamesWithAnswers
       return ()
-    updateSingleUsername :: (Username, [AnswerDTO]) -> [(Mongo.Query.Selector, Document, [a])]
+
+    updateSingleUsername :: (Username, [AnswerWithIndexDTO]) -> [(Mongo.Query.Selector, Document, [a])]
     updateSingleUsername (username, answers) = fmap (updateSingleAnswer username) answers
-    updateSingleAnswer :: Username -> AnswerDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
-    updateSingleAnswer username' AnswerDTO {id=indexToUpdate, score=scoreToUpdate} =
-      ( ["index" =: ((read . T.unpack $ indexToUpdate)::Int), "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: False ]]]
-      , (["$set" =: ["answers.$.score" =: (scoreToUpdate :: Int)]]::Mongo.Query.Modifier)
+
+    updateSingleAnswer :: Username -> AnswerWithIndexDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
+    updateSingleAnswer username' AnswerWithIndexDTO {questionIndex=indexToUpdate, score=scoreToUpdate} =
+      ( ["index" =: indexToUpdate, "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: False ]]]
+      , ["$set" =: ["answers.$.score" =: (scoreToUpdate :: Double)]]::Mongo.Query.Modifier
       , []
       ) 
 
@@ -583,6 +592,7 @@ updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf upda
 {-----------------------------------------------------------------------------}
 {-                                 HELPERS                                   -}
 {-----------------------------------------------------------------------------}
+
 --runAction :: MonadIO m => MongoInfo -> Action m b -> m b
 runAction mongoConf action =
   Persist.Mongo.withConnection mongoConf $ \pool ->

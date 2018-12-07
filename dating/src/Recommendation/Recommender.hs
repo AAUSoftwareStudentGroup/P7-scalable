@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Recommendation.Recommender where
+module Recommendation.Recommender(match, predict, train, stochasticTrain, defaultPredictionOptions, defaultTrainingOptions) where
 
 import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
@@ -28,7 +28,7 @@ type EmbeddingMatrix = Matrix
 type LearningRate = Matrix
 type IterationRange = (Int, Int)
 type EmbeddingPair = (EmbeddingMatrix, EmbeddingMatrix)
-
+type AnswerVector = Vector
 
 type Username    = String
 type UserTrainingMatrix = (Username, Vector)
@@ -41,27 +41,35 @@ data Options = Options
     , initialLearningRate :: LearningRate
     } deriving (Eq, Show)
 
+{------------------------------------------------------------------------------}
+{-                                   MATCHING                                 -}
+{------------------------------------------------------------------------------}
+
+match :: IO ()
+match = undefined
 
 {------------------------------------------------------------------------------}
 {-                                  PREDICTION                                -}
 {------------------------------------------------------------------------------}
 
 
-predict :: Options -> Matrix -> EmbeddingMatrix -> IO Matrix
+predict :: Options -> AnswerVector -> EmbeddingMatrix -> IO AnswerVector
 predict options target itemEmb = do
     initialUserEmb   <- mkEmbeddingMatrix answerRows kValue
     (userEmb, _) <- go (initialUserEmb, itemEmb) 0 (initialLearningRate options) Nothing
-    return $ mul userEmb itemEmb
+    return . toAnswerVector $ mul userEmb itemEmb
 
     where
+        target' = LA.asRow target
+        toAnswerVector = head . LA.toRows
 
         iterationRange'       = iterationRange options
         threshold'            = threshold options
         initialLearningRate'  = initialLearningRate options
-        targetHasValueMatrix = toOneOrZero target
+        targetHasValueMatrix  = toOneOrZero target'
 
         (kValue, _)  = size itemEmb
-        (answerRows, _) = size target
+        (answerRows, _) = size target'
 
 
         go :: EmbeddingPair -> Int -> LearningRate -> Maybe Double -> IO EmbeddingPair
@@ -72,9 +80,9 @@ predict options target itemEmb = do
 
           where
             guess = toTraining . mkGuess $ embeddingPair
-            error = toTraining $ getError guess target
+            error = toTraining $ getError guess target'
 
-            embeddingPair' = updateEmbeddings target True learningRate guess embeddingPair
+            embeddingPair' = updateEmbeddings target' True learningRate guess embeddingPair
 
             mse = calcMSE error (sumElements targetHasValueMatrix)
 

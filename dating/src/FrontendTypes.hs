@@ -112,6 +112,11 @@ data AnswerDTO = AnswerDTO
   , score :: Int
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
+data AnswerWithIndexDTO = AnswerWithIndexDTO
+  { questionIndex :: Int
+  , score         :: Double
+  }
+
 data EmbeddingsDTO = EmbeddingsDTO
   { kValue     :: Int
   , mse        :: Double
