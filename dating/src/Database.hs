@@ -808,3 +808,27 @@ deleteEverythingInDB = runAction localMongoInfo action
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "conversations"
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
       return ()
+
+convertQuestionsFromOldToNew :: MongoInfo -> IO String
+convertQuestionsFromOldToNew mongoConf = runAction mongoConf convertAction
+  where
+    convertAction :: Action IO String
+    convertAction = do
+      newQs <- fmap oldQuestionToNew <$> selectList [] []
+      _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
+      _ <- Mongo.Query.insertMany_ "questions" $ map Persist.Mongo.recordToDocument newQs
+      return "inserted" 
+      --return qs
+    oldQuestionToNew :: Entity OldQuestion -> Question
+    oldQuestionToNew (Entity _ oldQ) = Question
+      { questionIndex = getField @"oldQuestionIndex" oldQ
+      , questionText = getField @"oldQuestionText" oldQ
+      , questionAnswers = fmap oldAnswersToNew $ getField @"oldQuestionAnswers" oldQ
+      }
+    oldAnswersToNew :: OldAnswer -> Answer
+    oldAnswersToNew oldA = Answer
+      { answerAnswerer = getField @"oldAnswerAnswerer" oldA
+      , answerScore = fromIntegral $ getField @"oldAnswerScore" oldA
+      , answerTimestamp = getField @"oldAnswerTimestamp" oldA
+      , answerIspredicted = if (getField @"oldAnswerIspredicted" oldA) then False else True
+      }

@@ -80,6 +80,19 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     match       [Text]
     correlation Double  
     deriving Eq Show Generic
+
+  OldQuestion sql=questions
+    index   Int
+    text    Text
+    answers [OldAnswer]
+    deriving Show Eq Generic
+
+  OldAnswer sql=answers
+    answerer    Text
+    score       Int
+    timestamp   UTCTime
+    ispredicted Bool
+    deriving Show Eq Generic
 |]
 
 type Column = [Double]
