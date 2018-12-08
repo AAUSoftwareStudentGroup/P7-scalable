@@ -241,7 +241,7 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
       docList <- Mongo.Query.find
         ( (Mongo.Query.select 
             ["answers" =: 
-              ["$elemMatch" =: ["username" =: username, "ispredicted" =: False]]
+              ["$elemMatch" =: ["answerer" =: username, "ispredicted" =: False]]
             ]
           "questions")
           { Mongo.Query.project = ["answers" =: (0::Int)]
@@ -257,7 +257,7 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
         ( (Mongo.Query.select 
             ["answers" =: 
               ["$elemMatch" =: 
-                ["username" =: username, "ispredicted" =: True]
+                ["answerer" =: username, "ispredicted" =: True]
               ]
             ]
           "questions")
@@ -273,7 +273,7 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
         ( (Mongo.Query.select 
             ["answers" =: 
               ["$elemMatch" =: 
-                ["username" =: username, "timestamp" =: ["$gt" =: timeOfLastAnswer], "ispredicted" =: False]
+                ["answerer" =: username, "timestamp" =: ["$gt" =: timeOfLastAnswer], "ispredicted" =: False]
               ]
             ]
           "questions")
