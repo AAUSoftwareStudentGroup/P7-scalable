@@ -87,6 +87,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
     action = do
       authToken' <- liftIO mkAuthToken
       salt <- liftIO mkAuthToken
+      image <- liftIO mkAuthToken
       let newUser =
             User
               { userEmail = getField @"email" createUserDTO
@@ -97,7 +98,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               , userBirthday = getField @"birthday" createUserDTO
               , userTown = getField @"town" createUserDTO
               , userProfileText = getField @"profileText" createUserDTO
-              , userImage = "/img/users/" <> salt <> ".jpg"
+              , userImage = "/img/users/" <> image <> ".jpg"
               , userAuthToken = authToken'
               , userSalt = salt
               }
@@ -343,8 +344,9 @@ updateUser mongoConf username newFields = runAction mongoConf editAction
                 Left txt -> return $ Left $ err415 {errBody = txt}
                 Right img -> do
                   liftIO img
-                  _ <-
-                    update key $ updatedValues newFields (getField @"userSalt" user)
+                  _ <- liftIO $ removeSingleFile (T.unpack ("frontend" <> (getField @"userImage" user)))
+                  newImg <- liftIO mkAuthToken
+                  _ <- update key ([(UserImage =. "/img/users/" <> newImg <> ".jpg")] <> (updatedValues newFields (getField @"userSalt" user)))
                   return . Right $ userEntityToLoggedInDTO (Entity key user)
             Nothing -> do
               _ <-
