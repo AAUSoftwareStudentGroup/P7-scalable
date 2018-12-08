@@ -663,7 +663,37 @@ fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
         docList
 
 fetchOtherUsersAndAnswers :: MongoInfo -> Username -> IO [(Username, [AnswerWithIndexDTO])]
-fetchOtherUsersAndAnswers mongoInfo username = undefined
+fetchOtherUsersAndAnswers mongoInfo username = runAction mongoInfo fetchAction
+  where
+    fetchAction :: Action IO [(Username, [AnswerWithIndexDTO])]
+    fetchAction = do
+      results <- fmap toUsernameAndAnswersPair <$> selectList [] []
+      return $ List.foldl combineUsernameAndAnswers [] $ Maybe.catMaybes . fmap findOccurencesOfSelf $ List.sortOn byUsername $ List.concat results
+      
+    toUsernameAndAnswersPair :: Entity Question -> [(Username, AnswerWithIndexDTO)]
+    toUsernameAndAnswersPair (Entity _ q) = fmap (getAnswers (getField @"questionIndex" q)) $ getField @"questionAnswers" q
+    
+    findOccurencesOfSelf :: (Username, AnswerWithIndexDTO) -> Maybe (Username, AnswerWithIndexDTO)
+    findOccurencesOfSelf (u, a) = 
+      if u == username 
+      then Nothing 
+      else Just (u, a)
+      
+    combineUsernameAndAnswers :: [(Username, [AnswerWithIndexDTO])] -> (Username, AnswerWithIndexDTO) -> [(Username, [AnswerWithIndexDTO])]
+    combineUsernameAndAnswers [] (username', answer') = [(username', [answer'])]
+    combineUsernameAndAnswers ((uname, answers):xs) (username', answer') =
+      if uname == username'
+      then [(uname, answers <> [answer'])] <> xs
+      else [(username', [answer'])] <> [(uname, answers)]
+
+    getAnswers :: Int -> Answer -> (Username, AnswerWithIndexDTO)
+    getAnswers index answer = 
+      ( getField @"answerAnswerer" answer
+      , AnswerWithIndexDTO index (getField @"answerScore" answer)
+      )
+    
+    byUsername :: (Username, AnswerWithIndexDTO) -> Username
+    byUsername (fst, _) = fst
 
 fetchBestEmbeddings :: MongoInfo -> IO (Maybe Embeddings)
 fetchBestEmbeddings mongoInfo = runAction mongoInfo fetchAction
