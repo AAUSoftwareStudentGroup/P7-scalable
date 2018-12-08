@@ -6,6 +6,7 @@ import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
 import           Data.List                     (sortBy)
 import           Data.Ord                      (Down (..), comparing)
+import           Data.Text                     (Text)
 import           Debug.Trace                   (trace)
 import           GHC.Generics                  (Generic (..))
 import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
@@ -35,7 +36,7 @@ type AnswerVector       = Vector
 type CorrelationMatrix  = Matrix
 
 type IterationRange     = (Int, Int)
-type Username           = String
+type Username           = Text
 
 
 data Options = Options

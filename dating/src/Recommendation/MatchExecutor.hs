@@ -31,9 +31,18 @@ createMatchesForUser username = do
       eitherCorrelationMatrix <- loadCorrelationMatrix
       case eitherCorrelationMatrix of
         Left err -> error $ "CorrelationMatrix could not be loaded: " ++ err
-      matches <- undefined -- match user
-      putStrLn "match"
-      -- save Matches
+        Right correlationMatrix -> do
+
+          -- Fetch the possible candidates for matching and transform them to the correct format
+          userAnswerPairs <- Db.fetchOtherUsersAndAnswers mongoInfo username
+          let candidates = fmap (Transformer.toAnswerVector itemCount) <$> userAnswerPairs
+
+          -- Get matches and save them
+          let matches = match correlationMatrix (username, predictedAnswerVector) candidates
+          Db.saveMatchesToDb mongoInfo (toMatchingTriple <$> matches)
+  where
+    toMatchingTriple :: (Username, Double) -> (Username, Username, Double)
+    toMatchingTriple (otherUsername, score) = (username, otherUsername, score) 
 
 
 loadCorrelationMatrix :: IO (Either String (Matrix Double))

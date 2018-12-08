@@ -11,6 +11,7 @@ import qualified Numeric.LinearAlgebra         as LA
 import           Numeric.LinearAlgebra.Data    (GMatrix, toDense)
 import           Numeric.LinearAlgebra.HMatrix (mul)
 import           System.Random                 (newStdGen, randomRs)
+
 toOneOrZero :: Matrix -> Matrix
 toOneOrZero = cmap (\x -> if x == 0 then 0 else 1)
 

@@ -213,12 +213,6 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
     matchScore (Entity _ uMatch,_) = getField @"userMatchesCorrelation" uMatch
 
 
-{-result = db.questions.find({"answers":{"$elemMatch":{"username":ownUsername, "timestamp":{"$gt":timeOfLastAnswer}, "ispredicted":false}}})
-
-if List.null result && allQuestionsAnswered then return matches
-else if allQuestionsAnswered || List.length result > 10 then predict and return matches
-else return matches
--}
 -- | Is it time to predict?
 timeToPredict :: MongoInfo -> Username -> IO (Either ServantErr Bool)
 timeToPredict mongoConf username = runAction mongoConf fetchAction
@@ -367,6 +361,7 @@ updateUser mongoConf username newFields = runAction mongoConf editAction
 {-----------------------------------------------------------------------------}
 {-                             AUTHENTICATION                                -}
 {-----------------------------------------------------------------------------}
+
 fetchUserByCredentials :: MongoInfo -> CredentialDTO -> IO (Maybe LoggedInDTO)
 fetchUserByCredentials mongoConf credentials = runAction mongoConf fetchAction
   where
@@ -416,6 +411,7 @@ removeAuthToken mongoConf username = runAction mongoConf action
 {-----------------------------------------------------------------------------}
 {-                              CONVERSATIONS                                -}
 {-----------------------------------------------------------------------------}
+
 createMessage :: MongoInfo -> Username -> Username -> CreateMessageDTO -> IO ()
 createMessage mongoConf from to messageDTO = runAction mongoConf action
   where
@@ -665,6 +661,9 @@ fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
         fmap questionEntityToAnswerWithIndexDTO .
         rights . fmap Persist.Mongo.docToEntityEither $
         docList
+
+fetchOtherUsersAndAnswers :: MongoInfo -> Username -> IO [(Username, [AnswerWithIndexDTO])]
+fetchOtherUsersAndAnswers mongoInfo username = undefined
 
 fetchBestEmbeddings :: MongoInfo -> IO (Maybe Embeddings)
 fetchBestEmbeddings mongoInfo = runAction mongoInfo fetchAction
