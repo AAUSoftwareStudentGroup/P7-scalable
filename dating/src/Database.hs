@@ -212,55 +212,77 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
     matchScore (Entity _ uMatch,_) = getField @"userMatchesCorrelation" uMatch
 
 
+{-result = db.questions.find({"answers":{"$elemMatch":{"username":ownUsername, "timestamp":{"$gt":timeOfLastAnswer}, "ispredicted":false}}})
+
+if List.null result && allQuestionsAnswered then return matches
+else if allQuestionsAnswered || List.length result > 10 then predict and return matches
+else return matches
+-}
 -- | Is it time to predict?
 timeToPredict :: MongoInfo -> Username -> IO (Either ServantErr Bool)
 timeToPredict mongoConf username = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Either ServantErr Bool)
     fetchAction = do
-      nonPredicted <- liftIO $ fetchNonPredictedAnswers mongoConf username
-      if List.length nonPredicted > 10 then do
-        alreadyPredicted <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username] []
-        case alreadyPredicted of
-          Just _ -> do
-            actualAnswerTime <- fetchTimeOfNewestActualAnswer
-            predictedAnswerTime <- fetchTimeOfOnePredictedAnswer
-            if ((Clock.diffUTCTime actualAnswerTime predictedAnswerTime) > (2*Clock.nominalDay)) then
-              return $ Right True
-            else
-              return $ Right False
-          Nothing -> return $ Right True
-        else
-          return $ Left $ err412 { errBody = "Need to answer more questions" }
-    
-    fetchTimeOfOnePredictedAnswer :: Action IO Clock.UTCTime
-    fetchTimeOfOnePredictedAnswer = do
-      mDocument <- Mongo.Query.findOne
+      answeredEnough <- haveWeAnsweredEnough
+      if answeredEnough then do
+        timeOfLastAnswer <- fetchTimeOfNewestActualAnswer
+        allQuestionsAnswered <- noQuestionsRemain 
+        result <- questionsAnsweredSinceLastPrediction timeOfLastAnswer
+
+        if List.null result && allQuestionsAnswered then return $ Right False
+        else if allQuestionsAnswered || List.length result == 5 then return $ Right True
+        else return $ Right False
+      else
+        return $ Left $ err412 { errBody = "Need to answer more questions" }
+
+    haveWeAnsweredEnough :: Action IO Bool
+    haveWeAnsweredEnough = do
+      docList <- Mongo.Query.find
         ( (Mongo.Query.select 
-          [ "answers" =: 
-            [ "$elemMatch" =: 
-              [ "answerer" =: username, "ispredicted" =: True] 
-            ] 
-          ]
-          "questions"
-          )
-          { Mongo.Query.project = 
-            [ "answers" =: 
-              [ "$elemMatch" =: 
-                [ "answerer" =: username, "ispredicted" =: True] 
-              ] 
-            , "index" =: (1::Int)
-            , "text" =: (1::Int)
-            ] 
+            ["answers" =: 
+              ["$elemMatch" =: ["username" =: username, "ispredicted" =: False]]
+            ]
+          "questions")
+          { Mongo.Query.project = ["answers" =: (0::Int)]
+          , Mongo.Query.limit = 10
           }
         )
-      case mDocument of
-        Just doc ->
-          case (Persist.Mongo.docToEntityEither doc)::(Either Text (Entity Question)) of
-            Right (Entity _ question) -> return $ getField @"answerTimestamp" $ head $ getField @"questionAnswers" question
-            Left _ -> do
-              t <- liftIO $ Clock.getCurrentTime
-              return t
+      haveAnsweredEnough <- Mongo.Query.rest docList
+      if List.length haveAnsweredEnough < 10 then return False else return True
+
+    noQuestionsRemain :: Action IO Bool
+    noQuestionsRemain = do
+      mQuestion <- Mongo.Query.findOne
+        ( (Mongo.Query.select 
+            ["answers" =: 
+              ["$elemMatch" =: 
+                ["username" =: username, "ispredicted" =: True]
+              ]
+            ]
+          "questions")
+          { Mongo.Query.project = ["answers" =: (0::Int)] }
+        )
+      case mQuestion of
+        Just _ -> return False
+        Nothing -> return True
+    
+    questionsAnsweredSinceLastPrediction :: Clock.UTCTime -> Action IO [Document]
+    questionsAnsweredSinceLastPrediction timeOfLastAnswer = do
+      docList <- Mongo.Query.find
+        ( (Mongo.Query.select 
+            ["answers" =: 
+              ["$elemMatch" =: 
+                ["username" =: username, "timestamp" =: ["$gt" =: timeOfLastAnswer], "ispredicted" =: False]
+              ]
+            ]
+          "questions")
+          { Mongo.Query.project = ["answers" =: (0::Int)]
+          , Mongo.Query.limit = 5
+          }
+        )
+      docs <- Mongo.Query.rest docList
+      return docs
 
     fetchTimeOfNewestActualAnswer :: Action IO Clock.UTCTime
     fetchTimeOfNewestActualAnswer = do
@@ -287,13 +309,12 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
       return $ getField @"answerTimestamp" $ 
         head $ List.reverse $ List.sortOn answerTime $ 
         fmap extractAnswers $ rights . fmap Persist.Mongo.docToEntityEither $ docs
-   
+    
     extractAnswers :: Entity Question -> Answer
     extractAnswers (Entity _ q) = head $ getField @"questionAnswers" q
 
     answerTime :: Answer -> Clock.UTCTime
     answerTime a = getField @"answerTimestamp" a
-
 
 -- | Return "True" or "False" if user exists
 fetchUserExists :: MongoInfo -> Username -> IO Bool
