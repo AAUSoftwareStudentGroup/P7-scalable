@@ -207,7 +207,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
       in if username'' == u1 then u2 else u1
     
     ownUsername :: UserDTO -> Text
-    ownUsername uDto = getField @"username" uDto
+    ownUsername = getField @"username"
 
     matchScore :: (Entity UserMatches, UserDTO) -> Double
     matchScore (Entity _ uMatch,_) = getField @"userMatchesCorrelation" uMatch
@@ -282,8 +282,8 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
           , Mongo.Query.limit = 5
           }
         )
-      docs <- Mongo.Query.rest docList
-      return docs
+      Mongo.Query.rest docList
+
 
     fetchTimeOfNewestActualAnswer :: Action IO Clock.UTCTime
     fetchTimeOfNewestActualAnswer = do
@@ -308,14 +308,14 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
         )
       docs <- Mongo.Query.rest docList
       return $ getField @"answerTimestamp" $ 
-        head $ List.reverse $ List.sortOn answerTime $ 
-        fmap extractAnswers $ rights . fmap Persist.Mongo.docToEntityEither $ docs
+        last . List.sortOn answerTime . fmap extractAnswers . rights . 
+          fmap Persist.Mongo.docToEntityEither $ docs
     
     extractAnswers :: Entity Question -> Answer
     extractAnswers (Entity _ q) = head $ getField @"questionAnswers" q
 
     answerTime :: Answer -> Clock.UTCTime
-    answerTime a = getField @"answerTimestamp" a
+    answerTime = getField @"answerTimestamp"
 
 -- | Return "True" or "False" if user exists
 fetchUserExists :: MongoInfo -> Username -> IO Bool
@@ -344,9 +344,9 @@ updateUser mongoConf username newFields = runAction mongoConf editAction
                 Left txt -> return $ Left $ err415 {errBody = txt}
                 Right img -> do
                   liftIO img
-                  _ <- liftIO $ removeSingleFile (T.unpack ("frontend" <> (getField @"userImage" user)))
+                  _ <- liftIO $ removeSingleFile (T.unpack ("frontend" <> getField @"userImage" user))
                   newImg <- liftIO mkAuthToken
-                  _ <- update key ([(UserImage =. "/img/users/" <> newImg <> ".jpg")] <> (updatedValues newFields (getField @"userSalt" user)))
+                  _ <- update key ([UserImage =. "/img/users/" <> newImg <> ".jpg"] <> updatedValues newFields (getField @"userSalt" user))
                   return . Right $ userEntityToLoggedInDTO (Entity key user)
             Nothing -> do
               _ <-
@@ -683,8 +683,8 @@ updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf upda
   where
     updateAction :: Action IO ()
     updateAction = do
-      curTime <- liftIO $ Clock.getCurrentTime
-      _ <- Mongo.Query.updateAll "questions" $ List.concat (fmap (updateSingleUsername curTime) usernamesWithAnswers)
+      curTime <- liftIO Clock.getCurrentTime
+      _ <- Mongo.Query.updateAll "questions" $ List.concatMap (updateSingleUsername curTime) usernamesWithAnswers
       return ()
 
     updateSingleUsername :: Clock.UTCTime -> (Username, [AnswerWithIndexDTO]) -> [(Mongo.Query.Selector, Document, [a])]
@@ -693,7 +693,7 @@ updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf upda
     updateSingleAnswer :: Username -> Clock.UTCTime -> AnswerWithIndexDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
     updateSingleAnswer username' curTime'' AnswerWithIndexDTO {questionIndex=indexToUpdate, score=scoreToUpdate} =
       ( ["index" =: indexToUpdate, "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: True ]]]
-      , (["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument (newAnswer username' curTime'' scoreToUpdate) :: Document)]]::Mongo.Query.Modifier)
+      , ["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument (newAnswer username' curTime'' scoreToUpdate) :: Document)]]::Mongo.Query.Modifier
       , []
       ) 
     newAnswer :: Username -> Clock.UTCTime -> Double -> Answer
@@ -805,7 +805,7 @@ saveMatchesToDb mongoConf matches = runAction mongoConf saveAction
           , ["match" =: (otherUsername :: Text)]
           ]
         ]::Mongo.Query.Selector
-      , Persist.Mongo.recordToDocument $ (UserMatches [ownUsername, otherUsername] predictionValue)
+      , Persist.Mongo.recordToDocument $ UserMatches [ownUsername, otherUsername] predictionValue
       , updateOption
       )
 
@@ -846,12 +846,12 @@ convertQuestionsFromOldToNew mongoConf = runAction mongoConf convertAction
     oldQuestionToNew (Entity _ oldQ) = Question
       { questionIndex = getField @"oldQuestionIndex" oldQ
       , questionText = getField @"oldQuestionText" oldQ
-      , questionAnswers = fmap oldAnswersToNew $ getField @"oldQuestionAnswers" oldQ
+      , questionAnswers = oldAnswersToNew <$> getField @"oldQuestionAnswers" oldQ
       }
     oldAnswersToNew :: OldAnswer -> Answer
     oldAnswersToNew oldA = Answer
       { answerAnswerer = getField @"oldAnswerAnswerer" oldA
       , answerScore = fromIntegral $ getField @"oldAnswerScore" oldA
       , answerTimestamp = getField @"oldAnswerTimestamp" oldA
-      , answerIspredicted = if (getField @"oldAnswerIspredicted" oldA) then False else True
+      , answerIspredicted = not $ getField @"oldAnswerIspredicted" oldA
       }
