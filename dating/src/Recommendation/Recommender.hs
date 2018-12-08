@@ -4,6 +4,8 @@ module Recommendation.Recommender(match, predict, train, stochasticTrain, defaul
 
 import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
+import           Data.List                     (sortBy)
+import           Data.Ord                      (Down (..), comparing)
 import           Debug.Trace                   (trace)
 import           GHC.Generics                  (Generic (..))
 import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
@@ -22,17 +24,18 @@ import           FrontendTypes                 (EmbeddingsDTO (..))
 {-                                    TYPES                                   -}
 {------------------------------------------------------------------------------}
 
-type Vector = LA.Vector LA.R
-type Matrix = LA.Matrix LA.R
-type EmbeddingMatrix = Matrix
-type LearningRate = Matrix
-type IterationRange = (Int, Int)
-type EmbeddingPair = (EmbeddingMatrix, EmbeddingMatrix)
-type AnswerVector = Vector
+type Vector             = LA.Vector LA.R
+type Matrix             = LA.Matrix LA.R
 
-type Username    = String
-type UserTrainingMatrix = (Username, Vector)
-type Score       = (Username, Double)
+type EmbeddingMatrix    = Matrix
+type EmbeddingPair      = (EmbeddingMatrix, EmbeddingMatrix)
+
+type LearningRate       = Matrix
+type AnswerVector       = Vector
+type CorrelationMatrix  = Matrix
+
+type IterationRange     = (Int, Int)
+type Username           = String
 
 
 data Options = Options
@@ -45,8 +48,32 @@ data Options = Options
 {-                                   MATCHING                                 -}
 {------------------------------------------------------------------------------}
 
-match :: IO ()
-match = undefined
+match :: CorrelationMatrix -> (Username, AnswerVector) -> [(Username, AnswerVector)] -> [(Username, Double)]
+match correlationMatrix (user, userAnswers) otherUsersAndAnswers = sortedMatches
+  where
+    sortedMatches :: [(Username, Double)]
+    sortedMatches = sortBySndDesc $ zip usernames scores
+
+    usernames = map fst otherUsersAndAnswers
+    scores = map (calcScore . snd) otherUsersAndAnswers
+
+    userAnswerMatrix = toNByNMatrix userAnswers
+
+    calcScore :: Vector -> Double
+    calcScore otherUser = sumElements correlation
+      where
+        otherUserAnswerMatrix = tr' $ toNByNMatrix otherUser
+        difference            = abs $ userAnswerMatrix - otherUserAnswerMatrix
+        correlation           = -(difference - 2) * correlationMatrix
+
+    toNByNMatrix :: Vector -> Matrix
+    toNByNMatrix v = LA.fromBlocks [cols]
+      where
+        amount = size v
+        cols   = replicate amount (LA.asColumn v)
+
+    sortBySndDesc :: Ord b => [(a, b)] -> [(a, b)]
+    sortBySndDesc = sortBy (comparing $ Down . snd)
 
 {------------------------------------------------------------------------------}
 {-                                  PREDICTION                                -}
