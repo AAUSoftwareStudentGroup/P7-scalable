@@ -668,16 +668,14 @@ fetchOtherUsersAndAnswers mongoInfo username = runAction mongoInfo fetchAction
     fetchAction :: Action IO [(Username, [AnswerWithIndexDTO])]
     fetchAction = do
       results <- fmap toUsernameAndAnswersPair <$> selectList [] []
-      return $ List.foldl combineUsernameAndAnswers [] $ Maybe.catMaybes . fmap elementsToNotInclude $ List.sortOn byUsername $ List.concat results
+      return $ List.foldl combineUsernameAndAnswers [] $ List.filter elementsToNotInclude $ List.sortOn byUsername $ List.concat results
       
     toUsernameAndAnswersPair :: Entity Question -> [(Username, AnswerWithIndexDTO)]
     toUsernameAndAnswersPair (Entity _ q) = fmap (getAnswers (getField @"questionIndex" q)) $ getField @"questionAnswers" q
     
-    elementsToNotInclude :: (Username, AnswerWithIndexDTO) -> Maybe (Username, AnswerWithIndexDTO)
+    elementsToNotInclude :: (Username, AnswerWithIndexDTO) -> Bool
     elementsToNotInclude (u, AnswerWithIndexDTO {questionIndex=a, score=unpredicted}) =
-      if u == username || (0::Double) == unpredicted
-      then Nothing 
-      else Just (u, (AnswerWithIndexDTO {questionIndex=a, score=unpredicted}))
+      not (u == username || (0::Double) == unpredicted)
       
     combineUsernameAndAnswers :: [(Username, [AnswerWithIndexDTO])] -> (Username, AnswerWithIndexDTO) -> [(Username, [AnswerWithIndexDTO])]
     combineUsernameAndAnswers [] (username', answer') = [(username', [answer'])]
