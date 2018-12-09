@@ -674,8 +674,8 @@ fetchOtherUsersAndAnswers mongoInfo username = runAction mongoInfo fetchAction
     toUsernameAndAnswersPair (Entity _ q) = fmap (getAnswers (getField @"questionIndex" q)) $ getField @"questionAnswers" q
     
     elementsToNotInclude :: (Username, AnswerWithIndexDTO) -> Bool
-    elementsToNotInclude (u, AnswerWithIndexDTO {questionIndex=a, score=unpredicted}) =
-      not (u == username || (0::Double) == unpredicted)
+    elementsToNotInclude (u, AnswerWithIndexDTO {score=a}) =
+      not (u == username || (0::Double) == a)
       
     combineUsernameAndAnswers :: [(Username, [AnswerWithIndexDTO])] -> (Username, AnswerWithIndexDTO) -> [(Username, [AnswerWithIndexDTO])]
     combineUsernameAndAnswers [] (username', answer') = [(username', [answer'])]
