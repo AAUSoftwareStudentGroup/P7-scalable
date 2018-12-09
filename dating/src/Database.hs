@@ -668,16 +668,16 @@ fetchOtherUsersAndAnswers mongoInfo username = runAction mongoInfo fetchAction
     fetchAction :: Action IO [(Username, [AnswerWithIndexDTO])]
     fetchAction = do
       results <- fmap toUsernameAndAnswersPair <$> selectList [] []
-      return $ List.foldl combineUsernameAndAnswers [] $ Maybe.catMaybes . fmap findOccurencesOfSelf $ List.sortOn byUsername $ List.concat results
+      return $ List.foldl combineUsernameAndAnswers [] $ Maybe.catMaybes . fmap elementsToNotInclude $ List.sortOn byUsername $ List.concat results
       
     toUsernameAndAnswersPair :: Entity Question -> [(Username, AnswerWithIndexDTO)]
     toUsernameAndAnswersPair (Entity _ q) = fmap (getAnswers (getField @"questionIndex" q)) $ getField @"questionAnswers" q
     
-    findOccurencesOfSelf :: (Username, AnswerWithIndexDTO) -> Maybe (Username, AnswerWithIndexDTO)
-    findOccurencesOfSelf (u, a) = 
-      if u == username 
+    elementsToNotInclude :: (Username, AnswerWithIndexDTO) -> Maybe (Username, AnswerWithIndexDTO)
+    elementsToNotInclude (u, AnswerWithIndexDTO {questionIndex=a, score=unpredicted}) =
+      if u == username || (0::Double) == unpredicted
       then Nothing 
-      else Just (u, a)
+      else Just (u, (AnswerWithIndexDTO {questionIndex=a, score=unpredicted}))
       
     combineUsernameAndAnswers :: [(Username, [AnswerWithIndexDTO])] -> (Username, AnswerWithIndexDTO) -> [(Username, [AnswerWithIndexDTO])]
     combineUsernameAndAnswers [] (username', answer') = [(username', [answer'])]
