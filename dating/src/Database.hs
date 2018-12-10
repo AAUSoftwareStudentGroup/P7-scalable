@@ -228,9 +228,9 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
           else do
             answeredEnough <- haveWeAnsweredEnough
             if answeredEnough then do
-              timeOfLastAnswer <- fetchTimeOfNewestActualAnswer
+              timeOfLastPrediction <- fetchTimeOfPredictedAnswer
               allQuestionsAnswered <- noQuestionsRemain 
-              result <- questionsAnsweredSinceLastPrediction timeOfLastAnswer
+              result <- questionsAnsweredSinceLastPrediction timeOfLastPrediction
       
               if List.null result && allQuestionsAnswered then return $ Right False
               else if allQuestionsAnswered || List.length result == 5 then return $ Right True
@@ -254,7 +254,7 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
           }
         )
       haveAnsweredEnough <- Mongo.Query.rest docList
-      if List.length haveAnsweredEnough < 10 then return False else return True
+      return $ List.length haveAnsweredEnough == 10
 
     noQuestionsRemain :: Action IO Bool
     noQuestionsRemain = do
@@ -289,13 +289,13 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
       Mongo.Query.rest docList
 
 
-    fetchTimeOfNewestActualAnswer :: Action IO Clock.UTCTime
-    fetchTimeOfNewestActualAnswer = do
-      docList <- Mongo.Query.find
+    fetchTimeOfPredictedAnswer :: Action IO Clock.UTCTime
+    fetchTimeOfPredictedAnswer = do
+      mDoc <- Mongo.Query.findOne
         ( (Mongo.Query.select 
           [ "answers" =: 
             [ "$elemMatch" =: 
-              [ "answerer" =: username, "ispredicted" =: False] 
+              [ "answerer" =: username, "ispredicted" =: True] 
             ] 
           ]
           "questions"
@@ -303,20 +303,23 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
           { Mongo.Query.project = 
             [ "answers" =: 
               [ "$elemMatch" =: 
-                [ "answerer" =: username, "ispredicted" =: False] 
+                [ "answerer" =: username, "ispredicted" =: True] 
               ] 
             , "index" =: (1::Int)
             , "text" =: (1::Int)
             ] 
           }
         )
-      docs <- Mongo.Query.rest docList
-      return $ getField @"answerTimestamp" $ 
-        last . List.sortOn answerTime . fmap extractAnswers . rights . 
-          fmap Persist.Mongo.docToEntityEither $ docs
+      case mDoc of
+        Just doc ->
+          case Persist.Mongo.docToEntityEither doc of
+            Right question -> return $ getField @"answerTimestamp" $ extractAnswer question
+            Left _ -> liftIO Clock.getCurrentTime
+        Nothing -> liftIO Clock.getCurrentTime
+          
     
-    extractAnswers :: Entity Question -> Answer
-    extractAnswers (Entity _ q) = head $ getField @"questionAnswers" q
+    extractAnswer :: Entity Question -> Answer
+    extractAnswer (Entity _ q) = head $ getField @"questionAnswers" q
 
     answerTime :: Answer -> Clock.UTCTime
     answerTime = getField @"answerTimestamp"

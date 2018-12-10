@@ -33,6 +33,7 @@ import           Web.Cookie                       (parseCookies)
 import           Database                         (AuthToken, MongoInfo,
                                                    RedisInfo, Username)
 import qualified Database                         as DB
+import qualified Recommendation.MatchExecutor     as Recommender
 import           FrontendTypes
 import           Schema
 
@@ -142,7 +143,7 @@ fetchMatchingUsersHandler mongoInfo username offset limit = do
     Right shouldPredict ->
       if shouldPredict then do
         _ <- liftIO $ DB.updatePredictionStatus mongoInfo username True
-        --_ <- liftIO $ Recommender.predictForUser username
+        _ <- liftIO $ Recommender.createMatchesForUser username
         res <- liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
         _ <- liftIO $ DB.updatePredictionStatus mongoInfo username False
         return res
