@@ -101,6 +101,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
               , userImage = "/img/users/" <> image <> ".jpg"
               , userAuthToken = authToken'
               , userSalt = salt
+              , userBeingPredicted = False
               }
       canNotBeInserted <- checkUnique newUser
       case canNotBeInserted of
@@ -219,17 +220,26 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO (Either ServantErr Bool)
     fetchAction = do
-      answeredEnough <- haveWeAnsweredEnough
-      if answeredEnough then do
-        timeOfLastAnswer <- fetchTimeOfNewestActualAnswer
-        allQuestionsAnswered <- noQuestionsRemain 
-        result <- questionsAnsweredSinceLastPrediction timeOfLastAnswer
+      mUser <- getBy (UniqueUsername username)
+      case mUser of
+        Just (Entity _ user) ->
+          if getField @"userBeingPredicted" user then
+            return $ Left $ err409 { errBody = "Already predicting for this user" }
+          else do
+            answeredEnough <- haveWeAnsweredEnough
+            if answeredEnough then do
+              timeOfLastAnswer <- fetchTimeOfNewestActualAnswer
+              allQuestionsAnswered <- noQuestionsRemain 
+              result <- questionsAnsweredSinceLastPrediction timeOfLastAnswer
+      
+              if List.null result && allQuestionsAnswered then return $ Right False
+              else if allQuestionsAnswered || List.length result == 5 then return $ Right True
+              else return $ Right False
+            else
+              return $ Left $ err412 { errBody = "Need to answer more questions" }
+        Nothing ->
+          return $ Left $ err404 { errBody = "User not found, this should be impossible" }
 
-        if List.null result && allQuestionsAnswered then return $ Right False
-        else if allQuestionsAnswered || List.length result == 5 then return $ Right True
-        else return $ Right False
-      else
-        return $ Left $ err412 { errBody = "Need to answer more questions" }
 
     haveWeAnsweredEnough :: Action IO Bool
     haveWeAnsweredEnough = do
@@ -867,6 +877,9 @@ convertQuestionsFromOldToNew mongoConf = runAction mongoConf convertAction
       newQs <- fmap oldQuestionToNew <$> selectList [] []
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
       _ <- Mongo.Query.insertMany_ "questions" $ map Persist.Mongo.recordToDocument newQs
+      _ <- Mongo.Query.modify
+        ( Mongo.Query.select [] "users")
+        ["$set" =: ["being_predicted" =: False]]
       return "inserted" 
       --return qs
     oldQuestionToNew :: Entity OldQuestion -> Question
@@ -882,3 +895,13 @@ convertQuestionsFromOldToNew mongoConf = runAction mongoConf convertAction
       , answerTimestamp = getField @"oldAnswerTimestamp" oldA
       , answerIspredicted = not $ getField @"oldAnswerIspredicted" oldA
       }
+
+updatePredictionStatus :: MongoInfo -> Username -> Bool -> IO ()
+updatePredictionStatus mongoConf username status = runAction mongoConf updateAction
+  where
+    updateAction :: Action IO()
+    updateAction = do
+      mUser <- getBy (UniqueUsername username)
+      case mUser of
+        Just (Entity id' _) -> void $ update id' [UserBeingPredicted =. status]
+        Nothing -> return ()

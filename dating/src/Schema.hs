@@ -38,6 +38,7 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
     image           Text
     authToken       Text
     salt            Text
+    beingPredicted  Bool
     UniqueEmail     email
     UniqueUsername  username
     UniqueAuthToken authToken

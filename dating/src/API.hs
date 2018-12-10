@@ -140,9 +140,12 @@ fetchMatchingUsersHandler mongoInfo username offset limit = do
   maybeTimeToPredict <- liftIO $ DB.timeToPredict mongoInfo username
   case maybeTimeToPredict of
     Right shouldPredict ->
-      if shouldPredict then -- do
+      if shouldPredict then do
+        _ <- liftIO $ DB.updatePredictionStatus mongoInfo username True
         --_ <- liftIO $ Recommender.predictForUser username
-        liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
+        res <- liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
+        _ <- liftIO $ DB.updatePredictionStatus mongoInfo username False
+        return res
       else
         liftIO $ DB.fetchMatchesForUser mongoInfo offset limit username
     Left err      -> Handler $ throwE err
