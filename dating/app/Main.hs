@@ -9,5 +9,5 @@ import           Schema
 import           FrontendTypes
 
 main :: IO ()
-main = putStrLn "IT COMPILES!" -- SERVER" *> runServer
+main = putStrLn "RUNNING SERVER!" *> runServer-- SERVER" *> runServer
 --main = putStrLn "RUNNING SERVER" *> runServer
