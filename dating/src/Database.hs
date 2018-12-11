@@ -291,7 +291,7 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
 
     fetchTimeOfPredictedAnswer :: Action IO Clock.UTCTime
     fetchTimeOfPredictedAnswer = do
-      mDoc <- Mongo.Query.findOne
+      cursor <- Mongo.Query.find
         ( (Mongo.Query.select 
           [ "answers" =: 
             [ "$elemMatch" =: 
@@ -310,13 +310,9 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
             ] 
           }
         )
-      case mDoc of
-        Just doc ->
-          case Persist.Mongo.docToEntityEither doc of
-            Right question -> return $ getField @"answerTimestamp" $ extractAnswer question
-            Left _ -> liftIO Clock.getCurrentTime
-        Nothing -> liftIO Clock.getCurrentTime
-          
+      doclist <- Mongo.Query.rest cursor
+      return $ getField @"answerTimestamp" $ head $ List.sortOn answerTime $ 
+        fmap extractAnswer $ rights $ fmap Persist.Mongo.docToEntityEither doclist
     
     extractAnswer :: Entity Question -> Answer
     extractAnswer (Entity _ q) = head $ getField @"questionAnswers" q
