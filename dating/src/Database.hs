@@ -192,7 +192,7 @@ fetchUsers mongoConf username' offset askedLimit =
       selectList [UserUsername !=. username'] [OffsetBy offset, LimitTo limit]
 
 -- | Fetch user matches
-fetchMatchesForUser :: MongoInfo -> Int -> Int -> Username -> IO [UserDTO, Double]
+fetchMatchesForUser :: MongoInfo -> Int -> Int -> Username -> IO [UserWithScoreDTO]
 fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetchAction
   where
     userMatchEntityToUsername :: Username -> Entity UserMatches -> (Username, Double)
@@ -203,20 +203,12 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
       in
         if u1 == username'' then (u2, score') else (u1, score')
 
-    fetchAction :: Action IO [(UserDTO, Double)]
+    fetchAction :: Action IO [UserWithScoreDTO]
     fetchAction = do
       matches <- selectList [UserMatchesMatch `Persist.Mongo.anyEq` username'] [Desc UserMatchesCorrelation, OffsetBy offset, LimitTo limit]
       let pairs = fmap (userMatchEntityToUsername username') matches
-      let userdtos = map (fetchUser mongoConf . fst) $ pairs
-      let newPair = zip userDtos $ map snd pairs
-      liftIO . fmap Maybe.catMaybes . sequence . newPair
-
-      zipIt :: UserDTO -> Double -> (UserDTO, Double)
-
-      {-let sortedMatches = List.sortOn (onOtherUsername username') matches
-      let sortedUserDtos = List.sortOn ownUsername userDtos
-      let matchUserDtosPairs = List.zip sortedMatches sortedUserDtos
-      return $ map snd $ reverse (List.sortOn matchScore matchUserDtosPairs)-}
+      userDTOs <- liftIO $ fmap Maybe.catMaybes . mapM (fetchUser mongoConf . fst) $ pairs
+      return . map (uncurry UserWithScoreDTO) $ zip userDTOs (map snd pairs)
 
     onOtherUsername :: Username -> Entity UserMatches -> Text
     onOtherUsername username'' (Entity _ match'') =
