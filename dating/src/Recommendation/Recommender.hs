@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Recommendation.Recommender(match, predict, train, stochasticTrain, defaultPredictionOptions, defaultTrainingOptions) where
+module Recommendation.Recommender(match, predict, train, stochasticTrain, defaultPredictionOptions, defaultTrainingOptions, fromDense, toDense, Matrix) where
 
 import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
@@ -13,7 +13,7 @@ import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
                                                 (><))
 import qualified Numeric.LinearAlgebra         as LA
 import           Numeric.LinearAlgebra.Data    (AssocMatrix, toColumns, toList,
-                                                (!))
+                                                (!), toDense)
 import           Numeric.LinearAlgebra.HMatrix (mul, (<.>))
 import qualified System.Random                 as Rand
 

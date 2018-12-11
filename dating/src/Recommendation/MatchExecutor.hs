@@ -5,8 +5,10 @@ import qualified Database as Db
 import Data.Text (Text)
 import qualified Transformer
 import qualified Numeric.LinearAlgebra.Data as LAD
+import qualified Numeric.LinearAlgebra as LA
 import Numeric.LinearAlgebra.Data (Matrix(..))
 import Recommendation.DataLoad (loadMatrixFromFile)
+import Debug.Trace
 
 type Username = Text
 
@@ -20,13 +22,13 @@ createMatchesForUser username = do
     Just itemEmb -> do
       -- Load actual answers from the user
       userAnswers <- Db.fetchNonPredictedAnswers mongoInfo username
-      let itemCount = length itemEmb
+      let itemEmbMatrix = LAD.fromLists itemEmb
+      let (_, itemCount) = LAD.size itemEmbMatrix
       let answerVector = Transformer.toAnswerVector itemCount userAnswers
       -- Predict the rest of the answers
-      predictedAnswerVector <- predict defaultPredictionOptions answerVector (LAD.fromLists itemEmb)
-      
+      predictedAnswerVector <- predict defaultPredictionOptions answerVector itemEmbMatrix
       -- Save the predictions to the database
-      Db.updatePredictedAnswers mongoInfo [(username, Transformer.fromAnswerVector answerVector)] 
+      Db.updatePredictedAnswers mongoInfo [(username, Transformer.fromAnswerVector predictedAnswerVector)] 
 
       eitherCorrelationMatrix <- loadCorrelationMatrix
       case eitherCorrelationMatrix of
@@ -36,7 +38,7 @@ createMatchesForUser username = do
           -- Fetch the possible candidates for matching and transform them to the correct format
           userAnswerPairs <- Db.fetchOtherUsersAndAnswers mongoInfo username
           let candidates = fmap (Transformer.toAnswerVector itemCount) <$> userAnswerPairs
-
+          
           -- Get matches and save them
           let matches = match correlationMatrix (username, predictedAnswerVector) candidates
           Db.saveMatchesToDb mongoInfo (toMatchingTriple <$> matches)
@@ -46,4 +48,4 @@ createMatchesForUser username = do
 
 
 loadCorrelationMatrix :: IO (Either String (Matrix Double))
-loadCorrelationMatrix = loadMatrixFromFile "Data/correlations.csv"
+loadCorrelationMatrix = loadMatrixFromFile "data/correlations.csv"

@@ -11,7 +11,7 @@ import String.Extra exposing (toSentenceCase)
 import Routing exposing (Route(..))
 import Session exposing (Details, PageType(..), Session, Notification)
 import Api.Types exposing (Gender(..), Image)
-import Api.Users exposing (User)
+import Api.Users exposing (User, Match)
 
 import Time
 import Date exposing (Date)
@@ -176,12 +176,12 @@ loader : List (Html msg)
 loader =
     [ div [ class "loading-spinner" ] [] ]
 
-userCard : User -> Int -> Html msg
-userCard user age =
+userCard : Match -> Int -> Html msg
+userCard match age =
     let
-        username = user.username
-        gender = Api.Types.genderToString user.gender
-        bio = user.profileText
+        username = match.user.username
+        gender = Api.Types.genderToString match.user.gender
+        bio = match.user.profileText
     in
         Html.li
             [ classList [ ( "user-card", True )
@@ -190,7 +190,7 @@ userCard user age =
                         ]
             ]
             [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile username)) ]
-                [ div [ Attributes.style "background-image" ("url(" ++ user.image ++ ")") ] [] ]
+                [ div [ Attributes.style "background-image" ("url(" ++ match.user.image ++ ")") ] [] ]
             , div [ class "pri-title" ]
                 [ Html.h2 []
                     [ Html.text (toSentenceCase username) ]
@@ -215,6 +215,7 @@ userCard user age =
                 ]
                 (Routing.routeToString (Messages username))
                 [ iconText "Chat" "chat" ]
+            , Html.text <| String.fromFloat match.score
             ]
 
 

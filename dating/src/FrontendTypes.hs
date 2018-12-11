@@ -52,6 +52,11 @@ data UserDTO = UserDTO
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 
+data UserWithScoreDTO = UserWithScoreDTO
+  { userDTO :: UserDTO
+  , score   :: Double
+  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
+
 {-----------------------------------------------------------------------------}
 {-                             AUTHENTICATION                                -}
 {-----------------------------------------------------------------------------}
@@ -115,7 +120,7 @@ data AnswerDTO = AnswerDTO
 data AnswerWithIndexDTO = AnswerWithIndexDTO
   { questionIndex :: Int
   , score         :: Double
-  }
+  } deriving (Show)
 
 data EmbeddingsDTO = EmbeddingsDTO
   { kValue     :: Int
@@ -155,6 +160,11 @@ instance Arbitrary UserDTO where
               <*> arbitrary -- town
               <*> arbitrary -- profileText
               <*> arbitrary -- base64
+
+instance Arbitrary UserWithScoreDTO where
+  arbitrary = UserWithScoreDTO
+              <$> arbitrary -- userDTO
+              <*> arbitrary -- score
 
 instance Arbitrary CredentialDTO where
   arbitrary = CredentialDTO

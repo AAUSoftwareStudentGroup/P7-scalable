@@ -1,4 +1,4 @@
-module Api.Users exposing (NewUser, EditUserDTO, User, getAge, postUsers, postLogin, postEditUser, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
+module Api.Users exposing (Match, NewUser, EditUserDTO, User, getAge, postUsers, postLogin, postEditUser, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
 
 import Json.Encode as Encode
 import Json.Decode as Decode exposing (Decoder)
@@ -41,6 +41,11 @@ type alias User =
     , town          : String
     , profileText   : String
     , image         : String
+    }
+
+type alias Match =
+    { user  : User
+    , score : Float
     }
 
 emptyUser : User
@@ -331,7 +336,7 @@ postEditUser userInfo body =
             False
         }
 
-getMatches : UserInfo -> Int -> Int -> Http.Request (List (User))
+getMatches : UserInfo -> Int -> Int -> Http.Request (List (Match))
 getMatches userInfo pageNum pageSize =
     Http.request
         { method =
@@ -348,9 +353,15 @@ getMatches userInfo pageNum pageSize =
         , body =
             Http.emptyBody
         , expect =
-            Http.expectJson (Decode.list decodeUser)
+            Http.expectJson (Decode.list decodeMatches)
         , timeout =
             Nothing
         , withCredentials =
             False
         }
+
+decodeMatches : Decoder Match
+decodeMatches =
+    Decode.succeed Match
+        |> Pipeline.required "userDTO" decodeUser
+        |> Pipeline.required "score" Decode.float
