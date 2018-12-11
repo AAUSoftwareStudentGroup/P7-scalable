@@ -58,6 +58,7 @@ library:
   - directory
   - cassava
   - vector
+  - extra
 
 executables:
   dating:

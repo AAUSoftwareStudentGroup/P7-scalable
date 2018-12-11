@@ -18,6 +18,7 @@ import Data.Foldable (traverse_)
 import Data.Generics.Product (getField)
 import qualified Data.Maybe as Maybe
 import qualified Data.List  as List
+import qualified Data.List.Extra as ListE
 import Data.Semigroup ((<>))
 import Data.Text (Text)
 import qualified Data.Text as T (pack, unpack)
@@ -167,6 +168,15 @@ fetchUser mongoConf username' = runAction mongoConf fetchAction
     fetchAction :: Action IO (Maybe UserDTO)
     fetchAction = fmap userEntityToUserDTO <$> getBy (UniqueUsername username')
 
+fetchAllUsers :: MongoInfo -> IO [Username]
+fetchAllUsers mongoConf = runAction mongoConf fetchAction
+  where
+    fetchAction :: Action IO [Username]
+    fetchAction = fmap usernameFromUser <$> selectList [] []
+
+    usernameFromUser :: Entity User -> Username
+    usernameFromUser (Entity _ user) = getField @"userUsername" user
+
 -- | Fetch all users
 fetchUsers :: MongoInfo -> Username -> Int -> Int -> IO [UserDTO]
 fetchUsers mongoConf username' offset askedLimit =
@@ -182,25 +192,31 @@ fetchUsers mongoConf username' offset askedLimit =
       selectList [UserUsername !=. username'] [OffsetBy offset, LimitTo limit]
 
 -- | Fetch user matches
-fetchMatchesForUser :: MongoInfo -> Int -> Int -> Username -> IO [UserDTO]
+fetchMatchesForUser :: MongoInfo -> Int -> Int -> Username -> IO [UserDTO, Double]
 fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetchAction
   where
-    userMatchEntityToUsername :: Username -> Entity UserMatches -> Username
+    userMatchEntityToUsername :: Username -> Entity UserMatches -> (Username, Double)
     userMatchEntityToUsername username'' (Entity _ match') =
       let
         (u1:u2:_) = getField @"userMatchesMatch" match'
+        score' = getField @"userMatchesCorrelation" match'
       in
-        if u1 == username'' then u2 else u1
+        if u1 == username'' then (u2, score') else (u1, score')
 
-    fetchAction :: Action IO [UserDTO]
+    fetchAction :: Action IO [(UserDTO, Double)]
     fetchAction = do
       matches <- selectList [UserMatchesMatch `Persist.Mongo.anyEq` username'] [Desc UserMatchesCorrelation, OffsetBy offset, LimitTo limit]
-      let usernames = fmap (userMatchEntityToUsername username') matches
-      userDtos <- fmap userEntityToUserDTO <$> selectList [UserUsername <-. usernames] []
-      let sortedMatches = List.sortOn (onOtherUsername username') matches
+      let pairs = fmap (userMatchEntityToUsername username') matches
+      let userdtos = map (fetchUser mongoConf . fst) $ pairs
+      let newPair = zip userDtos $ map snd pairs
+      liftIO . fmap Maybe.catMaybes . sequence . newPair
+
+      zipIt :: UserDTO -> Double -> (UserDTO, Double)
+
+      {-let sortedMatches = List.sortOn (onOtherUsername username') matches
       let sortedUserDtos = List.sortOn ownUsername userDtos
       let matchUserDtosPairs = List.zip sortedMatches sortedUserDtos
-      return $ map snd $ reverse (List.sortOn matchScore matchUserDtosPairs)
+      return $ map snd $ reverse (List.sortOn matchScore matchUserDtosPairs)-}
 
     onOtherUsername :: Username -> Entity UserMatches -> Text
     onOtherUsername username'' (Entity _ match'') =
@@ -681,21 +697,14 @@ fetchOtherUsersAndAnswers mongoInfo username = runAction mongoInfo fetchAction
     fetchAction :: Action IO [(Username, [AnswerWithIndexDTO])]
     fetchAction = do
       results <- fmap toUsernameAndAnswersPair <$> selectList [] []
-      return $ List.foldl combineUsernameAndAnswers [] $ List.filter elementsToNotInclude $ List.sortOn byUsername $ List.concat results
+      return . ListE.groupSort . List.filter elementsToNotInclude . List.concat $ results -- [[(Username, AnswerWithIndexDTO)]]
       
     toUsernameAndAnswersPair :: Entity Question -> [(Username, AnswerWithIndexDTO)]
     toUsernameAndAnswersPair (Entity _ q) = fmap (getAnswers (getField @"questionIndex" q)) $ getField @"questionAnswers" q
-    
+
     elementsToNotInclude :: (Username, AnswerWithIndexDTO) -> Bool
     elementsToNotInclude (u, AnswerWithIndexDTO {score=a}) =
       not (u == username || (0::Double) == a)
-      
-    combineUsernameAndAnswers :: [(Username, [AnswerWithIndexDTO])] -> (Username, AnswerWithIndexDTO) -> [(Username, [AnswerWithIndexDTO])]
-    combineUsernameAndAnswers [] (username', answer') = [(username', [answer'])]
-    combineUsernameAndAnswers ((uname, answers):xs) (username', answer') =
-      if uname == username'
-      then [(uname, answers <> [answer'])] <> xs
-      else [(username', [answer'])] <> [(uname, answers)]
 
     getAnswers :: Int -> Answer -> (Username, AnswerWithIndexDTO)
     getAnswers index answer = 
@@ -719,7 +728,8 @@ fetchBestItemEmbedding mongoInfo = fmap embeddingsItemEmb <$> fetchBestEmbedding
 
 -- TODO: Make it take a single pair
 updatePredictedAnswers :: MongoInfo -> [(Username, [AnswerWithIndexDTO])] -> IO ()
-updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf updateAction
+updatePredictedAnswers mongoConf usernamesWithAnswers = 
+  runAction mongoConf updateAction
   where
     updateAction :: Action IO ()
     updateAction = do
@@ -727,10 +737,10 @@ updatePredictedAnswers mongoConf usernamesWithAnswers = runAction mongoConf upda
       _ <- Mongo.Query.updateAll "questions" $ List.concatMap (updateSingleUsername curTime) usernamesWithAnswers
       return ()
 
-    updateSingleUsername :: Clock.UTCTime -> (Username, [AnswerWithIndexDTO]) -> [(Mongo.Query.Selector, Document, [a])]
+    updateSingleUsername :: Clock.UTCTime -> (Username, [AnswerWithIndexDTO]) -> [(Mongo.Query.Selector, Document, [Mongo.Query.UpdateOption])]
     updateSingleUsername curTime' (username, answers) = fmap (updateSingleAnswer username curTime') answers
     
-    updateSingleAnswer :: Username -> Clock.UTCTime -> AnswerWithIndexDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [a])
+    updateSingleAnswer :: Username -> Clock.UTCTime -> AnswerWithIndexDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [Mongo.Query.UpdateOption])
     updateSingleAnswer username' curTime'' AnswerWithIndexDTO {questionIndex=indexToUpdate, score=scoreToUpdate} =
       ( ["index" =: indexToUpdate, "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: True ]]]
       , ["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument (newAnswer username' curTime'' scoreToUpdate) :: Document)]]::Mongo.Query.Modifier

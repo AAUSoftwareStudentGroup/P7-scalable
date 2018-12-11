@@ -115,7 +115,7 @@ data AnswerDTO = AnswerDTO
 data AnswerWithIndexDTO = AnswerWithIndexDTO
   { questionIndex :: Int
   , score         :: Double
-  }
+  } deriving (Show)
 
 data EmbeddingsDTO = EmbeddingsDTO
   { kValue     :: Int
