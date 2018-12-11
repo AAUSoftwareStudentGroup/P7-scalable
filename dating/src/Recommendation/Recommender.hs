@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Recommendation.Recommender(match, predict, train, stochasticTrain, defaultPredictionOptions, defaultTrainingOptions, fromDense, toDense, Matrix) where
+module Recommendation.Recommender (snapExtremeValues, mkEmbeddingMatrix, match, predict, train, stochasticTrain, defaultPredictionOptions, defaultTrainingOptions, fromDense, toDense, Matrix) where
 
 import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
@@ -64,12 +64,12 @@ match correlationMatrix (user, userAnswers) otherUsersAndAnswers = sortedMatches
     toPercentage :: Double -> Double
     toPercentage val 
       | val > maxScore  = 100
-      | val < -maxScore = 0
+      | val < -maxScore = 0 
       | otherwise       = 100 * (sin radian + 1) / 2
       where
         maxScore = 1825
         x        = pi/(maxScore*2)
-        radian   = 0.000861*val
+        radian   = x*val
 
     calcScore :: Vector -> Double
     calcScore otherUser = sumElements correlation
@@ -96,7 +96,7 @@ predict :: Options -> AnswerVector -> EmbeddingMatrix -> IO AnswerVector
 predict options target itemEmb = do
     initialUserEmb   <- mkEmbeddingMatrix answerRows kValue
     (userEmb, _) <- go (initialUserEmb, itemEmb) 0 (initialLearningRate options) Nothing
-    return . toAnswerVector $ mul userEmb itemEmb
+    return . toAnswerVector . snapExtremeValues $ mul userEmb itemEmb
 
     where
         target' = LA.asRow target
@@ -143,7 +143,8 @@ train options kValue target = do
   trainingMatrix <- getTrainingMatrix target
   userEmb <- mkEmbeddingMatrix rows kValue
   itemEmb <- mkEmbeddingMatrix kValue cols
-  go trainingMatrix (userEmb, itemEmb) 0 initialLearningRate' Nothing
+  let trainingHasValueMatrix = toOneOrZero trainingMatrix
+  go trainingMatrix (userEmb, itemEmb) 0 initialLearningRate' Nothing trainingHasValueMatrix
 
   where
     mSize :: Double
@@ -155,18 +156,22 @@ train options kValue target = do
     threshold'             = threshold options
     initialLearningRate'   = initialLearningRate options
     targetHasValueMatrix   = toOneOrZero target
+    
 
-    go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> IO EmbeddingPair
-    go trainingMatrix embeddingPair iterations learningRate prevMSE =
+    go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> Matrix -> IO EmbeddingPair
+    go trainingMatrix embeddingPair iterations learningRate prevMSE trainingHasValueMatrix =
       maybeSaveToDb kValue iterations testMSE embeddingPair *>
-        trace debugMsg (go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE))
+        trace debugMsg (go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE)) trainingHasValueMatrix
 
       where
-        testGuess = mkGuess embeddingPair
-        testError = getError testGuess trainingMatrix
+        guess = mkGuess embeddingPair
+        error = getError guess trainingMatrix
 
-        trainingGuess = toTraining testGuess
-        trainingError = toTraining testError
+        trainingGuess = toTraining guess
+        trainingError = toTraining error
+
+        testGuess = toTarget . snapExtremeValues $ guess
+        testError = toTarget $ getError testGuess target
 
         embeddingPair' = updateEmbeddings trainingMatrix False learningRate trainingGuess embeddingPair
 
@@ -174,7 +179,10 @@ train options kValue target = do
         testMSE = calcMSE testError (fromIntegral . cellCount $ target)
 
         toTraining :: Matrix -> Matrix
-        toTraining = (* targetHasValueMatrix)
+        toTraining = (* trainingHasValueMatrix)
+
+        toTarget :: Matrix -> Matrix
+        toTarget = (* targetHasValueMatrix)
 
         debugMsg :: String
         debugMsg = arrow ++ show iterations ++ ": MSE: " ++ show trainingMSE ++ " LR: " ++ show (learningRate' ! 0 ! 0)
@@ -247,6 +255,15 @@ stochasticTrain options kValue target = do
 {------------------------------------------------------------------------------}
 {-                                   HELPERS                                  -}
 {------------------------------------------------------------------------------}
+
+snapExtremeValues :: Matrix -> Matrix
+snapExtremeValues = cmap snap
+  where
+    snap :: Double -> Double
+    snap value 
+      | value > 5 = 5
+      | value < 1 = 1
+      | otherwise = value
 
 updateEmbeddings :: Matrix -> Bool -> LearningRate -> Matrix -> EmbeddingPair -> EmbeddingPair
 updateEmbeddings target isPredicting learningRate guess (userEmb, itemEmb) = (userEmb', itemEmb')
