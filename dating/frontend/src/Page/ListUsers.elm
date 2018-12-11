@@ -16,7 +16,7 @@ import List exposing (map)
 import Url
 import Date exposing (Date)
 
-import Api.Users exposing (User)
+import Api.Users exposing (User, Match)
 import Session exposing (Session, PageType(..), Details)
 import Routing exposing (Route(..))
 import UI.Elements as El
@@ -35,7 +35,7 @@ type alias Model =
     , loaded    : Bool
     , moreUsers : Bool
     , pageNum   : Int
-    , users     : List User
+    , users     : List Match
     }
 
 
@@ -60,7 +60,7 @@ init session =
 
 
 type Msg
-    = UsersFetched (Result Http.Error (List User))
+    = UsersFetched (Result Http.Error (List Match))
     | LoadMore LoadMoreData
 
 
@@ -70,7 +70,10 @@ update msg model =
         UsersFetched result ->
             case result of
                 Ok newUsers ->
-                    ( { model | users = model.users ++ newUsers, loaded = True, moreUsers = (List.length newUsers == usersPerPage) }, Cmd.none )
+                    let
+                        userList = List.reverse <| List.sortBy .score <| (model.users ++ newUsers)
+                    in
+                        ( { model | users = userList, loaded = True, moreUsers = (List.length newUsers == usersPerPage) }, Cmd.none )
 
                 Err error ->
                     case error of
@@ -109,7 +112,7 @@ view : Model -> Session.Details Msg
 view model =
     let
         myUsername = Maybe.withDefault "" (Session.getUsername model.session)
-        allOtherUsers = List.filter (\user -> myUsername /= user.username) model.users
+        allOtherUsers = List.filter (\user -> myUsername /= user.user.username) model.users
         bottomElement =
             if model.loaded then
                 if model.moreUsers then
@@ -147,15 +150,15 @@ view model =
                 ]
         }
 
-showUser : Session -> User -> Html Msg
-showUser session user =
+showUser : Session -> Match -> Html Msg
+showUser session match =
     let
-        age = Api.Users.getAge user <| Session.getNow session
+        age = Api.Users.getAge match.user <| Session.getNow session
     in
-        El.userCard user age
+        El.userCard match age
 
 
-sendGetUsers : (Result Http.Error (List User) -> msg) -> Int -> Session -> Cmd msg
+sendGetUsers : (Result Http.Error (List Match) -> msg) -> Int -> Session -> Cmd msg
 sendGetUsers responseMsg pageNum session =
     case session of
         Session.LoggedIn _ _ _ userInfo ->

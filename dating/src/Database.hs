@@ -130,7 +130,7 @@ createUser mongoConf createUserDTO = runAction mongoConf action
         Nothing ->
           case urlFromBase64EncodedImage
                  (getField @"imageData" createUserDTO)
-                 salt of
+                 image of
             Left a -> return $ Left $ err415 {errBody = a}
             Right img -> do
               liftIO img
