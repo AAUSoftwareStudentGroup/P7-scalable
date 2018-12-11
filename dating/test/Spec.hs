@@ -1,26 +1,23 @@
 module Main where
 
-import           Data.Maybe      (isJust)
-import qualified Database        as DB
-import           FrontendTypes
+import           Data.Either                (isRight)
 import           Test.Hspec
 import           Test.QuickCheck
 
+import qualified Database                   as DB
+import           FrontendTypes
+import           Recommendation.Recommender (fromDense, toDense, Matrix)
+
 main :: IO ()
-main = hspec $ do
-  describe "users" $ do
-    it "creates a user" $ do
-      mongoInfo <- DB.fetchMongoInfo
-      createUserDTO <- generate arbitrary :: IO CreateUserDTO
-      maybeLoggedInDTO <- DB.createUser mongoInfo createUserDTO
-      isJust maybeLoggedInDTO `shouldBe` True
+main = quickCheck prop_fromDenseAndBack
 
 
+prop_fromDenseAndBack :: Matrix -> Bool
+prop_fromDenseAndBack m = m == (toDense . fromDense) m
 
-
-{-
-insert user1
-insert user2
-insert message, which creates convo
-fetch convo
--}
+testUserCreationAndLogin = describe "users" $
+  it "creates a user" $ do
+    mongoInfo <- DB.fetchMongoInfo
+    createUserDTO <- generate arbitrary :: IO CreateUserDTO
+    eitherLoggedInDTO <- DB.createUser mongoInfo createUserDTO
+    isRight eitherLoggedInDTO `shouldBe` True
