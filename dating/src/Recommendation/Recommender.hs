@@ -56,9 +56,20 @@ match correlationMatrix (user, userAnswers) otherUsersAndAnswers = sortedMatches
     sortedMatches = sortBySndDesc $ zip usernames scores
 
     usernames = map fst otherUsersAndAnswers
-    scores = map (calcScore . snd) otherUsersAndAnswers
+    scores = map (toPercentage . calcScore . snd) otherUsersAndAnswers
 
     userAnswerMatrix = toNByNMatrix userAnswers
+
+    -- 1825 is the magic maximum possible score
+    toPercentage :: Double -> Double
+    toPercentage val 
+      | val > maxScore  = 100
+      | val < -maxScore = 0
+      | otherwise       = 100 * (sin radian + 1) / 2
+      where
+        maxScore = 1825
+        x        = pi/(maxScore*2)
+        radian   = 0.000861*val
 
     calcScore :: Vector -> Double
     calcScore otherUser = sumElements correlation
