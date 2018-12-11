@@ -170,19 +170,19 @@ train options kValue target = do
         trainingGuess = toTraining guess
         trainingError = toTraining error
 
-        testGuess = toTarget . snapExtremeValues $ guess
-        testError = toTarget $ getError testGuess target
+        testGuess = toActual . snapExtremeValues $ guess
+        testError = toActual $ getError testGuess target
 
         embeddingPair' = updateEmbeddings trainingMatrix False learningRate trainingGuess embeddingPair
 
-        trainingMSE = calcMSE trainingError (sumElements target)
-        testMSE = calcMSE testError (fromIntegral . cellCount $ target)
+        trainingMSE = calcMSE trainingError (sumElements trainingHasValueMatrix)
+        testMSE = calcMSE testError (sumElements targetHasValueMatrix)
 
         toTraining :: Matrix -> Matrix
         toTraining = (* trainingHasValueMatrix)
 
-        toTarget :: Matrix -> Matrix
-        toTarget = (* targetHasValueMatrix)
+        toActual :: Matrix -> Matrix
+        toActual = (* targetHasValueMatrix)
 
         debugMsg :: String
         debugMsg = arrow ++ show iterations ++ ": MSE: " ++ show trainingMSE ++ " LR: " ++ show (learningRate' ! 0 ! 0)
