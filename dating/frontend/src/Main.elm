@@ -28,6 +28,7 @@ import Page.Logout as Logout
 import Url
 import Session exposing (Session)
 import Api.Messages exposing (ConversationPreview)
+import Api.Authentication exposing (UserInfo)
 import Routing as Routing
 import UI.Elements as El
 
@@ -36,7 +37,7 @@ import UI.Elements as El
 -- MAIN
 
 
-main : Program (Maybe Encode.Value) Model Msg
+main : Program (Maybe UserInfo) Model Msg
 main =
     Browser.application
         { init = init
@@ -46,7 +47,6 @@ main =
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
         }
-
 
 
 -- MODEL
@@ -71,30 +71,14 @@ type Page
     | Survey Survey.Model
 
 
-init : Maybe Encode.Value -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init maybeValue url key =
-    --if String.startsWith "path=" (Maybe.withDefault "" url.query) then
+init : Maybe UserInfo -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeUserInfo url key =
         (
             { key = key
-            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
+            , page = NotFound <| NotFound.createModel <| Session.createSessionFromLocalStorageValue maybeUserInfo key
             },
-            Routing.replaceUrl key (String.dropLeft 5 (Maybe.withDefault "" url.query))
+            Routing.replaceUrl key <| String.dropLeft 5 <| Maybe.withDefault "" url.query
         )
-    --else
-    --    let
-    --        (model, cmd) = stepUrl url
-    --            { key = key
-    --            , page = NotFound (NotFound.createModel (Session.createSessionFromLocalStorageValue maybeValue key))
-    --            , numMessages = 0
-    --            }
-    --        newCmd = Cmd.batch
-    --            [Task.perform ReceiveDate (Date.today)
-    --            , cmd
-    --            ]
-    --    in
-    --        (model, Debug.log "" newCmd)
-
-
 
 -- VIEW
 
