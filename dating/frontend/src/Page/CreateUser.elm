@@ -83,7 +83,7 @@ update msg model =
         FormFieldChanged field value ->
             case field of
                 Username ->
-                    if value == "" then
+                    if value == "" || usernameIllegal value then
                         ( updateErrors <| setField model field value
                         , Cmd.none
                         )
@@ -281,6 +281,7 @@ modelValidator =
         , Validate.ifInvalidEmail .email (\_ -> ( Email, "Please enter a valid email" ))
 
         , Validate.ifBlank .username ( Username, "Please enter a username" )
+        , Validate.ifTrue (\model -> usernameIllegal model.username) ( Username, "Username cannot contain #, / ? or &" )
         , Validate.ifFalse (\model -> model.usernameOk) ( Username, "Username already in use" )
 
         , Validate.ifBlank .password1 ( Password1, "Please enter a password" )
@@ -296,6 +297,15 @@ modelValidator =
         , Validate.ifBlank .bio ( Bio, "Please write a short description" )
         ]
 
+usernameIllegal : String -> Bool
+usernameIllegal username =
+    let
+        hashtag = String.contains "#" username
+        slash = String.contains "/" username
+        questionmark = String.contains "?" username
+        ampersand = String.contains "&" username
+    in
+        hashtag || slash || questionmark || ampersand
 
 doPasswordsMatch : Model -> Bool
 doPasswordsMatch model =
