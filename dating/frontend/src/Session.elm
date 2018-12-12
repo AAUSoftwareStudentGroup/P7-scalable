@@ -10,7 +10,7 @@ import Date exposing (Date)
 
 import Api.Users
 import Api.Authentication exposing (Token, UserInfo)
-import Ports.LocalStoragePort as LocalStoragePort
+import Ports.UserInfoStoragePort as UserInfoPort
 
 -- TYPES
 type Session
@@ -123,15 +123,15 @@ setNow session now =
 
 login : UserInfo -> Cmd msg
 login userInfo =
-    LocalStoragePort.storeLocally (Just userInfo)
+    UserInfoPort.storeUserInfo (Just userInfo)
 
 logout : Cmd msg
 logout =
-    LocalStoragePort.storeLocally Nothing
+    UserInfoPort.storeUserInfo Nothing
 
 onChange : (Session -> msg) -> Nav.Key -> Sub msg
 onChange toMsg key =
-    LocalStoragePort.onStoreChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
+    UserInfoPort.onUserInfoChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
 
 
 -- HELPERS

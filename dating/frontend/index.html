@@ -9,7 +9,7 @@
         <link href="/style/style.css" rel="stylesheet">
 
         <!-- <script src="main.dev.js"></script> -->
-        <script src="main.dev.js"></script>
+        <script src="main.prod.js"></script>
     </head>
     <body>
         <script>
@@ -17,7 +17,7 @@
             const storedUserInfo = JSON.parse(localStorage.getItem(userInfoStorageKey));
             const app = Elm.Main.init({flags: storedUserInfo});
 
-            app.ports.storeLocally.subscribe(function(userInfoObj) {
+            app.ports.storeUserInfo.subscribe(function(userInfoObj) {
                 if (userInfoObj === null) {
                     localStorage.removeItem(userInfoStorageKey);
                 } else {
@@ -30,7 +30,7 @@
                     const storedUserInfoString = localStorage.getItem(userInfoStorageKey);
                     const storedUserInfoObj = JSON.parse(storedUserInfoString);
 
-                    app.ports.onStoreChange.send(storedUserInfoObj);
+                    app.ports.onUserInfoChange.send(storedUserInfoObj);
                 }, 0);
             });
 
@@ -46,7 +46,7 @@
 
                 const newValueString = event.newValue;
                 const newValueObj = JSON.parse(newValueString);
-                app.ports.onStoreChange.send(newValueObj);
+                app.ports.onUserInfoChange.send(newValueObj);
             });
 
 
