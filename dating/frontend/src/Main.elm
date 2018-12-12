@@ -73,102 +73,9 @@ type Page
 
 init : Maybe UserInfo -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeUserInfo url key =
-        (
-            { key = key
-            , page = NotFound <| NotFound.createModel <| Session.createSessionFromLocalStorageValue maybeUserInfo key
-            },
-            Routing.replaceUrl key <| String.dropLeft 5 <| Maybe.withDefault "" url.query
-        )
-
--- VIEW
-
-
-view : Model -> Browser.Document Msg
-view model =
-    case model.page of
-        NotFound notFoundModel ->
-            viewContent NotFoundMsg (NotFound.view notFoundModel)
-
-        CreateUser createUserModel ->
-            viewContent CreateUserMsg (CreateUser.view createUserModel)
-
-        Login loginModel ->
-            viewContent LoginMsg (Login.view loginModel)
-
-        Logout logoutModel ->
-            viewContent LogoutMsg (Logout.view logoutModel)
-
-        Home homeModel ->
-            viewContent HomeMsg (Home.view homeModel)
-
-        Messages messagesModel ->
-            viewContent MessagesMsg (Messages.view messagesModel)
-
-        EditUser editUserModel ->
-            viewContent EditUserMsg (EditUser.view editUserModel)
-
-        ListUsers listUsersModel ->
-            viewContent ListUsersMsg (ListUsers.view listUsersModel)
-
-        Profile profileModel ->
-            viewContent ProfileMsg (Profile.view profileModel)
-
-        Survey surveyModel ->
-            viewContent SurveyMsg (Survey.view surveyModel)
-
-
-viewContent : (a -> msg) -> Session.Details a -> Browser.Document msg
-viewContent toMsg details =
-    { title = details.title
-    , body = El.site details toMsg
-    }
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch [
-        case model.page of
-            NotFound notFoundModel ->
-                Sub.map NotFoundMsg (NotFound.subscriptions notFoundModel)
-
-            CreateUser createUserModel ->
-                Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
-
-            Login loginModel ->
-                Sub.map LoginMsg (Login.subscriptions loginModel)
-
-            Logout logoutModel ->
-                Sub.map LogoutMsg (Logout.subscriptions logoutModel)
-
-            Home homeModel ->
-                Sub.map HomeMsg (Home.subscriptions homeModel)
-
-            Messages messagesModel ->
-                Sub.map MessagesMsg (Messages.subscriptions messagesModel)
-
-            EditUser editUserModel ->
-                Sub.map EditUserMsg (EditUser.subscriptions editUserModel)
-
-            ListUsers listUsersModel ->
-                Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
-
-            Profile profileModel ->
-                Sub.map ProfileMsg (Profile.subscriptions profileModel)
-
-            Survey surveyModel ->
-                Sub.map SurveyMsg (Survey.subscriptions surveyModel)
-
-        , Session.onChange SessionChanged (Session.getNavKey (getSession model))
-
-        , Time.every 1000 GetTimeNow
-        , Time.every 1000 RemoveOldNotifications
-    ]
-
-
-
+    ( Model key (NotFound <| NotFound.createModel <| Session.createSessionFromLocalStorageValue maybeUserInfo key)
+    , Routing.replaceUrl key <| String.dropLeft 5 <| Maybe.withDefault "" url.query
+    )
 
 
 -- UPDATE
@@ -357,6 +264,95 @@ replacePage page session =
         Survey m ->
              Survey { m | session = session }
 
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch [
+        case model.page of
+            NotFound notFoundModel ->
+                Sub.map NotFoundMsg (NotFound.subscriptions notFoundModel)
+
+            CreateUser createUserModel ->
+                Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
+
+            Login loginModel ->
+                Sub.map LoginMsg (Login.subscriptions loginModel)
+
+            Logout logoutModel ->
+                Sub.map LogoutMsg (Logout.subscriptions logoutModel)
+
+            Home homeModel ->
+                Sub.map HomeMsg (Home.subscriptions homeModel)
+
+            Messages messagesModel ->
+                Sub.map MessagesMsg (Messages.subscriptions messagesModel)
+
+            EditUser editUserModel ->
+                Sub.map EditUserMsg (EditUser.subscriptions editUserModel)
+
+            ListUsers listUsersModel ->
+                Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
+
+            Profile profileModel ->
+                Sub.map ProfileMsg (Profile.subscriptions profileModel)
+
+            Survey surveyModel ->
+                Sub.map SurveyMsg (Survey.subscriptions surveyModel)
+
+        , Session.onChange SessionChanged (Session.getNavKey (getSession model))
+
+        , Time.every 1000 GetTimeNow
+        , Time.every 1000 RemoveOldNotifications
+    ]
+
+
+
+-- VIEW
+
+
+view : Model -> Browser.Document Msg
+view model =
+    case model.page of
+        NotFound notFoundModel ->
+            viewContent NotFoundMsg (NotFound.view notFoundModel)
+
+        CreateUser createUserModel ->
+            viewContent CreateUserMsg (CreateUser.view createUserModel)
+
+        Login loginModel ->
+            viewContent LoginMsg (Login.view loginModel)
+
+        Logout logoutModel ->
+            viewContent LogoutMsg (Logout.view logoutModel)
+
+        Home homeModel ->
+            viewContent HomeMsg (Home.view homeModel)
+
+        Messages messagesModel ->
+            viewContent MessagesMsg (Messages.view messagesModel)
+
+        EditUser editUserModel ->
+            viewContent EditUserMsg (EditUser.view editUserModel)
+
+        ListUsers listUsersModel ->
+            viewContent ListUsersMsg (ListUsers.view listUsersModel)
+
+        Profile profileModel ->
+            viewContent ProfileMsg (Profile.view profileModel)
+
+        Survey surveyModel ->
+            viewContent SurveyMsg (Survey.view surveyModel)
+
+
+viewContent : (a -> msg) -> Session.Details a -> Browser.Document msg
+viewContent toMsg details =
+    { title = details.title
+    , body = El.site details toMsg
+    }
 
 
 stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )
