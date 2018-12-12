@@ -26,7 +26,6 @@ type alias Model =
     , attemptedSubmission: Bool
     , username  : String
     , password  : String
-    , response  : Maybe String
     }
 
 type alias Error =
@@ -37,17 +36,19 @@ type FormField
     | Password
 
 
+emptyModel : Session -> Model
+emptyModel session =
+    { session = session
+    , title = "Login"
+    , errors = []
+    , attemptedSubmission = False
+    , username = ""
+    , password = ""
+    }
+
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( updateErrors
-        { session = session
-        , title = "Login"
-        , errors = []
-        , attemptedSubmission = False
-        , username = ""
-        , password = ""
-        , response = Nothing
-        }
+    ( emptyModel session
     , Cmd.none
     )
 
@@ -64,9 +65,18 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FormFieldChanged field value ->
-            ( updateErrors <| setField model field value
-            , Cmd.none
-            )
+            let
+                newModel = setField model field value
+            in
+            case Validate.validate modelValidator newModel of
+                Ok validForm ->
+                    ( { newModel | errors = [] }
+                    , Cmd.none
+                    )
+                Err errors ->
+                    ( { newModel | errors = errors }
+                    , Cmd.none
+                    )
 
         Submitted ->
             case Validate.validate modelValidator model of
@@ -82,24 +92,14 @@ update msg model =
         HandleUserLogin result ->
             case result of
                 Ok userInfo ->
-                    ( model, Session.login userInfo )
+                    ( model
+                    , Session.login userInfo
+                    )
 
                 Err errResponse ->
-                    case errResponse of
-                        Http.BadUrl url ->
-                            ( { model | session = Session.addNotification model.session ("Bad url: " ++ url) }, Cmd.none )
-
-                        Http.BadPayload _ _ ->
-                            ( { model | session = Session.addNotification model.session "Invalid data sent to server" }, Cmd.none )
-
-                        Http.Timeout ->
-                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
-
-                        Http.NetworkError ->
-                            ( { model | session = Session.addNotification model.session "Couldn't reach server" }, Cmd.none )
-
-                        Http.BadStatus statusResponse ->
-                            ( { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }, Cmd.none )
+                    ( handleErrors model errResponse
+                    , Cmd.none
+                    )
 
 
 setField : Model -> FormField -> String -> Model
@@ -109,15 +109,6 @@ setField model field value =
             { model | username = value }
         Password ->
             { model | password = value }
-
-
-updateErrors : Model -> Model
-updateErrors model =
-    case Validate.validate modelValidator model of
-        Ok validForm ->
-            { model | errors = [] }
-        Err errors ->
-            { model | errors = errors }
 
 
 credsFromValidForm : Valid Model -> Credentials
@@ -132,6 +123,24 @@ sendLogin : (Result Http.Error UserInfo -> msg) -> Credentials -> Cmd msg
 sendLogin responseMsg creds =
     Http.send responseMsg (Api.Users.postLogin creds)
 
+
+handleErrors : Model -> Http.Error -> Model
+handleErrors model error =
+    case error of
+        Http.BadUrl url ->
+            { model | session = Session.addNotification model.session ("Bad url: " ++ url) }
+
+        Http.BadPayload _ _ ->
+            { model | session = Session.addNotification model.session "Invalid data sent to server" }
+
+        Http.Timeout ->
+            { model | session = Session.addNotification model.session "Couldn't reach server" }
+
+        Http.NetworkError ->
+            { model | session = Session.addNotification model.session "Couldn't reach server" }
+
+        Http.BadStatus statusResponse ->
+            { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }
 
 -- SUBSCRIPTIONS
 
