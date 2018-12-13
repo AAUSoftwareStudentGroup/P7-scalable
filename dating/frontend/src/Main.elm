@@ -36,7 +36,6 @@ import UI.Elements as El
 
 -- MAIN
 
-
 main : Program (Maybe UserInfo) Model Msg
 main =
     Browser.application
@@ -73,7 +72,7 @@ type Page
 
 init : Maybe UserInfo -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeUserInfo url key =
-    ( Model key (NotFound <| NotFound.createModel <| Session.createSessionFromLocalStorageValue maybeUserInfo key)
+    ( Model key (NotFound <| NotFound.init <| Session.createSessionFromLocalStorageValue maybeUserInfo key)
     , Routing.replaceUrl key <| String.dropLeft 5 <| Maybe.withDefault "" url.query
     )
 
@@ -85,9 +84,7 @@ type Msg
   = NoOp
   | LinkClicked Browser.UrlRequest
   | UrlChanged Url.Url
-  | NotFoundMsg NotFound.Msg
   | CreateUserMsg CreateUser.Msg
-  | HomeMsg Home.Msg
   | ListUsersMsg ListUsers.Msg
   | LoginMsg Login.Msg
   | LogoutMsg Logout.Msg
@@ -122,13 +119,6 @@ update message model =
         UrlChanged url ->
             stepUrl url model
 
-        NotFoundMsg msg ->
-            case model.page of
-                NotFound notFoundModel ->
-                    stepNotFound model (NotFound.update msg notFoundModel)
-                _ ->
-                    ( model, Cmd.none )
-
         CreateUserMsg msg ->
             case model.page of
                 CreateUser createUserModel ->
@@ -149,12 +139,6 @@ update message model =
                     stepLogout model (Logout.update msg logoutModel)
                 _ ->
                     ( model, Cmd.none )
-
-        HomeMsg msg ->
-            case model.page of
-                Home homeModel ->
-                    stepHome model (Home.update msg homeModel)
-                _ -> ( model, Cmd.none )
 
         ListUsersMsg msg ->
             case model.page of
@@ -303,7 +287,7 @@ view : Model -> Browser.Document Msg
 view model =
     case model.page of
         NotFound notFoundModel ->
-            viewContent NotFoundMsg (NotFound.view notFoundModel)
+            viewContent never (NotFound.view notFoundModel)
 
         CreateUser createUserModel ->
             viewContent CreateUserMsg (CreateUser.view createUserModel)
@@ -315,7 +299,7 @@ view model =
             viewContent LogoutMsg (Logout.view logoutModel)
 
         Home homeModel ->
-            viewContent HomeMsg (Home.view homeModel)
+            viewContent never (Home.view homeModel)
 
         Messages messagesModel ->
             viewContent MessagesMsg (Messages.view messagesModel)
@@ -340,10 +324,10 @@ viewContent toMsg details =
     }
 
 
-stepNotFound : Model -> ( NotFound.Model, Cmd NotFound.Msg ) -> ( Model, Cmd Msg )
-stepNotFound model ( notFoundModel, cmds ) =
+stepNotFound : Model -> NotFound.Model -> ( Model, Cmd Msg )
+stepNotFound model notFoundModel =
     ( { model | page = NotFound notFoundModel }
-    , Cmd.map NotFoundMsg cmds
+    , Cmd.none
     )
 
 
@@ -365,10 +349,10 @@ stepLogout model ( logoutModel, cmds ) =
     , Cmd.map LogoutMsg cmds
     )
 
-stepHome : Model -> ( Home.Model, Cmd Home.Msg ) -> ( Model, Cmd Msg )
-stepHome model (homeModel, cmds) =
+stepHome : Model -> Home.Model -> ( Model, Cmd Msg )
+stepHome model homeModel=
     ( { model | page = Home homeModel}
-    , Cmd.map HomeMsg cmds
+    , Cmd.none
     )
 
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
@@ -493,7 +477,7 @@ stepUrl url model =
                 )
 
             Nothing ->
-                ( { model | page = NotFound (NotFound.createModel session) }
+                ( { model | page = NotFound (NotFound.init session) }
                 , Cmd.none
                 )
 

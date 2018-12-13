@@ -1,4 +1,4 @@
-module Page.NotFound exposing (Content(..), Messages, Model, createModel, Msg(..), init, update, view)
+module Page.NotFound exposing (Content(..), Messages, Model, init, view)
 
 import Html exposing (Html, div)
 import Routing exposing (..)
@@ -24,36 +24,15 @@ type alias Messages =
     List String
 
 
-init : Session -> ( Model, Cmd Msg )
+init : Session -> Model
 init session =
-    ( Model session "Page Not Found Title" (Content <| "Not found..")
-    , Cmd.none
-    )
-
-createModel : Session -> Model
-createModel session =
     Model session "Page Not Found Title" (Content <| "Not found..")
-
-
--- UPDATE
-
-
-type Msg
-    = NoOp
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
 
 
 -- VIEW
 
 
-view : Model -> Session.Details Msg
+view : Model -> Session.Details Never
 view model =
     { title = model.title
     , session = model.session
