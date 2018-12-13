@@ -35,7 +35,7 @@ site details toMsg =
         , div [ class "main-wrapper" ]
             [ Lazy.lazy header session
             , body
-            , footer
+            , footer session
             ]
         ]
 
@@ -75,8 +75,8 @@ headerLogo =
         ]
         [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
             [ Html.i [ class "material-icons" ]
-                [ Html.text "favorite" ]
-            , Html.text "Dating"
+                [ Html.text "people" ]
+            , Html.text "Platonic Relations"
             ]
         ]
 
@@ -115,8 +115,12 @@ headerNavLink url caption =
     Html.li []
         [ link url caption ]
 
-footer : Html msg
-footer =
+footer : Session -> Html msg
+footer session =
+    let
+        dateNow = Date.fromPosix Time.utc <| Session.getNow session
+        year = Date.year dateNow
+    in
     Html.footer [ class "grid" ]
         [ div
             [ classList
@@ -126,7 +130,7 @@ footer =
                     ]
             ]
             [ div [ class "l-12" ]
-                [ Html.text "A Dating Service that Rocks! © 2018" ]
+                [ Html.text <| "A people matching service that is also functional! © " ++ String.fromInt year ]
             ]
         ]
 

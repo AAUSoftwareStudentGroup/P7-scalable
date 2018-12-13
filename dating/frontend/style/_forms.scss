@@ -88,10 +88,6 @@
         }
     }
 
-    &.empty .label:after {
-        content: "";
-    }
-
     &.valid .label:after {
         content: "done";
     }
@@ -100,6 +96,9 @@
         content: "more_horiz";
     }
 
+    &.empty .label:after {
+        content: "";
+    }
 
     .border {
         top: calc(2rem - 2px);
