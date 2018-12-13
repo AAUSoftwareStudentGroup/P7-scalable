@@ -1,4 +1,4 @@
-module Page.Home exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.Home exposing (Model, Msg(..), init, update, view)
 
 import Browser.Navigation as Nav
 import Browser.Dom as Dom exposing (Viewport)
@@ -63,14 +63,6 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Home -> (model, Cmd.none)
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
-
 
 -- VIEW
 

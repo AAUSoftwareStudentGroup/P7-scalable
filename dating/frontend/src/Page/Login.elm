@@ -1,4 +1,4 @@
-module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.Login exposing (Model, Msg(..), init, update, view)
 
 import Browser
 import Html exposing (Html, div)
@@ -141,12 +141,6 @@ handleErrors model error =
 
         Http.BadStatus statusResponse ->
             { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }
-
--- SUBSCRIPTIONS
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
 
 
 -- VIEW

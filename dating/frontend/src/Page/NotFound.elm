@@ -1,4 +1,4 @@
-module Page.NotFound exposing (Content(..), Messages, Model, createModel, Msg(..), init, subscriptions, update, view)
+module Page.NotFound exposing (Content(..), Messages, Model, createModel, Msg(..), init, update, view)
 
 import Html exposing (Html, div)
 import Routing exposing (..)
@@ -47,16 +47,6 @@ update msg model =
     case msg of
         NoOp ->
             ( model, Cmd.none )
-
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
 
 
 

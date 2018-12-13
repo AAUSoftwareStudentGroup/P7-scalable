@@ -17,7 +17,7 @@ import Task exposing (Task)
 import Page.CreateUser as CreateUser
 import Page.Home as Home
 import Page.ListUsers as ListUsers
-import Page.Login as Login exposing (subscriptions)
+import Page.Login as Login
 import Page.EditUser as EditUser
 import Page.Messages as Messages
 import Page.NotFound as NotFound
@@ -273,20 +273,9 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch [
         case model.page of
-            NotFound notFoundModel ->
-                Sub.map NotFoundMsg (NotFound.subscriptions notFoundModel)
 
             CreateUser createUserModel ->
                 Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
-
-            Login loginModel ->
-                Sub.map LoginMsg (Login.subscriptions loginModel)
-
-            Logout logoutModel ->
-                Sub.map LogoutMsg (Logout.subscriptions logoutModel)
-
-            Home homeModel ->
-                Sub.map HomeMsg (Home.subscriptions homeModel)
 
             Messages messagesModel ->
                 Sub.map MessagesMsg (Messages.subscriptions messagesModel)
@@ -297,11 +286,7 @@ subscriptions model =
             ListUsers listUsersModel ->
                 Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
 
-            Profile profileModel ->
-                Sub.map ProfileMsg (Profile.subscriptions profileModel)
-
-            Survey surveyModel ->
-                Sub.map SurveyMsg (Survey.subscriptions surveyModel)
+            _ -> Sub.none -- This case handles all the pages without subscriptions
 
         , Session.onChange SessionChanged (Session.getNavKey (getSession model))
 
