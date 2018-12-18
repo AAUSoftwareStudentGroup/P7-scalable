@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Recommendation.Recommender (snapExtremeValues, mkEmbeddingMatrix, match, predict, train, stochasticTrain, defaultPredictionOptions, defaultTrainingOptions, fromDense, toDense, Matrix) where
+module Recommendation.Recommender (getPredictionError, snapExtremeValues, mkEmbeddingMatrix, match, predict, train, stochasticTrain, rndOneOrZero, defaultPredictionOptions, defaultTrainingOptions, fromDense, toDense, Matrix, AnswerVector, Vector) where
 
 import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
@@ -92,15 +92,30 @@ match correlationMatrix (user, userAnswers) otherUsersAndAnswers = sortedMatches
 {------------------------------------------------------------------------------}
 
 
+getPredictionError :: Options -> AnswerVector -> EmbeddingMatrix -> IO Double
+getPredictionError options target itemEmb = do
+  testMatrix <- getTrainingMatrix targetMatrix
+  let testMatrixHasValue = toOneOrZero testMatrix
+  let predictErrorHasValue = targetHasValue - testMatrixHasValue
+  let testVector = toVector testMatrix
+  prediction <- predict options testVector itemEmb
+  let error = (LA.asRow prediction - LA.asRow target) * predictErrorHasValue
+  let knownAnwers = sumElements predictErrorHasValue
+  
+  return $ calcMSE error knownAnwers
+  where
+    targetMatrix = LA.asRow target
+    targetHasValue = toOneOrZero targetMatrix
+
+
 predict :: Options -> AnswerVector -> EmbeddingMatrix -> IO AnswerVector
 predict options target itemEmb = do
     initialUserEmb   <- mkEmbeddingMatrix answerRows kValue
     (userEmb, _) <- go (initialUserEmb, itemEmb) 0 (initialLearningRate options) Nothing
-    return . toAnswerVector . snapExtremeValues $ mul userEmb itemEmb
+    return . toVector . snapExtremeValues $ mul userEmb itemEmb
 
     where
         target' = LA.asRow target
-        toAnswerVector = head . LA.toRows
 
         iterationRange'       = iterationRange options
         threshold'            = threshold options
@@ -113,6 +128,7 @@ predict options target itemEmb = do
 
         go :: EmbeddingPair -> Int -> LearningRate -> Maybe Double -> IO EmbeddingPair
         go embeddingPair iterations learningRate prevMSE =
+          print mse *>
           if shouldContinue iterationRange' iterations threshold' mse prevMSE
           then go embeddingPair' (iterations + 1) learningRate' (Just mse)
           else return embeddingPair'
@@ -138,13 +154,15 @@ predict options target itemEmb = do
 {-                                   TRAINING                                 -}
 {------------------------------------------------------------------------------}
 
-train :: Options -> Int -> Matrix -> IO EmbeddingPair
+train :: Options -> Int -> Matrix -> IO ()
 train options kValue target = do
   trainingMatrix <- getTrainingMatrix target
   userEmb <- mkEmbeddingMatrix rows kValue
   itemEmb <- mkEmbeddingMatrix kValue cols
   let trainingHasValueMatrix = toOneOrZero trainingMatrix
-  go trainingMatrix (userEmb, itemEmb) 0 initialLearningRate' Nothing trainingHasValueMatrix
+  let testValuesMatrix       = targetHasValueMatrix - trainingHasValueMatrix
+  print $ sumElements testValuesMatrix
+  go trainingMatrix (userEmb, itemEmb) 0 initialLearningRate' Nothing trainingHasValueMatrix testValuesMatrix
 
   where
     mSize :: Double
@@ -158,11 +176,15 @@ train options kValue target = do
     targetHasValueMatrix   = toOneOrZero target
     
 
-    go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> Matrix -> IO EmbeddingPair
-    go trainingMatrix embeddingPair iterations learningRate prevMSE trainingHasValueMatrix =
-      maybeSaveToDb kValue iterations testMSE embeddingPair *>
-        trace debugMsg (go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE)) trainingHasValueMatrix
-
+    go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> Matrix -> Matrix -> IO ()
+    go trainingMatrix embeddingPair iterations learningRate prevMSE trainingHasValueMatrix testValuesMatrix =
+      if iterations == 200 * kValue
+        then do
+          saveToDb kValue iterations testMSE embeddingPair
+          putStrLn $ "Training_MSE: " ++ show trainingMSE
+          putStrLn $ "Test_MSE: " ++ show testMSE
+        else go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE) trainingHasValueMatrix testValuesMatrix
+      
       where
         guess = mkGuess embeddingPair
         error = getError guess trainingMatrix
@@ -170,22 +192,22 @@ train options kValue target = do
         trainingGuess = toTraining guess
         trainingError = toTraining error
 
-        testGuess = toActual . snapExtremeValues $ guess
-        testError = toActual $ getError testGuess target
+        testGuess = toTest . snapExtremeValues $ guess
+        testError = toTest $ getError testGuess target
 
         embeddingPair' = updateEmbeddings trainingMatrix False learningRate trainingGuess embeddingPair
 
         trainingMSE = calcMSE trainingError (sumElements trainingHasValueMatrix)
-        testMSE = calcMSE testError (sumElements targetHasValueMatrix)
+        testMSE = calcMSE testError (sumElements testValuesMatrix)
 
         toTraining :: Matrix -> Matrix
         toTraining = (* trainingHasValueMatrix)
 
-        toActual :: Matrix -> Matrix
-        toActual = (* targetHasValueMatrix)
+        toTest :: Matrix -> Matrix
+        toTest = (* testValuesMatrix)
 
         debugMsg :: String
-        debugMsg = arrow ++ show iterations ++ ": MSE: " ++ show trainingMSE ++ " LR: " ++ show (learningRate' ! 0 ! 0)
+        debugMsg = arrow ++ show iterations ++ ": MSE: " ++ show trainingMSE ++ " LR: " ++ show (learningRate' ! 0 ! 0) ++ " K: " ++ show kValue
 
         arrow :: String
         arrow = if isSmaller trainingMSE prevMSE then " ▲  " else "  ▼ "
@@ -279,16 +301,14 @@ updateEmbeddings target isPredicting learningRate guess (userEmb, itemEmb) = (us
     error :: Matrix
     error = guess - target
 
+toVector :: Matrix -> Vector
+toVector = head . LA.toRows
 
-maybeSaveToDb :: Int -> Int -> Double -> EmbeddingPair -> IO ()
-maybeSaveToDb kValue iterations mse (userEmb, itemEmb) =
-  if iterations `mod` 100 /= 0 || iterations == 0
-  then return ()
-  else
-    do
-      mongoInfo <- Db.fetchMongoInfo
-      let dto = EmbeddingsDTO kValue mse iterations (LA.toLists userEmb) (LA.toLists itemEmb)
-      Db.createEmbeddings mongoInfo dto
+saveToDb :: Int -> Int -> Double -> EmbeddingPair -> IO ()  
+saveToDb kValue iterations mse (userEmb, itemEmb) = do
+    mongoInfo <- Db.fetchMongoInfo
+    let dto = EmbeddingsDTO kValue mse iterations (LA.toLists userEmb) (LA.toLists itemEmb)
+    Db.createEmbeddings mongoInfo dto
 
 
 mkGuess :: EmbeddingPair -> Matrix
@@ -331,15 +351,15 @@ getRandomFrom lst = do
 
 defaultPredictionOptions :: Options
 defaultPredictionOptions =
-  Options { iterationRange = (100, 101)
-          , threshold = 0.001
+  Options { iterationRange = (2000, 2001)
+          , threshold = 0.000000001
           , initialLearningRate = 0.000001
           }
 
 
 defaultTrainingOptions :: Options
 defaultTrainingOptions =
-  Options { iterationRange = (1000000, 10000000)
+  Options { iterationRange = (1001, 1002)
           , threshold = 0.001
           , initialLearningRate = 0.000001
           }
@@ -365,7 +385,7 @@ getTrainingMatrix :: Matrix -> IO Matrix
 getTrainingMatrix m = (m *) <$> mkRandomMatrix (size m)
 
 rndOneOrZero :: Matrix -> Matrix
-rndOneOrZero = cmap (\x -> if x > 0.7 then 0 else 1)
+rndOneOrZero = cmap (\x -> if x > 0.80 then 0 else 1)
 
 mkMatrix :: (Int, Int) -> [Double] -> Matrix
 mkMatrix (rows, cols) = rows><cols

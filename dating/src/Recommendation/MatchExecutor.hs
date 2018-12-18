@@ -1,16 +1,44 @@
 module Recommendation.MatchExecutor where
 
-import Recommendation.Recommender (predict, match, defaultPredictionOptions)
+import Recommendation.Recommender (getPredictionError, predict, match, rndOneOrZero, defaultPredictionOptions, Matrix, AnswerVector)
 import qualified Database as Db
 import Data.Text (Text)
 import qualified Transformer
 import qualified Numeric.LinearAlgebra.Data as LAD
 import qualified Numeric.LinearAlgebra as LA
-import Numeric.LinearAlgebra.Data (Matrix(..))
+import           Numeric.LinearAlgebra.HMatrix (mul, (<.>))
+--import Numeric.LinearAlgebra.Data (Matrix(..))
 import Recommendation.DataLoad (loadMatrixFromFile)
 import Debug.Trace
 
 type Username = Text
+
+
+getPredictionErrorForUser :: Username -> IO Double
+getPredictionErrorForUser username = do
+  -- Load item embedding from database
+  mongoInfo <- Db.fetchMongoInfo
+  maybeItemEmb <- Db.fetchBestItemEmbedding mongoInfo
+  case maybeItemEmb of
+    Nothing -> error "ItemEmbedding not found in database."
+    Just itemEmb -> do
+      -- Load actual answers from the user
+      userAnswers <- Db.fetchNonPredictedAnswers mongoInfo username
+      print (length userAnswers)
+      
+      let itemEmbMatrix = LAD.fromLists itemEmb
+      let (_, itemCount) = LAD.size itemEmbMatrix
+      let answerVector = Transformer.toAnswerVector itemCount userAnswers
+      -- Predict the rest of the answers
+      getPredictionError defaultPredictionOptions answerVector itemEmbMatrix
+  
+
+matchAllUsers :: IO ()
+matchAllUsers = do
+  mongoInfo <- Db.fetchMongoInfo
+  users <- Db.fetchAllUsers mongoInfo
+  mapM_ createMatchesForUser users
+
 
 createMatchesForUser :: Username -> IO ()
 createMatchesForUser username = do
@@ -47,5 +75,5 @@ createMatchesForUser username = do
     toMatchingTriple (otherUsername, score) = (username, otherUsername, score) 
 
 
-loadCorrelationMatrix :: IO (Either String (Matrix Double))
+loadCorrelationMatrix :: IO (Either String (Matrix))
 loadCorrelationMatrix = loadMatrixFromFile "data/correlations.csv"

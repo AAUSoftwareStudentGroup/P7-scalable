@@ -874,10 +874,10 @@ deleteEverythingInDB = runAction localMongoInfo action
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
       return ()
 
-convertQuestionsFromOldToNew :: MongoInfo -> IO String
+convertQuestionsFromOldToNew :: MongoInfo -> IO ()
 convertQuestionsFromOldToNew mongoConf = runAction mongoConf convertAction
   where
-    convertAction :: Action IO String
+    convertAction :: Action IO ()
     convertAction = do
       newQs <- fmap oldQuestionToNew <$> selectList [] []
       _ <- Mongo.Query.delete $ Mongo.Query.select [] "questions"
@@ -885,8 +885,8 @@ convertQuestionsFromOldToNew mongoConf = runAction mongoConf convertAction
       _ <- Mongo.Query.modify
         ( Mongo.Query.select [] "users")
         ["$set" =: ["being_predicted" =: False]]
-      return "inserted" 
-      --return qs
+      return ()
+
     oldQuestionToNew :: Entity OldQuestion -> Question
     oldQuestionToNew (Entity _ oldQ) = Question
       { questionIndex = getField @"oldQuestionIndex" oldQ
