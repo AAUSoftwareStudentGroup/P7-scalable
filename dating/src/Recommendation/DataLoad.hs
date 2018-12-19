@@ -1,23 +1,23 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Recommendation.DataLoad (Cell(..), loadMatrixFromFile, loadQuestionData) where
 
-import           Control.Monad        (mzero)
+import           Control.Monad              (mzero)
 import           Data.Aeson
 
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Lazy as B
-import           Data.Csv             (FromRecord, HasHeader (..), parseRecord,
-                                       (.!))
-import qualified Data.Csv             as Csv (decode)
-import           Data.Text            (Text)
-import           Data.Vector          (Vector)
-import qualified Data.Vector as Vector
-import Numeric.LinearAlgebra.Data (AssocMatrix(..), toDense, Matrix)
+import qualified Data.ByteString.Lazy       as LBS
+import qualified Data.ByteString.Lazy       as B
+import           Data.Csv                   (FromRecord, HasHeader (..),
+                                             parseRecord, (.!))
+import qualified Data.Csv                   as Csv (decode)
+import           Data.Text                  (Text)
+import           Data.Vector                (Vector)
+import qualified Data.Vector                as Vector
+import           Numeric.LinearAlgebra.Data (AssocMatrix (..), Matrix, toDense)
 
 {------------------------------------------------------------------------------}
 {-                                   FRIENDS                                  -}
 {------------------------------------------------------------------------------}
-
 
 data Question = Question
     { body    :: Text -- Should maybe be strict

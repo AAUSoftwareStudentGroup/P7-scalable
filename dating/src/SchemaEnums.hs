@@ -1,11 +1,11 @@
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveAnyClass  #-}
+{-# LANGUAGE DeriveGeneric   #-}
+{-# LANGUAGE TemplateHaskell #-}
 module SchemaEnums where
 
-import           GHC.Generics
+import           Data.Aeson          (FromJSON, ToJSON)
 import qualified Database.Persist.TH as PTH
-import           Data.Aeson (ToJSON, FromJSON)
+import           GHC.Generics
 
 data Gender =
     Male

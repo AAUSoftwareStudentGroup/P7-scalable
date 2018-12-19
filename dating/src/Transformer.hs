@@ -1,10 +1,10 @@
 module Transformer where
 
+import           Data.Vector.Storable       (Vector, (//))
+import qualified Data.Vector.Storable       as V
 import qualified Numeric.LinearAlgebra.Data as LAD
-import qualified Data.Vector.Storable as V
-import Data.Vector.Storable (Vector, (//))
 
-import FrontendTypes (AnswerWithIndexDTO(..))
+import           FrontendTypes              (AnswerWithIndexDTO (..))
 
 type AnswerVector = Vector Double
 

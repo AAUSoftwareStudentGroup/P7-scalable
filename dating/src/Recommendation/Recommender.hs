@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Recommendation.Recommender (getPredictionError, snapExtremeValues, mkEmbeddingMatrix, match, predict, train, stochasticTrain, rndOneOrZero, defaultPredictionOptions, defaultTrainingOptions, fromDense, toDense, Matrix, AnswerVector, Vector) where
+module Recommendation.Recommender (getPredictionError, snapExtremeValues, mkEmbeddingMatrix,
+  match, predict, train, stochasticTrain, rndOneOrZero, defaultPredictionOptions,
+  defaultTrainingOptions, fromDense, toDense, Matrix, AnswerVector, Vector, sortBySndDesc) where
 
 import           Control.Monad                 (void, when)
 import           Data.Generics.Product         (getField)
@@ -12,8 +14,8 @@ import           GHC.Generics                  (Generic (..))
 import           Numeric.LinearAlgebra         (cmap, size, sumElements, tr',
                                                 (><))
 import qualified Numeric.LinearAlgebra         as LA
-import           Numeric.LinearAlgebra.Data    (AssocMatrix, toColumns, toList,
-                                                (!), toDense)
+import           Numeric.LinearAlgebra.Data    (AssocMatrix, toColumns, toDense,
+                                                toList, (!))
 import           Numeric.LinearAlgebra.HMatrix (mul, (<.>))
 import qualified System.Random                 as Rand
 
@@ -62,9 +64,9 @@ match correlationMatrix (user, userAnswers) otherUsersAndAnswers = sortedMatches
 
     -- 1825 is the magic maximum possible score
     toPercentage :: Double -> Double
-    toPercentage val 
+    toPercentage val
       | val > maxScore  = 100
-      | val < -maxScore = 0 
+      | val < -maxScore = 0
       | otherwise       = 100 * (sin radian + 1) / 2
       where
         maxScore = 1825
@@ -84,13 +86,10 @@ match correlationMatrix (user, userAnswers) otherUsersAndAnswers = sortedMatches
         amount = size v
         cols   = replicate amount (LA.asColumn v)
 
-    sortBySndDesc :: Ord b => [(a, b)] -> [(a, b)]
-    sortBySndDesc = sortBy (comparing $ Down . snd)
 
 {------------------------------------------------------------------------------}
 {-                                  PREDICTION                                -}
 {------------------------------------------------------------------------------}
-
 
 getPredictionError :: Options -> AnswerVector -> EmbeddingMatrix -> IO Double
 getPredictionError options target itemEmb = do
@@ -101,7 +100,7 @@ getPredictionError options target itemEmb = do
   prediction <- predict options testVector itemEmb
   let error = (LA.asRow prediction - LA.asRow target) * predictErrorHasValue
   let knownAnwers = sumElements predictErrorHasValue
-  
+
   return $ calcMSE error knownAnwers
   where
     targetMatrix = LA.asRow target
@@ -174,7 +173,7 @@ train options kValue target = do
     threshold'             = threshold options
     initialLearningRate'   = initialLearningRate options
     targetHasValueMatrix   = toOneOrZero target
-    
+
 
     go :: Matrix -> EmbeddingPair -> Int -> LearningRate -> Maybe Double -> Matrix -> Matrix -> IO ()
     go trainingMatrix embeddingPair iterations learningRate prevMSE trainingHasValueMatrix testValuesMatrix =
@@ -184,7 +183,7 @@ train options kValue target = do
           putStrLn $ "Training_MSE: " ++ show trainingMSE
           putStrLn $ "Test_MSE: " ++ show testMSE
         else go trainingMatrix embeddingPair' (iterations+1) learningRate' (Just trainingMSE) trainingHasValueMatrix testValuesMatrix
-      
+
       where
         guess = mkGuess embeddingPair
         error = getError guess trainingMatrix
@@ -282,7 +281,7 @@ snapExtremeValues :: Matrix -> Matrix
 snapExtremeValues = cmap snap
   where
     snap :: Double -> Double
-    snap value 
+    snap value
       | value > 5 = 5
       | value < 1 = 1
       | otherwise = value
@@ -304,7 +303,7 @@ updateEmbeddings target isPredicting learningRate guess (userEmb, itemEmb) = (us
 toVector :: Matrix -> Vector
 toVector = head . LA.toRows
 
-saveToDb :: Int -> Int -> Double -> EmbeddingPair -> IO ()  
+saveToDb :: Int -> Int -> Double -> EmbeddingPair -> IO ()
 saveToDb kValue iterations mse (userEmb, itemEmb) = do
     mongoInfo <- Db.fetchMongoInfo
     let dto = EmbeddingsDTO kValue mse iterations (LA.toLists userEmb) (LA.toLists itemEmb)
@@ -404,3 +403,6 @@ fromDense m = filter (\(_, x) -> x /= 0) $ go 0 0
            | r < rows      = ((r, c), value) : go r (c + 1)
            | otherwise     = []
       where value = m ! r ! c
+
+sortBySndDesc :: Ord b => [(a, b)] -> [(a, b)]
+sortBySndDesc = sortBy (comparing $ Down . snd)

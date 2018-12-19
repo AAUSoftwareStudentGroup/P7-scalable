@@ -33,14 +33,15 @@ import           Web.Cookie                       (parseCookies)
 import           Database                         (AuthToken, MongoInfo,
                                                    RedisInfo, Username)
 import qualified Database                         as DB
-import qualified Recommendation.MatchExecutor     as Recommender
 import           FrontendTypes
+import qualified Recommendation.MatchExecutor     as Recommender
 import           Schema
 
 
 {---------------------------------------------------------------------}
 {-                                API                                -}
 {---------------------------------------------------------------------}
+
 -- | The API.
 type DatingAPI = UserAPI :<|> AuthAPI :<|> MessageAPI :<|> QuestionAPI
 
@@ -164,10 +165,10 @@ updateUserHandler mongoInfo username user = do
     Right loggedInDTO -> return loggedInDTO
     Left err          -> Handler $ throwE err
 
+
 {-----------------------------------------------------------------------------}
 {-                             AUTHENTICATION                                -}
 {-----------------------------------------------------------------------------}
-
 
 -- | Returns an LoggedInDTO when given correct credentials
 loginHandler :: MongoInfo -> CredentialDTO -> Handler LoggedInDTO

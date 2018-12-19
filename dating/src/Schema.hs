@@ -79,7 +79,7 @@ let mongoSettings = (PTH.mkPersistSettings (ConT ''MongoContext)) {PTH.mpsGeneri
 
   UserMatches sql=user_matches
     match       [Text]
-    correlation Double  
+    correlation Double
     deriving Eq Show Generic
 
   OldQuestion sql=questions

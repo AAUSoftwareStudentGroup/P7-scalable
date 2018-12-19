@@ -1,42 +1,45 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeApplications      #-}
 
 module Database where
 
-import Codec.Picture (saveJpgImage)
-import Codec.Picture.Jpg (decodeJpeg)
-import Control.Monad (void)
-import Control.Monad.IO.Class (liftIO)
-import Crypto.Hash
-import Data.Bson (Document)
-import qualified Data.ByteString.Base64 as Base64
-import qualified Data.ByteString.Lazy.Char8 as LBS
-import Data.Either (rights)
-import Data.Foldable (traverse_)
-import Data.Generics.Product (getField)
-import qualified Data.Maybe as Maybe
-import qualified Data.List  as List
-import qualified Data.List.Extra as ListE
-import Data.Semigroup ((<>))
-import Data.Text (Text)
-import qualified Data.Text as T (pack, unpack)
-import Data.Text.Encoding (encodeUtf8)
-import qualified Data.Time.Clock as Clock (getCurrentTime, nominalDay, diffUTCTime, UTCTime)
-import qualified Database.MongoDB.Admin as Mongo.Admin
-import qualified Database.MongoDB.Query as Mongo.Query
-import Database.Persist
-import Database.Persist.MongoDB (Action, (=:))
-import qualified Database.Persist.MongoDB as Persist.Mongo
-import Database.Persist.Types (unHaskellName)
-import qualified Database.Redis as Redis
-import Servant.Server.Internal.ServantErr
-import System.Directory
-import qualified System.Random as Random
+import           Codec.Picture                      (saveJpgImage)
+import           Codec.Picture.Jpg                  (decodeJpeg)
+import           Control.Monad                      (void)
+import           Control.Monad.IO.Class             (liftIO)
+import           Crypto.Hash
+import           Data.Bson                          (Document)
+import qualified Data.ByteString.Base64             as Base64
+import qualified Data.ByteString.Lazy.Char8         as LBS
+import           Data.Either                        (rights)
+import           Data.Foldable                      (traverse_)
+import           Data.Generics.Product              (getField)
+import qualified Data.List                          as List
+import qualified Data.List.Extra                    as ListE
+import qualified Data.Maybe                         as Maybe
+import           Data.Semigroup                     ((<>))
+import           Data.Text                          (Text)
+import qualified Data.Text                          as T (pack, unpack)
+import           Data.Text.Encoding                 (encodeUtf8)
+import qualified Data.Time.Clock                    as Clock (UTCTime,
+                                                              diffUTCTime,
+                                                              getCurrentTime,
+                                                              nominalDay)
+import qualified Database.MongoDB.Admin             as Mongo.Admin
+import qualified Database.MongoDB.Query             as Mongo.Query
+import           Database.Persist
+import           Database.Persist.MongoDB           (Action, (=:))
+import qualified Database.Persist.MongoDB           as Persist.Mongo
+import           Database.Persist.Types             (unHaskellName)
+import qualified Database.Redis                     as Redis
+import           Servant.Server.Internal.ServantErr
+import           System.Directory
+import qualified System.Random                      as Random
 
-import FrontendTypes
-import Schema
+import           FrontendTypes
+import           Schema
 
 
 {-----------------------------------------------------------------------------}
@@ -55,9 +58,11 @@ userIndex =
   (Mongo.Admin.index "users" ["username" =: (1 :: Int)])
     {Mongo.Admin.iUnique = True, Mongo.Admin.iDropDups = True}
 
+
 {-----------------------------------------------------------------------------}
 {-                            CONNECTION INFO                                -}
 {-----------------------------------------------------------------------------}
+
 -- | Should probably be placed in a file instead
 localMongoInfo :: MongoInfo
 localMongoInfo =
@@ -77,9 +82,11 @@ fetchMongoInfo = return localMongoInfo
 fetchRedisInfo :: IO RedisInfo
 fetchRedisInfo = return $ Redis.defaultConnectInfo {Redis.connectHost = "redis"}
 
+
 {-----------------------------------------------------------------------------}
 {-                                   USERS                                   -}
 {-----------------------------------------------------------------------------}
+
 -- | Create a user if the username is not taken
 createUser :: MongoInfo -> CreateUserDTO -> IO (Either ServantErr LoggedInDTO)
 createUser mongoConf createUserDTO = runAction mongoConf action
@@ -214,7 +221,7 @@ fetchMatchesForUser mongoConf offset limit username' = runAction mongoConf fetch
     onOtherUsername username'' (Entity _ match'') =
       let (u1:u2:_) = getField @"userMatchesMatch" match''
       in if username'' == u1 then u2 else u1
-    
+
     ownUsername :: UserDTO -> Text
     ownUsername = getField @"username"
 
@@ -237,9 +244,9 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
             answeredEnough <- haveWeAnsweredEnough
             if answeredEnough then do
               timeOfLastPrediction <- fetchTimeOfPredictedAnswer
-              allQuestionsAnswered <- noQuestionsRemain 
+              allQuestionsAnswered <- noQuestionsRemain
               result <- questionsAnsweredSinceLastPrediction timeOfLastPrediction
-      
+
               if List.null result && allQuestionsAnswered then return $ Right False
               else if allQuestionsAnswered || List.length result == 5 then return $ Right True
               else return $ Right False
@@ -252,8 +259,8 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
     haveWeAnsweredEnough :: Action IO Bool
     haveWeAnsweredEnough = do
       docList <- Mongo.Query.find
-        ( (Mongo.Query.select 
-            ["answers" =: 
+        ( (Mongo.Query.select
+            ["answers" =:
               ["$elemMatch" =: ["answerer" =: username, "ispredicted" =: False]]
             ]
           "questions")
@@ -267,9 +274,9 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
     noQuestionsRemain :: Action IO Bool
     noQuestionsRemain = do
       mQuestion <- Mongo.Query.findOne
-        ( (Mongo.Query.select 
-            ["answers" =: 
-              ["$elemMatch" =: 
+        ( (Mongo.Query.select
+            ["answers" =:
+              ["$elemMatch" =:
                 ["answerer" =: username, "ispredicted" =: True]
               ]
             ]
@@ -277,15 +284,15 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
           { Mongo.Query.project = ["answers" =: (0::Int)] }
         )
       case mQuestion of
-        Just _ -> return False
+        Just _  -> return False
         Nothing -> return True
-    
+
     questionsAnsweredSinceLastPrediction :: Clock.UTCTime -> Action IO [Document]
     questionsAnsweredSinceLastPrediction timeOfLastAnswer = do
       docList <- Mongo.Query.find
-        ( (Mongo.Query.select 
-            ["answers" =: 
-              ["$elemMatch" =: 
+        ( (Mongo.Query.select
+            ["answers" =:
+              ["$elemMatch" =:
                 ["answerer" =: username, "timestamp" =: ["$gt" =: timeOfLastAnswer], "ispredicted" =: False]
               ]
             ]
@@ -300,22 +307,22 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
     fetchTimeOfPredictedAnswer :: Action IO Clock.UTCTime
     fetchTimeOfPredictedAnswer = do
       mDoc <- Mongo.Query.findOne
-        ( (Mongo.Query.select 
-          [ "answers" =: 
-            [ "$elemMatch" =: 
-              [ "answerer" =: username, "ispredicted" =: True] 
-            ] 
+        ( (Mongo.Query.select
+          [ "answers" =:
+            [ "$elemMatch" =:
+              [ "answerer" =: username, "ispredicted" =: True]
+            ]
           ]
           "questions"
           )
-          { Mongo.Query.project = 
-            [ "answers" =: 
-              [ "$elemMatch" =: 
-                [ "answerer" =: username, "ispredicted" =: True] 
-              ] 
+          { Mongo.Query.project =
+            [ "answers" =:
+              [ "$elemMatch" =:
+                [ "answerer" =: username, "ispredicted" =: True]
+              ]
             , "index" =: (1::Int)
             , "text" =: (1::Int)
-            ] 
+            ]
           }
         )
       case mDoc of
@@ -324,8 +331,8 @@ timeToPredict mongoConf username = runAction mongoConf fetchAction
             Right question -> return $ getField @"answerTimestamp" $ extractAnswer question
             Left _ -> liftIO Clock.getCurrentTime
         Nothing -> liftIO Clock.getCurrentTime
-          
-    
+
+
     extractAnswer :: Entity Question -> Answer
     extractAnswer (Entity _ q) = head $ getField @"questionAnswers" q
 
@@ -340,7 +347,7 @@ fetchUserExists mongoConf username' = runAction mongoConf fetchAction
     fetchAction = do
       mUser <- getBy (UniqueUsername username')
       case mUser of
-        Just _ -> return True
+        Just _  -> return True
         Nothing -> return False
 
 -- | Edit user
@@ -379,6 +386,7 @@ updateUser mongoConf username newFields = runAction mongoConf editAction
         profileText = (UserProfileText =.) <$> getField @"profileText" fields'
         updates = Maybe.catMaybes [password, gender, birthday, town, profileText]
 
+
 {-----------------------------------------------------------------------------}
 {-                             AUTHENTICATION                                -}
 {-----------------------------------------------------------------------------}
@@ -416,7 +424,7 @@ fetchUsernameByAuthToken mongoConf authToken' = runAction mongoConf fetchAction
     fetchAction = do
       maybeEntUser <- getBy (UniqueAuthToken authToken')
       case maybeEntUser of
-        Nothing -> return Nothing
+        Nothing              -> return Nothing
         Just (Entity _ user) -> return . Just $ getField @"userUsername" user
 
 removeAuthToken :: MongoInfo -> Username -> IO ()
@@ -426,8 +434,9 @@ removeAuthToken mongoConf username = runAction mongoConf action
     action = do
       maybeEntUser <- getBy (UniqueUsername username)
       case maybeEntUser of
-        Nothing -> return ()
+        Nothing             -> return ()
         Just (Entity id' _) -> void $ update id' [UserAuthToken =. ""]
+
 
 {-----------------------------------------------------------------------------}
 {-                              CONVERSATIONS                                -}
@@ -449,7 +458,7 @@ createMessage mongoConf from to messageDTO = runAction mongoConf action
         Nothing -> do
           user' <- getBy (UniqueUsername to)
           case user' of
-            Just _ -> void $ insert (mkConversation from to msgToInsert)
+            Just _  -> void $ insert (mkConversation from to msgToInsert)
             Nothing -> return ()
         Just (Entity conversationId _) ->
           update
@@ -487,7 +496,7 @@ fetchConversation mongoConf ownUsername otherUsername offset askedLimit =
       maybeDoc <-
         Mongo.Query.findOne
           ((Mongo.Query.select
-              [ "$and" =: 
+              [ "$and" =:
                 [ ["members" =: (ownUsername :: Text)]
                 , ["members" =: (otherUsername :: Text)]
                 ]
@@ -525,6 +534,7 @@ fetchConversationPreviews mongoConf ownUsername =
         rights . fmap Persist.Mongo.docToEntityEither $
         docList
 
+
 {-----------------------------------------------------------------------------}
 {-                                 Questions                                 -}
 {-----------------------------------------------------------------------------}
@@ -534,22 +544,22 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
   where
     fetchAction :: Action IO [QuestionDTO]
     fetchAction = do
-      docList <- 
-        Mongo.Query.aggregate "questions" 
+      docList <-
+        Mongo.Query.aggregate "questions"
           [
-            [ "$match" =: 
-              [ "answers" =: 
-                [ "$not" =: 
-                  [ "$elemMatch" =: 
+            [ "$match" =:
+              [ "answers" =:
+                [ "$not" =:
+                  [ "$elemMatch" =:
                     [ "answerer" =: username', "ispredicted" =: False]
                   ]
                 ]
               ]
             ]
-          , [ "$project" =: 
+          , [ "$project" =:
               [ "answers" =: (0::Int)]
             ]
-          , [ "$sample" =: 
+          , [ "$sample" =:
               [ "size" =: (10::Int)]
             ]
           ]
@@ -560,17 +570,17 @@ fetchQuestions mongoConf username' = runAction mongoConf fetchAction
         fetchFewRemainingQuestions
     -- There is no guarantee that the $sample aggregate operation returns unique documents, so we remove duplicates
     -- with List.nub, then in case there are too few questions to return, we just fetch the first 10 questions like
-    -- previously. $sample works fine on a single machine apparently, so could be a problem with sharding  
+    -- previously. $sample works fine on a single machine apparently, so could be a problem with sharding
     fetchFewRemainingQuestions :: Action IO [QuestionDTO]
     fetchFewRemainingQuestions = do
       cursor <- Mongo.Query.find
-        ( (Mongo.Query.select 
-            [ "answers" =: 
-              [ "$not" =: 
-                [ "$elemMatch" =: 
-                  [ "answerer" =: username', "ispredicted" =: False] 
-                ] 
-              ] 
+        ( (Mongo.Query.select
+            [ "answers" =:
+              [ "$not" =:
+                [ "$elemMatch" =:
+                  [ "answerer" =: username', "ispredicted" =: False]
+                ]
+              ]
             ]
             "questions"
           )
@@ -643,7 +653,7 @@ createEmbeddings mongoInfo embeddingsDTO = runAction mongoInfo insertAction
     userEmb' = userEmb embeddingsDTO
     itemEmb' = itemEmb embeddingsDTO
 
-  
+
 fetchNonPredictedAnswers :: MongoInfo -> Username -> IO [AnswerWithIndexDTO]
 fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
   where
@@ -651,7 +661,7 @@ fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
     questionEntityToAnswerWithIndexDTO (Entity _ question) = answerWithIndexDTO
       where
         answer = head $ getField @"questionAnswers" question
-        answerWithIndexDTO = AnswerWithIndexDTO 
+        answerWithIndexDTO = AnswerWithIndexDTO
           { questionIndex = getField @"questionIndex" question
           , score = getField @"answerScore" answer
           }
@@ -659,22 +669,22 @@ fetchNonPredictedAnswers mongoConf username = runAction mongoConf fetchAction
     fetchAction :: Action IO [AnswerWithIndexDTO]
     fetchAction = do
       cursor <- Mongo.Query.find
-        ( (Mongo.Query.select 
-            [ "answers" =: 
-              [ "$elemMatch" =: 
-                [ "answerer" =: username, "ispredicted" =: False] 
-              ] 
+        ( (Mongo.Query.select
+            [ "answers" =:
+              [ "$elemMatch" =:
+                [ "answerer" =: username, "ispredicted" =: False]
+              ]
             ]
             "questions"
           )
-          { Mongo.Query.project = 
-            [ "answers" =: 
-              [ "$elemMatch" =: 
-                [ "answerer" =: username, "ispredicted" =: False] 
-              ] 
+          { Mongo.Query.project =
+            [ "answers" =:
+              [ "$elemMatch" =:
+                [ "answerer" =: username, "ispredicted" =: False]
+              ]
             , "index" =: (1::Int)
             , "text" =: (1::Int)
-            ] 
+            ]
           }
         )
       docList <- Mongo.Query.rest cursor
@@ -690,7 +700,7 @@ fetchOtherUsersAndAnswers mongoInfo username = runAction mongoInfo fetchAction
     fetchAction = do
       results <- fmap toUsernameAndAnswersPair <$> selectList [] []
       return . ListE.groupSort . List.filter elementsToNotInclude . List.concat $ results -- [[(Username, AnswerWithIndexDTO)]]
-      
+
     toUsernameAndAnswersPair :: Entity Question -> [(Username, AnswerWithIndexDTO)]
     toUsernameAndAnswersPair (Entity _ q) = fmap (getAnswers (getField @"questionIndex" q)) $ getField @"questionAnswers" q
 
@@ -699,11 +709,11 @@ fetchOtherUsersAndAnswers mongoInfo username = runAction mongoInfo fetchAction
       not (u == username || (0::Double) == a)
 
     getAnswers :: Int -> Answer -> (Username, AnswerWithIndexDTO)
-    getAnswers index answer = 
+    getAnswers index answer =
       ( getField @"answerAnswerer" answer
       , AnswerWithIndexDTO index (getField @"answerScore" answer)
       )
-    
+
     byUsername :: (Username, AnswerWithIndexDTO) -> Username
     byUsername (fst, _) = fst
 
@@ -720,7 +730,7 @@ fetchBestItemEmbedding mongoInfo = fmap embeddingsItemEmb <$> fetchBestEmbedding
 
 -- TODO: Make it take a single pair
 updatePredictedAnswers :: MongoInfo -> [(Username, [AnswerWithIndexDTO])] -> IO ()
-updatePredictedAnswers mongoConf usernamesWithAnswers = 
+updatePredictedAnswers mongoConf usernamesWithAnswers =
   runAction mongoConf updateAction
   where
     updateAction :: Action IO ()
@@ -731,13 +741,13 @@ updatePredictedAnswers mongoConf usernamesWithAnswers =
 
     updateSingleUsername :: Clock.UTCTime -> (Username, [AnswerWithIndexDTO]) -> [(Mongo.Query.Selector, Document, [Mongo.Query.UpdateOption])]
     updateSingleUsername curTime' (username, answers) = fmap (updateSingleAnswer username curTime') answers
-    
+
     updateSingleAnswer :: Username -> Clock.UTCTime -> AnswerWithIndexDTO -> (Mongo.Query.Selector, Mongo.Query.Modifier, [Mongo.Query.UpdateOption])
     updateSingleAnswer username' curTime'' AnswerWithIndexDTO {questionIndex=indexToUpdate, score=scoreToUpdate} =
       ( ["index" =: indexToUpdate, "answers" =: ["$elemMatch" =: ["answerer" =: username', "ispredicted" =: True ]]]
       , ["$set" =: ["answers.$" =: (Persist.Mongo.recordToDocument (newAnswer username' curTime'' scoreToUpdate) :: Document)]]::Mongo.Query.Modifier
       , []
-      ) 
+      )
     newAnswer :: Username -> Clock.UTCTime -> Double -> Answer
     newAnswer username'' currenttime score'' = Answer
       { answerAnswerer = username''
@@ -745,6 +755,7 @@ updatePredictedAnswers mongoConf usernamesWithAnswers =
       , answerTimestamp = currenttime
       , answerIspredicted = True
       }
+
 
 {-----------------------------------------------------------------------------}
 {-                                 HELPERS                                   -}
@@ -842,7 +853,7 @@ saveMatchesToDb mongoConf matches = runAction mongoConf saveAction
       return ()
     query :: (Username, Username, Double) -> (Mongo.Query.Selector, Document, [Mongo.Query.UpdateOption]) --maybeAlreadySaved <- selectFirst [UserMatchesMatch `Persist.Mongo.anyEq` username, UserMatchesMatch `Persist.Mongo.anyEq` matchingUser] []
     query (ownUsername, otherUsername, predictionValue) =
-      ( [ "$and" =: 
+      ( [ "$and" =:
           [ ["match" =: (ownUsername :: Text)]
           , ["match" =: (otherUsername :: Text)]
           ]

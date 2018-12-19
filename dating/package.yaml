@@ -17,6 +17,8 @@ library:
   - SchemaEnums
   - FrontendTypes
   - Recommendation.Recommender
+  - Recommendation.MatchExecutor
+  - Recommendation.DataLoad
   dependencies:
   - base >=4.7 && <5
   - wai

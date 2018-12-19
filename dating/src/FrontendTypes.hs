@@ -18,6 +18,7 @@ import           Test.QuickCheck.Instances.Time ()
 
 import           SchemaEnums                    (Gender (..))
 
+
 {-----------------------------------------------------------------------------}
 {-                                  USERS                                    -}
 {-----------------------------------------------------------------------------}
@@ -56,6 +57,7 @@ data UserWithScoreDTO = UserWithScoreDTO
   { userDTO :: UserDTO
   , score   :: Double
   } deriving (Eq, Show, Generic, ToJSON, FromJSON)
+
 
 {-----------------------------------------------------------------------------}
 {-                             AUTHENTICATION                                -}
@@ -102,7 +104,6 @@ data MessageDTO = MessageDTO
   } deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 
-
 {-----------------------------------------------------------------------------}
 {-                                 Questions                                 -}
 {-----------------------------------------------------------------------------}
@@ -129,6 +130,7 @@ data EmbeddingsDTO = EmbeddingsDTO
   , userEmb    :: [[Double]]
   , itemEmb    :: [[Double]]
   } deriving (Eq, Ord, Show, Generic)
+
 
 {------------------------------------------------------------------------------}
 {-                           ARBITRARY INSTANCES                              -}
