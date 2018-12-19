@@ -12,7 +12,8 @@ import           Recommendation.MatchExecutor
 import Data.Text
 
 main :: IO ()
-main = predictAll
+main = run
+  --predictAll
   --mapM_ startTraining [5, 10, 15, 20, 30, 40, 50, 60, 80]
   --getAnswersForAllUsers
 

@@ -76,7 +76,7 @@ headerLogo =
         [ Html.a [ class "logo", Attributes.href (Routing.routeToString Home) ]
             [ Html.i [ class "material-icons" ]
                 [ Html.text "people" ]
-            , Html.text "Platonic Relations"
+            , Html.text "friendr"
             ]
         ]
 
