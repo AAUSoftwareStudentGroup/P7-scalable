@@ -1,4 +1,4 @@
-module Page.Home exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.Home exposing (Model, init, view)
 
 import Browser.Navigation as Nav
 import Browser.Dom as Dom exposing (Viewport)
@@ -17,9 +17,7 @@ import Url
 
 import Api.Users exposing (User)
 import Session exposing (Session, PageType(..), Details)
-import Routing exposing (Route(..))
 import UI.Elements as El
-import Ports.LoadMorePort exposing (LoadMoreData, loadMore)
 
 
 
@@ -35,47 +33,12 @@ type alias Model =
     }
 
 
-initModel : Session -> Model
-initModel session
-    = Model session "Home page" False
-
-init : Session -> ( Model, Cmd Msg )
-init session =
-    case session of
-        Session.Guest _ _ _ ->
-            ( initModel session
-            , Cmd.none
-            )
-        Session.LoggedIn _ _ _ _ ->
-            ( initModel session
-            , Cmd.none
-            )
-
-
--- UPDATE
-
-
-type Msg
-    = Home
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        Home -> (model, Cmd.none)
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
-
+init : Session -> Model
+init session = Model session "Home page" False
 
 -- VIEW
 
-
-view : Model -> Session.Details Msg
+view : Model -> Session.Details Never
 view model =
     let
         text =

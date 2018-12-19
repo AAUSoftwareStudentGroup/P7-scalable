@@ -10,7 +10,7 @@ import Date exposing (Date)
 
 import Api.Users
 import Api.Authentication exposing (Token, UserInfo)
-import Ports.LocalStoragePort as LocalStoragePort
+import Ports.UserInfoStoragePort as UserInfoPort
 
 -- TYPES
 type Session
@@ -35,7 +35,8 @@ type alias Details msg =
 
 
 empty : Nav.Key -> Session
-empty key = Guest key [] <| Time.millisToPosix 0
+empty key =
+    Guest key [] <| Time.millisToPosix 0
 
 getNavKey : Session -> Nav.Key
 getNavKey session =
@@ -122,34 +123,24 @@ setNow session now =
 
 login : UserInfo -> Cmd msg
 login userInfo =
-    LocalStoragePort.storeLocally (Just (Api.Users.encodeUserInfo userInfo))
+    UserInfoPort.storeUserInfo (Just userInfo)
 
 logout : Cmd msg
 logout =
-    LocalStoragePort.storeLocally Nothing
+    UserInfoPort.storeUserInfo Nothing
 
 onChange : (Session -> msg) -> Nav.Key -> Sub msg
 onChange toMsg key =
-    LocalStoragePort.onStoreChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
+    UserInfoPort.onUserInfoChange (\value -> toMsg (createSessionFromLocalStorageValue value key))
 
 
 -- HELPERS
 
-createSessionFromLocalStorageValue : Maybe Encode.Value -> Nav.Key -> Session
+createSessionFromLocalStorageValue : Maybe UserInfo -> Nav.Key -> Session
 createSessionFromLocalStorageValue maybeValue key =
   case maybeValue of
       Nothing ->
         empty key
 
-      Just encodedSession ->
-          case (decodeLocalStorageSession encodedSession) of
-              Err _ ->
-                  empty key
-              Ok userInfo ->
-                  LoggedIn key [] (Time.millisToPosix 0) userInfo
-
-
-decodeLocalStorageSession : Encode.Value -> Result Decode.Error UserInfo
-decodeLocalStorageSession val =
-    Decode.decodeValue Decode.string val
-      |> Result.andThen(\str -> Decode.decodeString Api.Users.decodeUserInfo str)
+      Just userInfo ->
+          LoggedIn key [] (Time.millisToPosix 0) userInfo

@@ -1,4 +1,4 @@
-module Page.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.Profile exposing (Model, Msg(..), init, update, view)
 
 import Browser.Navigation as Nav
 import Html exposing (Html, div)
@@ -60,14 +60,6 @@ update msg model =
                                 ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
                         _ ->
                             ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
 
 
 view : Model -> Session.Details Msg

@@ -1,4 +1,4 @@
-module Page.Logout exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.Logout exposing (Model, Msg(..), init, update, view)
 
 import Browser
 import Html exposing (Html, div)
@@ -68,13 +68,6 @@ responseToString r =
 
         Nothing ->
             ""
-
-
--- SUBSCRIPTIONS
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
 
 
 -- VIEW
