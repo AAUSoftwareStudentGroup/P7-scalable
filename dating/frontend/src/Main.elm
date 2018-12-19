@@ -1,40 +1,38 @@
-module Main exposing (..)
+module Main exposing (Model, Msg(..), Page(..), getSession, init, main, removeOldNotifications, replacePage, route, sendGetMessages, stepCreateUser, stepEditUser, stepHome, stepListUsers, stepLogin, stepLogout, stepMessages, stepNotFound, stepProfile, stepSurvey, stepUrl, subscriptions, update, view, viewContent)
 
+import Api.Authentication exposing (UserInfo)
+import Api.Messages exposing (ConversationPreview)
 import Browser
 import Browser.Navigation as Nav
+import Date exposing (Date)
 import Element exposing (..)
 import Html exposing (Html)
-import Url
-import Url.Parser as Parser exposing ((</>), Parser, top)
-import Url.Parser.Query as Query
-import Json.Encode as Encode
-import Json.Decode as Decode
-import Time as Time
-import Date exposing (Date)
 import Http as Http
-import Task exposing (Task)
-
+import Json.Decode as Decode
+import Json.Encode as Encode
 import Page.CreateUser as CreateUser
+import Page.EditUser as EditUser
 import Page.Home as Home
 import Page.ListUsers as ListUsers
 import Page.Login as Login
-import Page.EditUser as EditUser
+import Page.Logout as Logout
 import Page.Messages as Messages
 import Page.NotFound as NotFound
 import Page.Profile as Profile
 import Page.Survey as Survey
-import Page.Login as Login
-import Page.Logout as Logout
-import Url
-import Session exposing (Session)
-import Api.Messages exposing (ConversationPreview)
-import Api.Authentication exposing (UserInfo)
 import Routing as Routing
+import Session exposing (Session)
+import Task exposing (Task)
+import Time as Time
 import UI.Elements as El
+import Url
+import Url.Parser as Parser exposing ((</>), Parser, top)
+import Url.Parser.Query as Query
 
 
 
 -- MAIN
+
 
 main : Program (Maybe UserInfo) Model Msg
 main =
@@ -46,6 +44,7 @@ main =
         , onUrlChange = UrlChanged
         , onUrlRequest = LinkClicked
         }
+
 
 
 -- MODEL
@@ -77,25 +76,26 @@ init maybeUserInfo url key =
     )
 
 
+
 -- UPDATE
 
 
 type Msg
-  = NoOp
-  | LinkClicked Browser.UrlRequest
-  | UrlChanged Url.Url
-  | CreateUserMsg CreateUser.Msg
-  | ListUsersMsg ListUsers.Msg
-  | LoginMsg Login.Msg
-  | LogoutMsg Logout.Msg
-  | MessagesMsg Messages.Msg
-  | EditUserMsg EditUser.Msg
-  | ProfileMsg Profile.Msg
-  | SurveyMsg Survey.Msg
-  | SessionChanged Session
-  | LogOutClicked
-  | RemoveOldNotifications Time.Posix
-  | GetTimeNow Time.Posix
+    = NoOp
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
+    | CreateUserMsg CreateUser.Msg
+    | ListUsersMsg ListUsers.Msg
+    | LoginMsg Login.Msg
+    | LogoutMsg Logout.Msg
+    | MessagesMsg Messages.Msg
+    | EditUserMsg EditUser.Msg
+    | ProfileMsg Profile.Msg
+    | SurveyMsg Survey.Msg
+    | SessionChanged Session
+    | LogOutClicked
+    | RemoveOldNotifications Time.Posix
+    | GetTimeNow Time.Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -123,6 +123,7 @@ update message model =
             case model.page of
                 CreateUser createUserModel ->
                     stepCreateUser model (CreateUser.update msg createUserModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -130,6 +131,7 @@ update message model =
             case model.page of
                 Login loginModel ->
                     stepLogin model (Login.update msg loginModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -137,6 +139,7 @@ update message model =
             case model.page of
                 Logout logoutModel ->
                     stepLogout model (Logout.update msg logoutModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -144,6 +147,7 @@ update message model =
             case model.page of
                 ListUsers listUsersModel ->
                     stepListUsers model (ListUsers.update msg listUsersModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -151,6 +155,7 @@ update message model =
             case model.page of
                 Profile profileModel ->
                     stepProfile model (Profile.update msg profileModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -158,6 +163,7 @@ update message model =
             case model.page of
                 Messages messagesModel ->
                     stepMessages model (Messages.update msg messagesModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -165,6 +171,7 @@ update message model =
             case model.page of
                 EditUser editUserModel ->
                     stepEditUser model (EditUser.update msg editUserModel)
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -172,21 +179,25 @@ update message model =
             case model.page of
                 Survey surveyModel ->
                     stepSurvey model (Survey.update msg surveyModel)
-                _ -> ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         SessionChanged session ->
             case session of
                 Session.Guest key _ _ ->
-                    ( { model | page = (replacePage model.page session) }
+                    ( { model | page = replacePage model.page session }
                     , Routing.replaceUrl key (Routing.routeToString Routing.Home)
                     )
+
                 Session.LoggedIn key _ _ userInfo ->
                     if userInfo.firstLogIn then
-                        ( { model | page = (replacePage model.page session) }
+                        ( { model | page = replacePage model.page session }
                         , Routing.replaceUrl key (Routing.routeToString Routing.Survey)
                         )
+
                     else
-                        ( { model | page = (replacePage model.page session) }
+                        ( { model | page = replacePage model.page session }
                         , Routing.replaceUrl key (Routing.routeToString Routing.ListUsers)
                         )
 
@@ -195,24 +206,29 @@ update message model =
 
         RemoveOldNotifications newTime ->
             let
-                newSession = removeOldNotifications newTime (getSession model)
+                newSession =
+                    removeOldNotifications newTime (getSession model)
             in
-                ( { model | page = replacePage model.page newSession } , Cmd.none )
+            ( { model | page = replacePage model.page newSession }, Cmd.none )
 
         GetTimeNow now ->
             let
-                newSession = Session.setNow (getSession model) now
+                newSession =
+                    Session.setNow (getSession model) now
             in
-                ( { model | page = replacePage model.page newSession }, Cmd.none)
+            ( { model | page = replacePage model.page newSession }, Cmd.none )
 
 
 removeOldNotifications : Time.Posix -> Session -> Session
 removeOldNotifications now session =
     let
-        nowMillis = Time.posixToMillis now
-        remainingNotifications = List.filter (\notification -> (nowMillis - Time.posixToMillis notification.timeSet) < notification.duration) <| Session.getNotifications session
+        nowMillis =
+            Time.posixToMillis now
+
+        remainingNotifications =
+            List.filter (\notification -> (nowMillis - Time.posixToMillis notification.timeSet) < notification.duration) <| Session.getNotifications session
     in
-        Session.setNotifications session remainingNotifications
+    Session.setNotifications session remainingNotifications
 
 
 replacePage : Page -> Session -> Page
@@ -231,22 +247,22 @@ replacePage page session =
             Logout { m | session = session }
 
         Home m ->
-             Home { m | session = session }
+            Home { m | session = session }
 
         ListUsers m ->
-             ListUsers { m | session = session }
+            ListUsers { m | session = session }
 
         Profile m ->
-             Profile { m | session = session }
+            Profile { m | session = session }
 
         Messages m ->
-             Messages { m | session = session }
+            Messages { m | session = session }
 
         EditUser m ->
             EditUser { m | session = session }
 
         Survey m ->
-             Survey { m | session = session }
+            Survey { m | session = session }
 
 
 
@@ -255,9 +271,8 @@ replacePage page session =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [
-        case model.page of
-
+    Sub.batch
+        [ case model.page of
             CreateUser createUserModel ->
                 Sub.map CreateUserMsg (CreateUser.subscriptions createUserModel)
 
@@ -270,13 +285,14 @@ subscriptions model =
             ListUsers listUsersModel ->
                 Sub.map ListUsersMsg (ListUsers.subscriptions listUsersModel)
 
-            _ -> Sub.none -- This case handles all the pages without subscriptions
+            _ ->
+                Sub.none
 
+        -- This case handles all the pages without subscriptions
         , Session.onChange SessionChanged (Session.getNavKey (getSession model))
-
         , Time.every 1000 GetTimeNow
         , Time.every 1000 RemoveOldNotifications
-    ]
+        ]
 
 
 
@@ -337,11 +353,13 @@ stepCreateUser model ( createUserModel, cmds ) =
     , Cmd.map CreateUserMsg cmds
     )
 
+
 stepLogin : Model -> ( Login.Model, Cmd Login.Msg ) -> ( Model, Cmd Msg )
 stepLogin model ( loginModel, cmds ) =
     ( { model | page = Login loginModel }
     , Cmd.map LoginMsg cmds
     )
+
 
 stepLogout : Model -> ( Logout.Model, Cmd Logout.Msg ) -> ( Model, Cmd Msg )
 stepLogout model ( logoutModel, cmds ) =
@@ -349,11 +367,13 @@ stepLogout model ( logoutModel, cmds ) =
     , Cmd.map LogoutMsg cmds
     )
 
+
 stepHome : Model -> Home.Model -> ( Model, Cmd Msg )
-stepHome model homeModel=
-    ( { model | page = Home homeModel}
+stepHome model homeModel =
+    ( { model | page = Home homeModel }
     , Cmd.none
     )
+
 
 stepListUsers : Model -> ( ListUsers.Model, Cmd ListUsers.Msg ) -> ( Model, Cmd Msg )
 stepListUsers model ( listUsersModel, cmds ) =
@@ -388,7 +408,8 @@ sendGetMessages responseMsg session =
     case session of
         Session.LoggedIn _ _ _ userInfo ->
             Http.send responseMsg (Api.Messages.getConvoPreview userInfo)
-        Session.Guest _ _ _  ->
+
+        Session.Guest _ _ _ ->
             Cmd.none
 
 
@@ -401,6 +422,7 @@ stepSurvey model ( surveyModel, cmds ) =
 
 
 -- SESSION
+
 
 getSession : Model -> Session
 getSession model =
@@ -465,21 +487,21 @@ stepUrl url model =
                 , route (Parser.s "survey")
                     (stepSurvey model (Survey.init session))
                 ]
-
     in
-        case Parser.parse parser {url | path = Maybe.withDefault url.path (Url.percentDecode url.path)} of
-            Just ( m, c ) ->
-                ( m
-                , Cmd.batch
-                    [ Task.perform GetTimeNow Time.now
-                    , c
-                    ]
-                )
+    case Parser.parse parser { url | path = Maybe.withDefault url.path (Url.percentDecode url.path) } of
+        Just ( m, c ) ->
+            ( m
+            , Cmd.batch
+                [ Task.perform GetTimeNow Time.now
+                , c
+                ]
+            )
 
-            Nothing ->
-                ( { model | page = NotFound (NotFound.init session) }
-                , Cmd.none
-                )
+        Nothing ->
+            ( { model | page = NotFound (NotFound.init session) }
+            , Cmd.none
+            )
+
 
 route : Parser a b -> a -> Parser (b -> c) c
 route parser handler =

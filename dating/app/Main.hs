@@ -2,7 +2,6 @@ module Main where
 
 import           API
 import qualified Database                   as Db
-
 import           Schema
 import           FrontendTypes
 import           Recommendation.MatchExecutor

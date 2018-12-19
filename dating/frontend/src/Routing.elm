@@ -1,10 +1,11 @@
-module Routing exposing (Route(..), href, replaceUrl, goToLogin, pushUrl, routeToString)
+module Routing exposing (Route(..), goToLogin, href, pushUrl, replaceUrl, routeToString)
 
-import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), (<?>), Parser, oneOf, s)
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), (<?>), Parser, oneOf, s)
+
 
 
 -- ROUTING
@@ -45,17 +46,22 @@ href : Route -> Attribute msg
 href targetRoute =
     Attr.href (routeToString targetRoute)
 
+
 replaceUrl : Nav.Key -> String -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key route
+
 
 goToLogin : Nav.Key -> Cmd msg
 goToLogin key =
     replaceUrl key (routeToString Login)
 
+
 pushUrl : Nav.Key -> String -> Cmd msg
 pushUrl key route =
     Nav.pushUrl key route
+
+
 
 -- INTERNAL
 
@@ -80,7 +86,7 @@ routeToString page =
                 ListUsers ->
                     [ "list-users" ]
 
-                Messages username->
+                Messages username ->
                     [ "messages", username ]
 
                 EditUser ->
@@ -92,17 +98,4 @@ routeToString page =
                 Survey ->
                     [ "survey" ]
     in
-        "/" ++ String.join "/" pieces
-
-
-
-
-
-
-
-
-
-
-
-
-
+    "/" ++ String.join "/" pieces

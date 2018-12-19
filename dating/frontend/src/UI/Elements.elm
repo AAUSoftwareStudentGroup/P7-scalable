@@ -1,43 +1,42 @@
-module UI.Elements exposing (..)
+module UI.Elements exposing (asyncValidatedInput, avatarUrl, content, fixedContent, footer, header, headerLogo, headerNav, headerNavLink, headerNavLinks, iconText, imageElement, imageInput, labelledRadio, link, linkButton, linkButtonFlat, loader, materialIcon, modalBinary, modalMono, msgButton, msgButtonFlat, paragraphProperty, propertyGroup, radio, severestFieldError, simpleInput, site, submitButton, submitButtonHtml, textProperty, titledContent, titledContentLoader, toast, toasts, userCard, validatedInput)
 
-
-import Html exposing (Html, Attribute, div)
+import Api.Types exposing (Gender(..), Image)
+import Api.Users exposing (Match, User)
+import Date exposing (Date)
+import Html exposing (Attribute, Html, div)
 import Html.Attributes as Attributes exposing (class, classList, src)
 import Html.Events as Events
 import Html.Lazy as Lazy
 import Json.Decode as Decode
-import String.Extra exposing (toSentenceCase)
-
-import Routing exposing (Route(..))
-import Session exposing (Details, PageType(..), Session, Notification)
-import Api.Types exposing (Gender(..), Image)
-import Api.Users exposing (User, Match)
-
-import Time
-import Date exposing (Date)
-
 import Random
+import Routing exposing (Route(..))
+import Session exposing (Details, Notification, PageType(..), Session)
+import String.Extra exposing (toSentenceCase)
+import Time
 
 
 site : Session.Details msgA -> (msgA -> msgB) -> List (Html msgB)
 site details toMsg =
     let
-        session = details.session
+        session =
+            details.session
+
         body =
             case details.kids of
                 Scrollable children ->
                     Lazy.lazy2 content toMsg children
+
                 Fixed children ->
                     Lazy.lazy2 fixedContent toMsg children
-
     in
-        [ Lazy.lazy toasts session
-        , div [ class "main-wrapper" ]
-            [ Lazy.lazy header session
-            , body
-            , footer session
-            ]
+    [ Lazy.lazy toasts session
+    , div [ class "main-wrapper" ]
+        [ Lazy.lazy header session
+        , body
+        , footer session
         ]
+    ]
+
 
 toasts : Session -> Html msg
 toasts session =
@@ -50,15 +49,16 @@ toast notification =
     Html.p [ class "toast" ]
         [ Html.text notification.body ]
 
+
 header : Session -> Html msg
 header session =
     Html.header [ class "grid" ]
         [ div
             [ classList
-                    [ ( "header-content", True )
-                    , ( "grid", True )
-                    , ( "l-12", True )
-                    ]
+                [ ( "header-content", True )
+                , ( "grid", True )
+                , ( "l-12", True )
+                ]
             ]
             [ headerLogo
             , headerNav session
@@ -68,7 +68,8 @@ header session =
 
 headerLogo : Html msg
 headerLogo =
-    div [ classList
+    div
+        [ classList
             [ ( "l-6", True )
             , ( "s-8", True )
             ]
@@ -110,24 +111,29 @@ headerNavLinks session =
             , headerNavLink (Routing.routeToString Login) "Sign in"
             ]
 
+
 headerNavLink : String -> String -> Html msg
 headerNavLink url caption =
     Html.li []
         [ link url caption ]
 
+
 footer : Session -> Html msg
 footer session =
     let
-        dateNow = Date.fromPosix Time.utc <| Session.getNow session
-        year = Date.year dateNow
+        dateNow =
+            Date.fromPosix Time.utc <| Session.getNow session
+
+        year =
+            Date.year dateNow
     in
     Html.footer [ class "grid" ]
         [ div
             [ classList
-                    [ ( "footer-content", True )
-                    , ( "grid", True )
-                    , ( "l-12", True )
-                    ]
+                [ ( "footer-content", True )
+                , ( "grid", True )
+                , ( "l-12", True )
+                ]
             ]
             [ div [ class "l-12" ]
                 [ Html.text <| "A people matching service that is also functional! © " ++ String.fromInt year ]
@@ -137,23 +143,24 @@ footer session =
 
 content : (a -> msg) -> List (Html a) -> Html msg
 content toMsg children =
-    Html.map toMsg (
-        div [ class "content-container", class "grid" ]
+    Html.map toMsg
+        (div [ class "content-container", class "grid" ]
             children
-    )
+        )
 
 
 fixedContent : (a -> msg) -> List (Html a) -> Html msg
 fixedContent toMsg children =
-    Html.map toMsg (
-        div [ classList
+    Html.map toMsg
+        (div
+            [ classList
                 [ ( "content-container", True )
                 , ( "fixed", True )
                 , ( "grid", True )
                 ]
             ]
             children
-    )
+        )
 
 
 titledContent : String -> List (Html msg) -> List (Html msg)
@@ -166,61 +173,71 @@ titledContent heading contents =
             ]
         ]
         [ Html.text heading ]
-    ] ++ contents
+    ]
+        ++ contents
 
 
 titledContentLoader : Bool -> String -> List (Html msg) -> List (Html msg)
 titledContentLoader isLoaded heading contents =
     if isLoaded then
         titledContent heading contents
+
     else
         titledContent heading loader
+
 
 loader : List (Html msg)
 loader =
     [ div [ class "loading-spinner" ] [] ]
 
+
 userCard : Match -> Int -> Html msg
 userCard match age =
     let
-        username = match.user.username
-        gender = Api.Types.genderToString match.user.gender
-        bio = match.user.profileText
+        username =
+            match.user.username
+
+        gender =
+            Api.Types.genderToString match.user.gender
+
+        bio =
+            match.user.profileText
     in
-        Html.li
-            [ classList [ ( "user-card", True )
-                        , ( "l-4", True )
-                        , ( "s-12", True )
-                        ]
+    Html.li
+        [ classList
+            [ ( "user-card", True )
+            , ( "l-4", True )
+            , ( "s-12", True )
             ]
-            [ Html.a [ class "profile-image",  Attributes.href (Routing.routeToString (Profile username)) ]
-                [ div [ Attributes.style "background-image" ("url(" ++ match.user.image ++ ")") ] [] ]
-            , div [ class "pri-title" ]
-                [ Html.h2 []
-                    [ Html.text (toSentenceCase username) ]
-                , Html.h3 []
-                    [ Html.text (gender ++ " - " ++ String.fromInt age) ]
-                ]
-            , Html.p []
-                [ Html.text bio ]
-            , linkButtonFlat
-                [ classList
-                    [ ("l-2", True)
-                    , ("s-2", True)
-                    ]
-                ]
-                (Routing.routeToString (Profile username))
-                [ iconText "Profile" "perm_identity" ]
-            , linkButtonFlat
-                [ classList
-                    [ ("l-2", True)
-                    , ("s-2", True)
-                    ]
-                ]
-                (Routing.routeToString (Messages username))
-                [ iconText "Chat" "chat" ]
-            , Html.text <| String.fromFloat match.score
+        ]
+        [ Html.a [ class "profile-image", Attributes.href (Routing.routeToString (Profile username)) ]
+            [ div [ Attributes.style "background-image" ("url(" ++ match.user.image ++ ")") ] [] ]
+        , div [ class "pri-title" ]
+            [ Html.h2 []
+                [ Html.text (toSentenceCase username) ]
+            , Html.h3 []
+                [ Html.text (gender ++ " - " ++ String.fromInt age) ]
             ]
+        , Html.p []
+            [ Html.text bio ]
+        , linkButtonFlat
+            [ classList
+                [ ( "l-2", True )
+                , ( "s-2", True )
+                ]
+            ]
+            (Routing.routeToString (Profile username))
+            [ iconText "Profile" "perm_identity" ]
+        , linkButtonFlat
+            [ classList
+                [ ( "l-2", True )
+                , ( "s-2", True )
+                ]
+            ]
+            (Routing.routeToString (Messages username))
+            [ iconText "Chat" "chat" ]
+        , Html.text <| String.fromFloat match.score
+        ]
 
 
 avatarUrl : User -> String
@@ -230,20 +247,25 @@ avatarUrl user =
             case user.gender of
                 Male ->
                     "men"
+
                 Female ->
                     "women"
+
                 Other ->
                     "lego"
+
         maxId =
             case user.gender of
                 Male ->
                     100
+
                 Female ->
                     100
+
                 Other ->
                     9
     in
-        "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ user.username ++ ".jpg"
+    "https://randomuser.me/api/portraits/" ++ genderString ++ "/" ++ user.username ++ ".jpg"
 
 
 iconText : String -> String -> Html msg
@@ -253,8 +275,9 @@ iconText label iconName =
         , Html.text label
         ]
 
+
 materialIcon : String -> Html msg
-materialIcon iconName = 
+materialIcon iconName =
     Html.i [ class "material-icons" ]
         [ Html.text iconName ]
 
@@ -273,6 +296,7 @@ textProperty labelText propertyText =
             [ Html.text propertyText ]
         ]
 
+
 propertyGroup : String -> String -> Html msg
 propertyGroup label value =
     div
@@ -287,6 +311,7 @@ propertyGroup label value =
         , Html.span [ class "value" ]
             [ Html.text value ]
         ]
+
 
 paragraphProperty : String -> String -> Html msg
 paragraphProperty labelText propertyText =
@@ -308,104 +333,124 @@ linkButton attributes url children =
     Html.a ([ class "btn", Attributes.href url ] ++ attributes)
         children
 
+
 linkButtonFlat : List (Attribute msg) -> String -> List (Html msg) -> Html msg
 linkButtonFlat attributes url children =
     Html.a ([ class "flat-btn", Attributes.href url ] ++ attributes)
         children
+
 
 msgButton : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
 msgButton attributes msg children =
     Html.div ([ class "btn", Events.onClick msg ] ++ attributes)
         children
 
+
 msgButtonFlat : List (Attribute msg) -> msg -> List (Html msg) -> Html msg
 msgButtonFlat attributes msg children =
     Html.div ([ class "flat-btn", Events.onClick msg ] ++ attributes)
         children
+
 
 link : String -> String -> Html msg
 link url caption =
     Html.a [ Attributes.href url ]
         [ Html.text caption ]
 
-validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Html msg
+
+validatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ( fieldType, String ) -> Bool -> Html msg
 validatedInput field typ caption value toMsg required errors showErrors =
     let
-        relevantErrors = List.filter (\( f, _ ) -> f == field) errors
-        empty = value == ""
-        valid = relevantErrors == []
-    in
-        div [ classList
-                [ ( "input-group", True )
-                , ( "l-6", True )
-                , ( "s-12", True )
-                , ( "empty", empty )
-                , ( "valid", valid )
-                ]
-            ]
-            [ Html.label []
-                [ simpleInput typ caption value (toMsg field) required
-                , Html.span [ class "label" ]
-                    [ Html.text caption ]
-                , Html.span [ class "border" ] []
-                ]
-            , Html.span
-                [ classList
-                    [ ( "errors", True )
-                    , ( "hidden", not showErrors )
-                    ]
-                ]
-                [ severestFieldError relevantErrors ]
-            ]
+        relevantErrors =
+            List.filter (\( f, _ ) -> f == field) errors
 
-asyncValidatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ((fieldType, String)) -> Bool -> Bool -> Html msg
+        empty =
+            value == ""
+
+        valid =
+            relevantErrors == []
+    in
+    div
+        [ classList
+            [ ( "input-group", True )
+            , ( "l-6", True )
+            , ( "s-12", True )
+            , ( "empty", empty )
+            , ( "valid", valid )
+            ]
+        ]
+        [ Html.label []
+            [ simpleInput typ caption value (toMsg field) required
+            , Html.span [ class "label" ]
+                [ Html.text caption ]
+            , Html.span [ class "border" ] []
+            ]
+        , Html.span
+            [ classList
+                [ ( "errors", True )
+                , ( "hidden", not showErrors )
+                ]
+            ]
+            [ severestFieldError relevantErrors ]
+        ]
+
+
+asyncValidatedInput : fieldType -> String -> String -> String -> (fieldType -> String -> msg) -> Bool -> List ( fieldType, String ) -> Bool -> Bool -> Html msg
 asyncValidatedInput field typ caption value toMsg required errors showErrors pending =
     let
-        relevantErrors = List.filter (\( f, _ ) -> f == field) errors
-        empty = value == ""
-        valid = relevantErrors == []
+        relevantErrors =
+            List.filter (\( f, _ ) -> f == field) errors
+
+        empty =
+            value == ""
+
+        valid =
+            relevantErrors == []
     in
-        div [ classList
-                [ ( "input-group", True )
-                , ( "l-6", True )
-                , ( "s-12", True )
-                , ( "empty", empty )
-                , ( "valid", valid )
-                , ( "pending", pending )
+    div
+        [ classList
+            [ ( "input-group", True )
+            , ( "l-6", True )
+            , ( "s-12", True )
+            , ( "empty", empty )
+            , ( "valid", valid )
+            , ( "pending", pending )
+            ]
+        ]
+        [ Html.label []
+            [ simpleInput typ caption value (toMsg field) required
+            , Html.span [ class "label" ]
+                [ Html.text caption ]
+            , Html.span [ class "border" ] []
+            ]
+        , Html.span
+            [ classList
+                [ ( "errors", True )
+                , ( "hidden", not showErrors )
                 ]
             ]
-            [ Html.label []
-                [ simpleInput typ caption value (toMsg field) required
-                , Html.span [ class "label" ]
-                    [ Html.text caption ]
-                , Html.span [ class "border" ] []
-                ]
-            , Html.span
-                [ classList
-                    [ ( "errors", True )
-                    , ( "hidden", not showErrors )
-                    ]
-                ]
-                [ severestFieldError relevantErrors ]
-            ]
+            [ severestFieldError relevantErrors ]
+        ]
 
 
-
-severestFieldError : List ((fieldtype, String)) -> Html msg
+severestFieldError : List ( fieldtype, String ) -> Html msg
 severestFieldError errors =
     let
-        maybeError = List.head errors
+        maybeError =
+            List.head errors
     in
-        case maybeError of
-            Nothing ->
-                Html.text ""
-            Just (_, errorDesc) ->
-                Html.text errorDesc
+    case maybeError of
+        Nothing ->
+            Html.text ""
+
+        Just ( _, errorDesc ) ->
+            Html.text errorDesc
 
 
-labelledRadio : String -> (a -> msg) -> a -> List (String, a) -> Html msg
+labelledRadio : String -> (a -> msg) -> a -> List ( String, a ) -> Html msg
 labelledRadio caption toMsg modelVal options =
-    div [ classList
+    div
+        [ classList
             [ ( "radio-group", True )
             , ( "l-6", True )
             , ( "s-12", True )
@@ -413,8 +458,9 @@ labelledRadio caption toMsg modelVal options =
         ]
         ([ Html.label []
             [ Html.text caption ]
-        ] ++ List.map (\(name, value) -> radio name toMsg modelVal value) options)
-
+         ]
+            ++ List.map (\( name, value ) -> radio name toMsg modelVal value) options
+        )
 
 
 radio : String -> (a -> msg) -> a -> a -> Html msg
@@ -432,6 +478,7 @@ simpleInput : String -> String -> String -> (String -> msg) -> Bool -> Html msg
 simpleInput typ placeholder value toMsg required =
     if typ == "multiline" then
         Html.textarea [ Attributes.placeholder placeholder, Attributes.value value, Events.onInput toMsg ] []
+
     else
         Html.input [ Attributes.type_ typ, Attributes.placeholder placeholder, Attributes.value value, Attributes.required required, Events.onInput toMsg ] []
 
@@ -443,16 +490,19 @@ imageInput caption imageSelectedMsg maybeImage =
             case maybeImage of
                 Just image ->
                     False
+
                 Nothing ->
                     True
+
         imageURI =
             case maybeImage of
                 Just image ->
                     "url(" ++ image.contents ++ ")"
+
                 Nothing ->
                     ""
     in
-        div
+    div
         [ classList
             [ ( "image-input-group", True )
             , ( "no-image", noImage )
@@ -475,35 +525,41 @@ imageInput caption imageSelectedMsg maybeImage =
         ]
 
 
-imageElement : Image -> List (String, Bool) -> Html msg
+imageElement : Image -> List ( String, Bool ) -> Html msg
 imageElement image classes =
-  Html.img
-    [ Attributes.src image.contents
-    , Attributes.title image.filename
-    , classList classes
-    ]
-    []
+    Html.img
+        [ Attributes.src image.contents
+        , Attributes.title image.filename
+        , classList classes
+        ]
+        []
 
 
-submitButton : List (String, Bool) -> String -> Html msg
+submitButton : List ( String, Bool ) -> String -> Html msg
 submitButton classes caption =
     Html.button
         [ Attributes.type_ "submit"
         , classList
             ([ ( "btn", True )
-            ] ++ classes)
+             ]
+                ++ classes
+            )
         ]
         [ Html.text caption ]
 
-submitButtonHtml : List (String, Bool) -> List (Html msg) -> Html msg
+
+submitButtonHtml : List ( String, Bool ) -> List (Html msg) -> Html msg
 submitButtonHtml classes children =
     Html.button
         [ Attributes.type_ "submit"
         , classList
             ([ ( "btn", True )
-            ] ++ classes)
+             ]
+                ++ classes
+            )
         ]
         children
+
 
 modalMono : String -> String -> msg -> Html msg
 modalMono caption btnText toMsg =
@@ -513,9 +569,11 @@ modalMono caption btnText toMsg =
         , Html.button
             [ Events.onClick toMsg
             , class "btn"
-            , class "accept" ]
+            , class "accept"
+            ]
             [ Html.text btnText ]
         ]
+
 
 modalBinary : String -> String -> msg -> String -> msg -> Html msg
 modalBinary caption accBtnText accMsg decBtnText decMsg =
@@ -525,11 +583,13 @@ modalBinary caption accBtnText accMsg decBtnText decMsg =
         , Html.button
             [ Events.onClick accMsg
             , class "btn"
-            , class "accept" ]
+            , class "accept"
+            ]
             [ Html.text accBtnText ]
         , Html.button
             [ Events.onClick decMsg
             , class "btn"
-            , class "decline" ]
+            , class "decline"
+            ]
             [ Html.text decBtnText ]
         ]

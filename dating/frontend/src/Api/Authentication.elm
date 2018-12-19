@@ -1,25 +1,29 @@
-module Api.Authentication exposing (Token, UserInfo, Credentials, createAuthHeader, credentialsEncoder, credentialsDecoder)
+module Api.Authentication exposing (Credentials, Token, UserInfo, createAuthHeader, credentialsDecoder, credentialsEncoder)
 
-import Json.Encode as Encode
+import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline as Pipeline
-import Http
+import Json.Encode as Encode
 import String
 import Url
 
 
-type alias Token = String
+type alias Token =
+    String
+
 
 type alias UserInfo =
-    { authToken   : Token
-    , username    : String
-    , firstLogIn  : Bool
+    { authToken : Token
+    , username : String
+    , firstLogIn : Bool
     }
+
 
 type alias Credentials =
     { username : String
     , password : String
     }
+
 
 credentialsEncoder : Credentials -> Encode.Value
 credentialsEncoder x =
@@ -38,4 +42,4 @@ credentialsDecoder =
 
 createAuthHeader : UserInfo -> Http.Header
 createAuthHeader userInfo =
-  Http.header "Auth-Token" ("dating-auth-cookie=" ++ userInfo.authToken)
+    Http.header "Auth-Token" ("dating-auth-cookie=" ++ userInfo.authToken)

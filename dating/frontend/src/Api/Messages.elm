@@ -1,40 +1,47 @@
-module Api.Messages exposing (Message, Conversation, ConversationPreview, emptyConvoPreview, emptyMessage, postMessage, getMessagesFromUsername, getConvoPreview)
+module Api.Messages exposing (Conversation, ConversationPreview, Message, emptyConvoPreview, emptyMessage, getConvoPreview, getMessagesFromUsername, postMessage)
 
-import Json.Encode as Encode
+import Api.ApiLocation exposing (apiLocation)
+import Api.Authentication as Auth exposing (UserInfo)
+import Http
+import Iso8601
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline as Pipeline
-import Http
+import Json.Encode as Encode
 import String
-import Url
 import Time as Time
-import Iso8601
+import Url
 
-import Api.Authentication as Auth exposing (UserInfo)
-import Api.ApiLocation exposing (apiLocation)
 
 type alias Message =
-    { body          : String
-    , authorName    : String
-    , timeStamp     : Time.Posix
+    { body : String
+    , authorName : String
+    , timeStamp : Time.Posix
     }
+
 
 type alias ConversationPreview =
     { convoWithUsername : String
-    , body              : String
-    , isLastAuthor      : Bool
-    , timeStamp         : Time.Posix
+    , body : String
+    , isLastAuthor : Bool
+    , timeStamp : Time.Posix
     }
+
 
 type alias Conversation =
     { convoWithUsername : String
-    , messages          : List Message
+    , messages : List Message
     }
 
+
 emptyConvoPreview : ConversationPreview
-emptyConvoPreview = ConversationPreview "" "" True <| Time.millisToPosix 0
+emptyConvoPreview =
+    ConversationPreview "" "" True <| Time.millisToPosix 0
+
 
 emptyMessage : Message
-emptyMessage = Message "" "" <| Time.millisToPosix 0
+emptyMessage =
+    Message "" "" <| Time.millisToPosix 0
+
 
 encodeMessage : String -> Encode.Value
 encodeMessage x =
@@ -54,7 +61,7 @@ decodeConversation : Decoder Conversation
 decodeConversation =
     Decode.succeed Conversation
         |> Pipeline.required "convoWithUsername" Decode.string
-        |> Pipeline.required "messages" (Decode.list (decodeMessage))
+        |> Pipeline.required "messages" (Decode.list decodeMessage)
 
 
 decodeConvoPreview : Decoder ConversationPreview
@@ -66,14 +73,13 @@ decodeConvoPreview =
         |> Pipeline.required "timeStamp" Iso8601.decoder
 
 
-
-postMessage : UserInfo -> String -> String -> Http.Request (String.String)
+postMessage : UserInfo -> String -> String -> Http.Request String.String
 postMessage userInfo message to =
     Http.request
         { method =
             "POST"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation
@@ -90,13 +96,14 @@ postMessage userInfo message to =
             False
         }
 
+
 getMessagesFromUsername : UserInfo -> String -> Int -> Int -> Http.Request Conversation
 getMessagesFromUsername userInfo username offset pageSize =
     Http.request
         { method =
             "GET"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation
@@ -115,13 +122,14 @@ getMessagesFromUsername userInfo username offset pageSize =
             False
         }
 
-getConvoPreview : UserInfo -> Http.Request (List (ConversationPreview))
+
+getConvoPreview : UserInfo -> Http.Request (List ConversationPreview)
 getConvoPreview userInfo =
     Http.request
         { method =
             "GET"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation

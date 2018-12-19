@@ -1,21 +1,18 @@
 module Page.EditUser exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Html exposing (Html, div)
-import Html.Attributes as Attributes exposing (class, classList, style, attribute)
-import Html.Events as Events exposing (onClick)
-import Validate exposing (Validator, Valid)
-import String
-import Http
-
-import Session exposing (Session, Details)
-import Routing exposing (Route(..))
-import Session exposing (Session, PageType(..))
-import Ports.FileUploadPort exposing (FilePortData, fileSelected, fileContentRead)
-import UI.Elements as El
-
-import Api.Types exposing (Gender(..), Image, dateToString)
 import Api.Authentication exposing (UserInfo)
-import Api.Users exposing (User, EditUserDTO)
+import Api.Types exposing (Gender(..), Image, dateToString)
+import Api.Users exposing (EditUserDTO, User)
+import Html exposing (Html, div)
+import Html.Attributes as Attributes exposing (attribute, class, classList, style)
+import Html.Events as Events exposing (onClick)
+import Http
+import Ports.FileUploadPort exposing (FilePortData, fileContentRead, fileSelected)
+import Routing exposing (Route(..))
+import Session exposing (Details, PageType(..), Session)
+import String
+import UI.Elements as El
+import Validate exposing (Valid, Validator)
 
 
 
@@ -28,12 +25,12 @@ type alias Model =
     , loaded              : Bool
     , errors              : List (Error)
     , attemptedSubmission : Bool
-    , password1           : (Bool, String)
-    , password2           : (Bool, String)
-    , gender              : (Bool, Gender)
-    , birthday            : (Bool, String)
-    , city                : (Bool, String)
-    , bio                 : (Bool, String)
+    , password1           : ( Bool, String )
+    , password2           : ( Bool, String )
+    , gender              : ( Bool, Gender )
+    , birthday            : ( Bool, String )
+    , city                : ( Bool, String )
+    , bio                 : ( Bool, String )
     , mImage              : Maybe Image
     }
 
@@ -52,7 +49,8 @@ type FormField
 
 emptyModel : Session -> Model
 emptyModel session =
-     Model session "Edit profile" False [] False (False, "") (False, "") (False, Male) (False, "") (False, "") (False, "") Nothing
+    Model session "Edit profile" False [] False ( False, "" ) ( False, "" ) ( False, Male ) ( False, "" ) ( False, "" ) ( False, "" ) Nothing
+
 
 init : Session -> ( Model, Cmd Msg )
 init session =
@@ -61,10 +59,12 @@ init session =
             ( emptyModel session
             , Routing.goToLogin (Session.getNavKey session)
             )
+
         Session.LoggedIn _ _ _ userInfo ->
             ( updateErrors (emptyModel session)
             , sendGetUser HandleGetUser userInfo.username session
             )
+
 
 
 -- UPDATE
@@ -86,27 +86,27 @@ update msg model =
         HandleGetUser result ->
             case result of
                 Ok { username, gender, birthday, town, profileText, image } ->
-                    ( updateErrors { model | gender = (False, gender), birthday = (False, dateToString birthday), city = (False, town), bio = (False, profileText), loaded = True }, Cmd.none )
+                    ( updateErrors { model | gender = ( False, gender ), birthday = ( False, dateToString birthday ), city = ( False, town ), bio = ( False, profileText ), loaded = True }, Cmd.none )
+
                 Err errResponse ->
                     case errResponse of
                         Http.BadStatus response ->
-                            if (response.status.code == 403) then
+                            if response.status.code == 403 then
                                 ( model, Session.logout )
+
                             else
                                 ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+
                         _ ->
                             ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
-
 
         FormFieldChanged field value ->
             ( updateErrors <| setField model field value
             , Cmd.none
             )
 
-
         GenderChanged newGender ->
-            ( { model | gender = (True, newGender) }, Cmd.none )
-
+            ( { model | gender = ( True, newGender ) }, Cmd.none )
 
         FileSelected ->
             ( model
@@ -115,17 +115,18 @@ update msg model =
 
         FileRead portData ->
             let
-                image = Just (Image portData.contents portData.fileName)
+                image =
+                    Just (Image portData.contents portData.fileName)
             in
                 if portData.error == "" then
-                    ( { model | mImage = image}
+                ( { model | mImage = image }
                     , Cmd.none
                     )
+
                 else
                     ( { model | mImage = Nothing, session = Session.addNotification model.session portData.error }
                     , Cmd.none
                     )
-
 
         Submitted ->
             case Validate.validate modelValidator model of
@@ -133,41 +134,49 @@ update msg model =
                     ( { model | errors = [] }
                     , sendEditUser HandleUserUpdated (userFromValidForm validForm) model.session
                     )
+
                 Err errors ->
                     ( { model | errors = errors, attemptedSubmission = True }
                     , Cmd.none
                     )
 
-
         HandleUserUpdated result ->
             case result of
                 Ok userInfo ->
                     ( model
-                    , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString (Profile userInfo.username)))
+                    , Routing.replaceUrl (Session.getNavKey model.session) (Routing.routeToString (Profile userInfo.username))
+                    )
 
                 Err errResponse ->
                        case errResponse of
                            Http.BadStatus response ->
-                               if (response.status.code == 403) then
+                            if response.status.code == 403 then
                                    ( model, Session.logout )
+
                                else
                                    ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+
                            _ ->
                                ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
+
 
 setField : Model -> FormField -> String -> Model
 setField model field value =
     case field of
         Password1 ->
-            { model | password1 = (value /= "", value) }
+            { model | password1 = ( value /= "", value ) }
+
         Password2 ->
-            { model | password2 = (value /= "", value) }
+            { model | password2 = ( value /= "", value ) }
+
         Birthday ->
-            { model | birthday = (True, value) }
+            { model | birthday = ( True, value ) }
+
         City ->
-            { model | city = (True, value) }
+            { model | city = ( True, value ) }
+
         Bio ->
-            { model | bio = (True, value) }
+            { model | bio = ( True, value ) }
 
 
 updateErrors : Model -> Model
@@ -175,8 +184,10 @@ updateErrors model =
     case Validate.validate modelValidator model of
         Ok validForm ->
             { model | errors = [] }
+
         Err errors ->
             { model | errors = errors }
+
 
 
 -- SUBSCRIPTIONS
@@ -202,27 +213,32 @@ userFromModel { password1, gender, birthday, city, bio, mImage } =
     , image         = (changedTupleToMaybe (encodeMaybeImage mImage))
     }
 
-changedTupleToMaybe : (Bool, dataType) -> Maybe dataType
-changedTupleToMaybe (changed, data) =
+
+changedTupleToMaybe : ( Bool, dataType ) -> Maybe dataType
+changedTupleToMaybe ( changed, data ) =
     if changed then
         Just data
+
     else
         Nothing
 
-encodeMaybeImage : Maybe Image -> (Bool, String)
+
+encodeMaybeImage : Maybe Image -> ( Bool, String )
 encodeMaybeImage mImg =
     case mImg of
         Just img ->
          case List.head <| List.drop 1 (String.split "base64," img.contents) of
              Just data ->
-                (True, data)
+                    ( True, data )
+
              Nothing ->
-                (False, "")
+                    ( False, "" )
+
         Nothing ->
-            (False, "")
+            ( False, "" )
 
 
-sendEditUser : (Result Http.Error (UserInfo) -> msg) -> EditUserDTO -> Session -> Cmd msg
+sendEditUser : (Result Http.Error UserInfo -> msg) -> EditUserDTO -> Session -> Cmd msg
 sendEditUser responseMsg user session =
     case session of
         Session.LoggedIn _ _ _ userInfo ->
@@ -252,63 +268,80 @@ responseToString r =
             "No messages"
 
 
+
 -- VIEW
+
 
 view : Model -> Session.Details Msg
 view model =
     let
-        password1 = Tuple.second model.password1
-        password2 = Tuple.second model.password2
-        city = Tuple.second model.city
-        bio = Tuple.second model.bio
-        birthday = Tuple.second model.birthday
-        gender = Tuple.second model.gender
+        password1 =
+            Tuple.second model.password1
+
+        password2 =
+            Tuple.second model.password2
+
+        city =
+            Tuple.second model.city
+
+        bio =
+            Tuple.second model.bio
+
+        birthday =
+            Tuple.second model.birthday
+
+        gender =
+            Tuple.second model.gender
     in
         { title = model.title
         , session = model.session
-        , kids = Scrollable
-            <| El.titledContentLoader model.loaded model.title
-                [ Html.form [ classList
+    , kids =
+        Scrollable <|
+            El.titledContentLoader model.loaded
+                model.title
+                [ Html.form
+                    [ classList
                                 [ ( "grid", True )
                                 , ( "l-12", True )
                                 ]
                             , Events.onSubmit Submitted
                             ]
                     [ El.validatedInput Password1 "password" "New password" password1 FormFieldChanged False model.errors model.attemptedSubmission
-                    , El.validatedInput Password2 "password" "Repeat new password"  password2 FormFieldChanged False model.errors model.attemptedSubmission
+                    , El.validatedInput Password2 "password" "Repeat new password" password2 FormFieldChanged False model.errors model.attemptedSubmission
                     , El.validatedInput City "text" "City" city FormFieldChanged False model.errors model.attemptedSubmission
                     , El.validatedInput Bio "text" "Description" bio FormFieldChanged False model.errors model.attemptedSubmission
                     , El.validatedInput Birthday "date" "Birthday" birthday FormFieldChanged False model.errors model.attemptedSubmission
-                    , El.labelledRadio "Gender" GenderChanged gender
+                    , El.labelledRadio "Gender"
+                        GenderChanged
+                        gender
                         [ ( "Male", Male )
                         , ( "Female", Female )
                         , ( "Other", Other )
                         ]
                     , El.imageInput "Profile picture" FileSelected model.mImage
                     , El.submitButton
-                        [ ( "l-8", True)
+                        [ ( "l-8", True )
                         , ( "s-4", True )
-                        , ( "right", True ) ]
+                        , ( "right", True )
+                        ]
                         "Update"
                     ]
                 ]
         }
 
 
+
 -- VALIDATION
+
 
 modelValidator : Validator ( FormField, String ) Model
 modelValidator =
     Validate.all
         [ Validate.ifFalse (\model -> doPasswordsMatch model) ( Password2, "Passwords don't match" )
-
         , Validate.ifTrue (\model -> Validate.isBlank <| Tuple.second model.birthday) ( Birthday, "Please enter your birthday" )
-
-        , Validate.ifFalse (\model -> isDateValidFormat model ) ( Birthday, "Please enter birthday in a valid format" )
-        , Validate.ifFalse (\model -> isDateValid model ) ( Birthday, "You must be at least 18 years old" )
-
+        , Validate.ifFalse (\model -> isDateValidFormat model) ( Birthday, "Please enter birthday in a valid format" )
+        , Validate.ifFalse (\model -> isDateValid model) ( Birthday, "You must be at least 18 years old" )
         , Validate.ifTrue (\model -> Validate.isBlank <| Tuple.second model.city) ( City, "Please enter your city" )
-
         , Validate.ifTrue (\model -> Validate.isBlank <| Tuple.second model.bio) ( Bio, "Please write a short description" )
         ]
 
@@ -321,18 +354,35 @@ doPasswordsMatch model =
 isDateValidFormat : Model -> Bool
 isDateValidFormat model =
     let
-        date = Tuple.second model.birthday
-        dateLength = String.length date
-        year = Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
-        month = Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
-        day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
+        date =
+            Tuple.second model.birthday
 
-        separators = String.slice 4 5 date ++ String.slice 7 8 date
+        dateLength =
+            String.length date
 
-        isYearNice = year >= 0 && year <= 9999
-        isMonthNice = month >= 0 && month <= 12
-        isDayNice = day >= 0 && day <= 31
-        isSeparatorsNice = separators == "--"
+        year =
+            Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
+
+        month =
+            Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
+
+        day =
+            Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
+
+        separators =
+            String.slice 4 5 date ++ String.slice 7 8 date
+
+        isYearNice =
+            year >= 0 && year <= 9999
+
+        isMonthNice =
+            month >= 0 && month <= 12
+
+        isDayNice =
+            day >= 0 && day <= 31
+
+        isSeparatorsNice =
+            separators == "--"
     in
         dateLength == 10 && isYearNice && isSeparatorsNice && isMonthNice && isDayNice
 
@@ -340,9 +390,16 @@ isDateValidFormat model =
 isDateValid : Model -> Bool
 isDateValid model =
     let
-        date = Tuple.second model.birthday
-        year = Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
-        month = Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
-        day = Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
+        date =
+            Tuple.second model.birthday
+
+        year =
+            Maybe.withDefault -1 (String.toInt (String.slice 0 4 date))
+
+        month =
+            Maybe.withDefault -1 (String.toInt (String.slice 5 7 date))
+
+        day =
+            Maybe.withDefault -1 (String.toInt (String.slice 8 10 date))
     in
         year <= 2000

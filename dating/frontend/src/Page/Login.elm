@@ -1,35 +1,36 @@
 module Page.Login exposing (Model, Msg(..), init, update, view)
 
+import Api.Authentication exposing (Credentials, UserInfo)
+import Api.Users exposing (User)
 import Browser
 import Html exposing (Html, div)
 import Html.Attributes as Attributes exposing (classList)
 import Html.Events as Events
-import Validate exposing (Validator, Valid)
 import Http
-import String
-
-
-import Api.Authentication exposing (UserInfo, Credentials)
-import Api.Users exposing (User)
-import Session exposing (Session, Notification, PageType(..), Details)
 import Routing exposing (Route(..))
+import Session exposing (Details, Notification, PageType(..), Session)
+import String
 import UI.Elements as El
+import Validate exposing (Valid, Validator)
+
 
 
 -- MODEL
 
 
 type alias Model =
-    { session   : Session
-    , title     : String
-    , errors    : List (Error)
-    , attemptedSubmission: Bool
-    , username  : String
-    , password  : String
+    { session  : Session
+    , title    : String
+    , errors   : List Error
+    , attemptedSubmission : Bool
+    , username : String
+    , password : String
     }
+
 
 type alias Error =
     ( FormField, String )
+
 
 type FormField
     = Username
@@ -46,11 +47,13 @@ emptyModel session =
     , password = ""
     }
 
+
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( emptyModel session
     , Cmd.none
     )
+
 
 
 -- UPDATE
@@ -61,18 +64,21 @@ type Msg
     | Submitted
     | HandleUserLogin (Result Http.Error UserInfo)
 
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FormFieldChanged field value ->
             let
-                newModel = setField model field value
+                newModel =
+                    setField model field value
             in
             case Validate.validate modelValidator newModel of
                 Ok validForm ->
                     ( { newModel | errors = [] }
                     , Cmd.none
                     )
+
                 Err errors ->
                     ( { newModel | errors = errors }
                     , Cmd.none
@@ -84,6 +90,7 @@ update msg model =
                     ( { model | errors = [] }
                     , sendLogin HandleUserLogin (credsFromValidForm validForm)
                     )
+
                 Err errors ->
                     ( { model | errors = errors, attemptedSubmission = True }
                     , Cmd.none
@@ -107,6 +114,7 @@ setField model field value =
     case field of
         Username ->
             { model | username = value }
+
         Password ->
             { model | password = value }
 
@@ -114,9 +122,10 @@ setField model field value =
 credsFromValidForm : Valid Model -> Credentials
 credsFromValidForm validForm =
     let
-        model = Validate.fromValid validForm
+        model =
+            Validate.fromValid validForm
     in
-        Credentials model.username model.password
+    Credentials model.username model.password
 
 
 sendLogin : (Result Http.Error UserInfo -> msg) -> Credentials -> Cmd msg
@@ -143,6 +152,7 @@ handleErrors model error =
             { model | session = Session.addNotification model.session ("Error: " ++ .body statusResponse) }
 
 
+
 -- VIEW
 
 
@@ -150,24 +160,28 @@ view : Model -> Session.Details Msg
 view model =
     { title = model.title
     , session = model.session
-    , kids = Scrollable
-        <| El.titledContent "Sign in"
-            [ Html.form [ classList
-                            [ ( "grid", True )
-                            , ( "l-12", True )
-                            , ( "s-12", True )
-                            ]
-                        , Events.onSubmit Submitted
+    , kids =
+        Scrollable <|
+            El.titledContent "Sign in"
+                [ Html.form
+                    [ classList
+                        [ ( "grid", True )
+                        , ( "l-12", True )
+                        , ( "s-12", True )
                         ]
-                [ El.validatedInput Username "text" "Username" model.username FormFieldChanged True model.errors model.attemptedSubmission
-                , El.validatedInput Password "password" "Password" model.password FormFieldChanged True model.errors model.attemptedSubmission
-                , El.submitButton
-                    [ ( "l-12", True)
-                    , ( "right", True) ]
-                    "Sign in"
+                    , Events.onSubmit Submitted
+                    ]
+                    [ El.validatedInput Username "text" "Username" model.username FormFieldChanged True model.errors model.attemptedSubmission
+                    , El.validatedInput Password "password" "Password" model.password FormFieldChanged True model.errors model.attemptedSubmission
+                    , El.submitButton
+                        [ ( "l-12", True )
+                        , ( "right", True )
+                        ]
+                        "Sign in"
+                    ]
                 ]
-            ]
     }
+
 
 
 -- VALIDATION

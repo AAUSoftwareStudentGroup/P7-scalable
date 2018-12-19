@@ -71,29 +71,39 @@ validJsonUser =
         , ( "userGender", encodeGender Male )
         ]
 
+
 validJsonGenderMale : Json.Encode.Value
 validJsonGenderMale =
-  Json.Encode.object
-    [ ("userGender", Json.Encode.string "Male" ) ]
+    Json.Encode.object
+        [ ( "userGender", Json.Encode.string "Male" ) ]
+
 
 validJsonGenderFemale : Json.Encode.Value
 validJsonGenderFemale =
-  Json.Encode.object
-    [ ("userGender", Json.Encode.string "Female" ) ]
+    Json.Encode.object
+        [ ( "userGender", Json.Encode.string "Female" ) ]
+
 
 validJsonGenderOther : Json.Encode.Value
 validJsonGenderOther =
-  Json.Encode.object
-    [ ("userGender", Json.Encode.string "Other" ) ]
+    Json.Encode.object
+        [ ( "userGender", Json.Encode.string "Other" ) ]
+
 
 validGenderMale : Gender
-validGenderMale = Male
+validGenderMale =
+    Male
+
 
 validGenderFemale : Gender
-validGenderFemale = Female
+validGenderFemale =
+    Female
+
 
 validGenderOther : Gender
-validGenderOther = Other
+validGenderOther =
+    Other
+
 
 validUser : User
 validUser =

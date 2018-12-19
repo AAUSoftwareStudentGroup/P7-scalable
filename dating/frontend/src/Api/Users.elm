@@ -1,18 +1,17 @@
-module Api.Users exposing (Match, NewUser, EditUserDTO, User, getAge, postUsers, postLogin, postEditUser, postLogout, getUserByUsername, getUserAlreadyExists, getUsers, getMatches, emptyUser, encodeUserInfo, decodeUserInfo)
-
-import Json.Encode as Encode
-import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline as Pipeline
-import Http
-import String
-import Url
-import Time
-import Date exposing(Date, diff, Unit(..))
-
-import Api.Types exposing (Gender(..))
-import Api.Authentication as Auth exposing (UserInfo, Token, Credentials)
+module Api.Users exposing (EditUserDTO, Match, NewUser, User, decodeUserInfo, emptyUser, encodeUserInfo, getAge, getMatches, getUserAlreadyExists, getUserByUsername, getUsers, postEditUser, postLogin, postLogout, postUsers)
 
 import Api.ApiLocation exposing (apiLocation)
+import Api.Authentication as Auth exposing (Credentials, Token, UserInfo)
+import Api.Types exposing (Gender(..))
+import Date exposing (Date, Unit(..), diff)
+import Http
+import Json.Decode as Decode exposing (Decoder)
+import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
+import String
+import Time
+import Url
+
 
 type alias NewUser =
     { email         : String
@@ -25,6 +24,7 @@ type alias NewUser =
     , image         : String
     }
 
+
 type alias EditUserDTO =
     { password      : Maybe String
     , gender        : Maybe Gender
@@ -33,6 +33,7 @@ type alias EditUserDTO =
     , profileText   : Maybe String
     , image         : Maybe String
     }
+
 
 type alias User =
     { username      : String
@@ -43,10 +44,12 @@ type alias User =
     , image         : String
     }
 
+
 type alias Match =
     { user  : User
     , score : Float
     }
+
 
 emptyUser : User
 emptyUser =
@@ -57,18 +60,22 @@ getAge : User -> Time.Posix -> Int
 getAge user now =
     Date.diff Years user.birthday <| Date.fromPosix Time.utc now
 
+
 encodeDate : Date -> Encode.Value
 encodeDate date =
     Encode.string (Api.Types.dateToString date)
+
 
 decodeDate : String -> Decoder Date
 decodeDate fieldName =
     Decode.field fieldName Decode.string
         |> Decode.andThen decodeDateHelper
 
+
 decodeDateHelper : String -> Decoder Date
 decodeDateHelper str =
-    Decode.succeed <| (Api.Types.stringToDate str)
+    Decode.succeed <| Api.Types.stringToDate str
+
 
 encodeGender : Gender -> Encode.Value
 encodeGender g =
@@ -81,7 +88,6 @@ encodeGender g =
 
         Other ->
             Encode.string "Other"
-
 
 
 decodeGender : Decoder Gender
@@ -124,6 +130,7 @@ encodeNewUser user =
         , ( "imageData", Encode.string user.image )
         ]
 
+
 encodeEditUser : EditUserDTO -> Encode.Value
 encodeEditUser user =
     Encode.object
@@ -135,21 +142,25 @@ encodeEditUser user =
         , ( "imageData", encodeMaybe Encode.string user.image )
         ]
 
+
 encodeMaybe : (dataType -> Encode.Value) -> Maybe dataType -> Encode.Value
 encodeMaybe encoder maybeData =
     case maybeData of
         Just data ->
             encoder data
+
         Nothing ->
             Encode.null
+
 
 encodeUserInfo : UserInfo -> Encode.Value
 encodeUserInfo userInfo =
     Encode.object
         [ ( "authToken", Encode.string userInfo.authToken )
-        , ( "username",  Encode.string userInfo.username )
+        , ( "username", Encode.string userInfo.username )
         , ( "firstLogIn", Encode.bool userInfo.firstLogIn )
         ]
+
 
 decodeUser : Decoder User
 decodeUser =
@@ -175,7 +186,7 @@ encodeToken token =
     Encode.string token
 
 
-postUsers : NewUser -> Http.Request (UserInfo)
+postUsers : NewUser -> Http.Request UserInfo
 postUsers body =
     Http.request
         { method =
@@ -198,7 +209,7 @@ postUsers body =
         }
 
 
-postLogin : Credentials -> Http.Request (UserInfo)
+postLogin : Credentials -> Http.Request UserInfo
 postLogin body =
     Http.request
         { method =
@@ -221,13 +232,13 @@ postLogin body =
         }
 
 
-postLogout : UserInfo -> Http.Request (String.String)
+postLogout : UserInfo -> Http.Request String.String
 postLogout userInfo =
     Http.request
         { method =
             "POST"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation
@@ -243,13 +254,14 @@ postLogout userInfo =
             False
         }
 
-getUserByUsername : UserInfo -> String -> Http.Request (User)
+
+getUserByUsername : UserInfo -> String -> Http.Request User
 getUserByUsername userInfo username =
     Http.request
         { method =
             "GET"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation
@@ -266,7 +278,8 @@ getUserByUsername userInfo username =
             False
         }
 
-getUserAlreadyExists : String -> Http.Request (Bool)
+
+getUserAlreadyExists : String -> Http.Request Bool
 getUserAlreadyExists username =
     Http.request
         { method =
@@ -290,13 +303,14 @@ getUserAlreadyExists username =
             False
         }
 
-getUsers : UserInfo -> Int -> Int -> Http.Request (List (User))
+
+getUsers : UserInfo -> Int -> Int -> Http.Request (List User)
 getUsers userInfo pageNum pageSize =
     Http.request
         { method =
             "GET"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation
@@ -314,13 +328,14 @@ getUsers userInfo pageNum pageSize =
             False
         }
 
+
 postEditUser : UserInfo -> EditUserDTO -> Http.Request UserInfo
 postEditUser userInfo body =
     Http.request
         { method =
             "POST"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation
@@ -336,13 +351,14 @@ postEditUser userInfo body =
             False
         }
 
-getMatches : UserInfo -> Int -> Int -> Http.Request (List (Match))
+
+getMatches : UserInfo -> Int -> Int -> Http.Request (List Match)
 getMatches userInfo pageNum pageSize =
     Http.request
         { method =
             "GET"
         , headers =
-            [Auth.createAuthHeader userInfo]
+            [ Auth.createAuthHeader userInfo ]
         , url =
             String.join "/"
                 [ apiLocation
@@ -359,6 +375,7 @@ getMatches userInfo pageNum pageSize =
         , withCredentials =
             False
         }
+
 
 decodeMatches : Decoder Match
 decodeMatches =
