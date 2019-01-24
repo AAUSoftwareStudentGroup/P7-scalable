@@ -236,7 +236,8 @@ userCard match age =
             ]
             (Routing.routeToString (Messages username))
             [ iconText "Chat" "chat" ]
-        , Html.text <| String.fromFloat match.score
+        ,Html.span [ class "match-score" ]
+            [ Html.text <| String.fromInt (round match.score) ]
         ]
 
 
