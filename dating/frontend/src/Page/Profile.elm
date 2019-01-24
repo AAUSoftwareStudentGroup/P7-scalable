@@ -67,7 +67,7 @@ update msg model =
 view : Model -> Session.Details Msg
 view model =
     let
-        age = (Api.Users.getAge model.user <| Session.getNow session
+        age = Api.Users.getAge model.user <| Session.getNow session
         ageString = " (" ++ (String.fromInt age) ++ ")"
     in
     El.userCard match age
