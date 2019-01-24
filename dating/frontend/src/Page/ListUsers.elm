@@ -46,7 +46,7 @@ type alias Model =
 
 initModel : Session -> Model
 initModel session =
-    Model session "All users" False True (startPage + 1) []
+    Model session "Matches" False True (startPage + 1) []
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -147,11 +147,11 @@ view model =
             else
                 El.loader
     in
-    { title = "All users"
+    { title = "Matches"
     , session = model.session
     , kids =
         Scrollable <|
-            El.titledContent "All users"
+            El.titledContent "Matches"
                 [ Html.ul
                     [ classList
                         [ ( "grid", True )

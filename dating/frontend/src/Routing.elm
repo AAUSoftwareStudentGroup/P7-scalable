@@ -30,7 +30,7 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map Logout (s "logout")
         , Parser.map CreateUser (s "create-user")
-        , Parser.map ListUsers (s "list-users")
+        , Parser.map ListUsers (s "matches")
         , Parser.map Messages (s "messages" </> Parser.string)
         , Parser.map EditUser (s "edit")
         , Parser.map Profile (s "user" </> Parser.string)
@@ -84,7 +84,7 @@ routeToString page =
                     [ "logout" ]
 
                 ListUsers ->
-                    [ "list-users" ]
+                    [ "matches" ]
 
                 Messages username ->
                     [ "messages", username ]
