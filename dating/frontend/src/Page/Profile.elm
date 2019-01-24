@@ -96,9 +96,11 @@ showImg : User -> Html msg
 showImg user =
     Html.img
         [ src user.image
-        , style "width" "100px"
-        , style "height" "100px"
-        ]
+        , classList
+            [ ( "profile-image", True )
+            , ( "l-12", True )
+            , ( "s-6", True )
+            ]
         []
 
 
