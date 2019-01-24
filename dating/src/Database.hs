@@ -361,13 +361,13 @@ updateUser mongoConf username newFields = runAction mongoConf editAction
       case dbEntry of
         Just (Entity key user) ->
           case getField @"imageData" newFields of
-            Just base64 ->
-              case urlFromBase64EncodedImage base64 (getField @"userSalt" user) of
+            Just base64 -> do
+              newImg <- liftIO mkAuthToken
+              case urlFromBase64EncodedImage base64 newImg of
                 Left txt -> return $ Left $ err415 {errBody = txt}
                 Right img -> do
                   liftIO img
                   _ <- liftIO $ removeSingleFile (T.unpack ("frontend" <> getField @"userImage" user))
-                  newImg <- liftIO mkAuthToken
                   _ <- update key ([UserImage =. "/img/users/" <> newImg <> ".jpg"] <> updatedValues newFields (getField @"userSalt" user))
                   return . Right $ userEntityToLoggedInDTO (Entity key user)
             Nothing -> do
