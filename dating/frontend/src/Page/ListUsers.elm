@@ -147,11 +147,11 @@ view model =
             else
                 El.loader
     in
-    { title = "All users"
+    { title = "Matches"
     , session = model.session
     , kids =
         Scrollable <|
-            El.titledContent "All users"
+            El.titledContent "Matches"
                 [ Html.ul
                     [ classList
                         [ ( "grid", True )
