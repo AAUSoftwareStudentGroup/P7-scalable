@@ -110,9 +110,18 @@ button, .btn {
     }
 }
 
+.profile-image {
+    max-width: 400px;
+    grid-row: span 4;
+}
+
 .property {
     span {
         display: block;
+    }
+    
+    .label {
+        @extend %txt-subheading;        
     }
 }
 
