@@ -289,11 +289,28 @@ textProperty labelText propertyText =
         [ classList
             [ ( "property", True )
             , ( "l-2", True )
+            , ( "s-4", True )
             ]
         ]
         [ Html.span [ class "label" ]
             [ Html.text labelText ]
         , Html.span [ class "value" ]
+            [ Html.text propertyText ]
+        ]
+
+
+paragraphProperty : String -> String -> Html msg
+paragraphProperty labelText propertyText =
+    div
+        [ classList
+            [ ( "property", True )
+            , ( "l-6", True )
+            , ( "s-12", True )
+            ]
+        ]
+        [ Html.span [ class "label" ]
+            [ Html.text labelText ]
+        , Html.p [ class "value" ]
             [ Html.text propertyText ]
         ]
 
@@ -311,21 +328,6 @@ propertyGroup label value =
             [ Html.text label ]
         , Html.span [ class "value" ]
             [ Html.text value ]
-        ]
-
-
-paragraphProperty : String -> String -> Html msg
-paragraphProperty labelText propertyText =
-    div
-        [ classList
-            [ ( "property", True )
-            , ( "l-6", True )
-            ]
-        ]
-        [ Html.span [ class "label" ]
-            [ Html.text labelText ]
-        , Html.p [ class "value" ]
-            [ Html.text propertyText ]
         ]
 
 
