@@ -66,6 +66,11 @@ update msg model =
 
 view : Model -> Session.Details Msg
 view model =
+    let
+        age = (Api.Users.getAge model.user <| Session.getNow session
+        ageString = " (" ++ (String.fromInt age) ++ ")"
+    in
+    El.userCard match age
     { title = model.title
     , session = model.session
     , kids =
@@ -80,7 +85,7 @@ view model =
                     ]
                     [ showImg model.user
                     , El.textProperty "Gender" (Api.Types.genderToString model.user.gender)
-                    , El.textProperty "Birthday" <| dateToString model.user.birthday
+                    , El.textProperty ("Birthday" <| dateToString model.user.birthday) ++ ageString
                     , El.textProperty "Town" model.user.town
                     , El.paragraphProperty "Description" model.user.profileText
                     , chatButton model.user.username model.session
