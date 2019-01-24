@@ -76,7 +76,6 @@ view model =
                     [ classList
                         [ ( "grid", True )
                         , ( "l-12", True )
-                        , ( "s-6", True )
                         ]
                     ]
                     [ showImg model.user
@@ -98,8 +97,8 @@ showImg user =
         [ src user.image
         , classList
             [ ( "profile-image", True )
-            , ( "l-12", True )
             , ( "s-6", True )
+            , ( "l-12", True )
             ]
         []
 
