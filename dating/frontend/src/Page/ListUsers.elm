@@ -46,7 +46,7 @@ type alias Model =
 
 initModel : Session -> Model
 initModel session =
-    Model session "All users" False True (startPage + 1) []
+    Model session "Matches" False True (startPage + 1) []
 
 
 init : Session -> ( Model, Cmd Msg )
