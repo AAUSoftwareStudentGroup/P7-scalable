@@ -288,12 +288,12 @@ textProperty labelText propertyText =
     div
         [ classList
             [ ( "property", True )
-            , ( "l-6", True )
+            , ( "l-2", True )
             ]
         ]
-        [ Html.span []
+        [ Html.span [ class "label" ]
             [ Html.text labelText ]
-        , Html.span []
+        , Html.span [ class "value" ]
             [ Html.text propertyText ]
         ]
 
@@ -319,12 +319,12 @@ paragraphProperty labelText propertyText =
     div
         [ classList
             [ ( "property", True )
-            , ( "l-12", True )
+            , ( "l-6", True )
             ]
         ]
-        [ Html.span []
+        [ Html.span [ class "label" ]
             [ Html.text labelText ]
-        , Html.p []
+        , Html.p [ class "value" ]
             [ Html.text propertyText ]
         ]
 
