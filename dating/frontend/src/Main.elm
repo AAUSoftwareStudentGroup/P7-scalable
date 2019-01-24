@@ -474,7 +474,7 @@ stepUrl url model =
                     (stepLogin model (Login.init session))
                 , route (Parser.s "logout")
                     (stepLogout model (Logout.init session))
-                , route (Parser.s "list-users")
+                , route (Parser.s "matches")
                     (stepListUsers model (ListUsers.init session))
                 , route (Parser.s "user" </> Parser.string)
                     (\username -> stepProfile model (Profile.init session username))
