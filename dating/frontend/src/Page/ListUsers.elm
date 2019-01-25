@@ -80,7 +80,10 @@ update msg model =
                 Ok newUsers ->
                     let
                         userList =
-                            List.reverse <| List.sortBy .score <| (model.users ++ newUsers)
+                            if List.length model.users > 0 then
+                                List.reverse <| List.sortBy .score <| (model.users ++ newUsers)
+                            else
+                                List.reverse <| List.sortBy .score <| newUsers
                     in
                     ( { model | users = userList, loaded = True, moreUsers = List.length newUsers == usersPerPage }, Cmd.none )
 
