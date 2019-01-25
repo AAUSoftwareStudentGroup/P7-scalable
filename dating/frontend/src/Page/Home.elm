@@ -53,10 +53,10 @@ view model =
         text =
             case model.session of
                 Session.LoggedIn _ _ _ userInfo ->
-                    "Hello " ++ userInfo.username ++ ". Welcome back to Functional Dating!"
+                    "Hello " ++ userInfo.username ++ ". Welcome back to Friendr!"
 
                 Session.Guest _ _ _ ->
-                    "Welcome to Functional Dating! Create a user to find love!"
+                    "Welcome to Friendr! Create a user to find a friend!"
     in
     { title = "Home"
     , session = model.session
