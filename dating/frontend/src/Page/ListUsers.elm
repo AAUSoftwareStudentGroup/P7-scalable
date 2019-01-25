@@ -59,7 +59,7 @@ init session =
 
         Session.LoggedIn _ _ _ _ ->
             ( initModel session
-            , sendGetUsers UsersFetched startPage session
+            , sendGetUsers InitUsersFetched startPage session
             )
 
 
@@ -68,22 +68,41 @@ init session =
 
 
 type Msg
-    = UsersFetched (Result Http.Error (List Match))
+    = InitUsersFetched (Result Http.Error (List Match))
+    | MoreUsersFetched (Result Http.Error (List Match))
     | LoadMore LoadMoreData
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UsersFetched result ->
+        InitUsersFetched result ->
             case result of
                 Ok newUsers ->
                     let
                         userList =
-                            if List.length model.users > 0 then
-                                List.reverse <| List.sortBy .score <| (model.users ++ newUsers)
-                            else
                                 List.reverse <| List.sortBy .score <| newUsers
+                    in
+                    ( { model | users = userList, loaded = True, moreUsers = List.length newUsers == usersPerPage }, Cmd.none )
+
+                Err error ->
+                    case error of
+                        Http.BadStatus response ->
+                            if response.status.code == 403 then
+                                ( model, Session.logout )
+
+                            else
+                                ( { model | session = Session.addNotification model.session ("Error: " ++ .body response) }, Cmd.none )
+
+                        _ ->
+                            ( { model | session = Session.addNotification model.session "Error: Something went wrong" }, Cmd.none )
+
+        MoreUsersFetched result ->
+            case result of
+                Ok newUsers ->
+                    let
+                        userList =
+                                List.reverse <| List.sortBy .score <| (model.users ++ newUsers)
                     in
                     ( { model | users = userList, loaded = True, moreUsers = List.length newUsers == usersPerPage }, Cmd.none )
 
@@ -103,7 +122,7 @@ update msg model =
             let
                 command =
                     if model.moreUsers then
-                        sendGetUsers UsersFetched model.pageNum model.session
+                        sendGetUsers MoreUsersFetched model.pageNum model.session
 
                     else
                         Cmd.none
